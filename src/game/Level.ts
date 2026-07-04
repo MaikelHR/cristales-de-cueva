@@ -29,11 +29,18 @@ export class Level {
   readonly crystalCells: Spawn[] = [];
   readonly slimeCells: Spawn[] = [];
   playerSpawn: Spawn = { x: 0, y: 0 };
-  doorBox: Box = { x: 0, y: 0, w: TILE, h: TILE };
+  doorBox: Box | null = null; // solo en la sala que tiene 'D'
 
   constructor(private readonly map: string[]) {
     this.rows = map.length;
     this.cols = map[0].length;
+    map.forEach((row, i) => {
+      if (row.length !== this.cols) {
+        throw new Error(
+          `Mapa inválido: la fila ${i} tiene ${row.length} caracteres y la fila 0 tiene ${this.cols}`,
+        );
+      }
+    });
     this.widthPx = this.cols * TILE;
     this.heightPx = this.rows * TILE;
     this.parse();

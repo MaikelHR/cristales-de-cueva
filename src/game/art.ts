@@ -151,10 +151,13 @@ export function drawGlow(
 // ============================================================
 interface Stalactite { x: number; w: number; len: number; }
 let stalactites: Stalactite[] = [];
+let stalactitesFor = -1; // ancho de mundo para el que se generaron
 
 function ensureStalactites(worldW: number): void {
-  if (stalactites.length) return;
-  let seed = 1337;
+  if (stalactitesFor === worldW) return; // cada sala regenera las suyas
+  stalactitesFor = worldW;
+  stalactites = [];
+  let seed = 1337 + worldW; // semilla distinta por sala: otro techo
   const rng = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
   for (let x = 6; x < worldW; x += 26 + Math.floor(rng() * 18)) {
     stalactites.push({ x, w: 6 + Math.floor(rng() * 8), len: 10 + Math.floor(rng() * 22) });

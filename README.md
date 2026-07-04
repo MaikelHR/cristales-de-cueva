@@ -34,9 +34,10 @@ GitHub Pages.
 
 ## Cómo está armado
 
-- `src/engine/` — motor reutilizable (bucle, entrada, canvas/colisiones, **Sprite**)
-- `src/game/` — este juego (jugador, nivel, slimes, cámara, reglas)
-- El nivel es texto ASCII dentro de `src/game/Level.ts`: editá el mapa ahí.
+- `src/engine/` — motor reutilizable (bucle, entrada, canvas/colisiones, **Sprite**, audio)
+- `src/game/` — este juego (jugador, mundo, salas, slimes, cámara, reglas)
+- El mundo son **salas conectadas**: cada sala es texto ASCII en `src/game/rooms/`
+  (un archivo por sala). Editá una, o creá la tuya y sumala a `rooms/index.ts`.
 - **El arte** está en `src/game/art.ts`: cada sprite es una grilla de texto con una
   paleta. Cambiá un carácter y cambia un pixel. Ahí también viven los brillos, el
   fondo con parallax, el polvo y la viñeta. Cuando quieras arte de PixelLab/Aseprite,

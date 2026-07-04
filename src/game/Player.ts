@@ -57,6 +57,11 @@ export class Player {
     this.respawn();
   }
 
+  /** Al cambiar de sala, el jugador pasa a colisionar contra la nueva. */
+  setLevel(level: Level): void {
+    this.level = level;
+  }
+
   respawn(): void {
     this.x = this.level.playerSpawn.x + 1;
     this.y = this.level.playerSpawn.y;

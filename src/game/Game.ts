@@ -1,36 +1,26 @@
 // ============================================================
 //  EL JUEGO (orquestador)
 // ------------------------------------------------------------
-//  Junta todo: nivel, jugador, slimes, cámara y cristales.
-//  Decide las reglas: recoger los 5 cristales y llegar a la puerta.
+//  Junta todo: mundo (salas), jugador, cámara y reglas.
+//  Recoge todos los cristales del mundo y llega a la puerta.
 //  Tocar un slime o caer a un foso = volver al inicio.
 // ============================================================
 
-import { Level } from './Level';
 import { Player } from './Player';
-import { Slime } from './Slime';
 import { Camera } from './Camera';
 import { Particles } from './Particles';
-import { ROOMS } from './rooms';
+import { World } from './World';
 import { justPressed } from '../engine/input';
 import { overlaps, type Box } from '../engine/canvas';
 import { sprites, drawGlow, drawBackground, drawDust, drawVignette, initDust } from './art';
 import { sfx } from './sfx';
 
-interface Crystal {
-  x: number;
-  y: number;
-  taken: boolean;
-}
-
 type State = 'playing' | 'won';
 
 export class Game {
-  private level: Level;
+  private world: World;
   private player: Player;
-  private slimes: Slime[];
-  private camera: Camera;
-  private crystals: Crystal[];
+  private camera!: Camera; // la crea makeCamera()
   private particles = new Particles();
   private state: State = 'playing';
   private time = 0;
@@ -41,30 +31,43 @@ export class Game {
     private viewW: number,
     private viewH: number,
   ) {
-    this.level = new Level(ROOMS[0].map);
-    this.player = new Player(this.level, this.particles);
-    this.slimes = this.level.slimeCells.map((c) => new Slime(c.x, c.y, this.level));
-    this.camera = new Camera(viewW, viewH, this.level.widthPx, this.level.heightPx);
-    this.crystals = this.level.crystalCells.map((c) => ({
-      x: c.x + 1,
-      y: c.y + 1,
-      taken: false,
-    }));
+    this.world = new World();
+    this.player = new Player(this.world.current.level, this.particles);
+    this.makeCamera();
     initDust(viewW, viewH);
   }
 
+  /** La cámara se ajusta al tamaño de la sala actual. */
+  private makeCamera(): void {
+    const level = this.world.current.level;
+    this.camera = new Camera(this.viewW, this.viewH, level.widthPx, level.heightPx);
+  }
+
   private get collected(): number {
-    return this.crystals.filter((c) => c.taken).length;
+    return this.world.allCrystals.filter((c) => c.taken).length;
+  }
+
+  private get totalCrystals(): number {
+    return this.world.allCrystals.length;
   }
 
   private reset(): void {
+    this.world = new World(); // mundo nuevo: salas, slimes y cristales de cero
+    this.player.setLevel(this.world.current.level);
     this.player.respawn();
-    for (const c of this.crystals) c.taken = false;
-    this.slimes = this.level.slimeCells.map((c) => new Slime(c.x, c.y, this.level));
     this.particles.clear();
+    this.makeCamera();
     this.freezeTimer = 0;
     this.deadFrozen = false;
     this.state = 'playing';
+  }
+
+  /** Volver al punto de aparición tras morir. */
+  private respawnPlayer(): void {
+    this.world.goToStart();
+    this.player.setLevel(this.world.current.level);
+    this.player.respawn();
+    this.makeCamera();
   }
 
   update(dt: number): void {
@@ -74,13 +77,13 @@ export class Game {
     }
 
     // Hit-stop: tras un golpe mortal, el mundo entero queda clavado
-    // un instante. Al soltarse llegan la sacudida y el respawn.
+    // un instante. Al soltarse llegan el respawn y la sacudida.
     if (this.freezeTimer > 0) {
       this.freezeTimer -= dt;
       if (this.freezeTimer <= 0 && this.deadFrozen) {
         this.deadFrozen = false;
+        this.respawnPlayer();
         this.camera.shake(3, 0.35);
-        this.player.respawn();
       }
       return;
     }
@@ -91,12 +94,20 @@ export class Game {
     if (this.state === 'won') return;
 
     this.player.update(dt);
-    for (const s of this.slimes) s.update(dt);
+
+    // ¿Cruzó un borde hacia otra sala?
+    if (this.world.tryTransition(this.player)) {
+      this.player.setLevel(this.world.current.level);
+      this.makeCamera();
+    }
+
+    const room = this.world.current;
+    for (const s of room.slimes) s.update(dt);
 
     const pbox = this.player.box();
 
-    // Recoger cristales
-    for (const c of this.crystals) {
+    // Recoger cristales de la sala actual
+    for (const c of room.crystals) {
       if (c.taken) continue;
       const cbox: Box = { x: c.x, y: c.y, w: 6, h: 6 };
       if (overlaps(pbox, cbox)) {
@@ -107,21 +118,22 @@ export class Game {
       }
     }
 
-    // Chocar slime -> volver al inicio (los cristales recogidos se conservan)
-    for (const s of this.slimes) {
+    // Chocar slime -> morir (los cristales recogidos se conservan)
+    for (const s of room.slimes) {
       if (overlaps(pbox, s.box())) {
         this.die();
         break;
       }
     }
 
-    // Caer fuera del mundo -> volver al inicio
-    if (this.player.y > this.level.heightPx + 24) {
+    // Caer fuera del mundo -> morir
+    if (this.player.y > room.level.heightPx + 24) {
       this.die();
     }
 
     // Llegar a la puerta con todos los cristales -> ganar
-    if (this.collected === this.crystals.length && overlaps(pbox, this.level.doorBox)) {
+    const door = room.level.doorBox;
+    if (door && this.collected === this.totalCrystals && overlaps(pbox, door)) {
       this.state = 'won';
       sfx.win();
     }
@@ -145,13 +157,14 @@ export class Game {
   draw(ctx: CanvasRenderingContext2D): void {
     const camX = this.camera.x;
     const camY = this.camera.y;
+    const room = this.world.current;
 
-    drawBackground(ctx, camX, camY, this.viewW, this.viewH, this.level.widthPx);
+    drawBackground(ctx, camX, camY, this.viewW, this.viewH, room.level.widthPx);
 
-    this.level.draw(ctx, camX, camY, this.viewW, this.viewH);
+    room.level.draw(ctx, camX, camY, this.viewW, this.viewH);
     this.drawDoor(ctx, camX, camY);
     this.drawCrystals(ctx, camX, camY);
-    for (const s of this.slimes) s.draw(ctx, camX, camY);
+    for (const s of room.slimes) s.draw(ctx, camX, camY);
     this.player.draw(ctx, camX, camY);
     this.particles.draw(ctx, camX, camY);
 
@@ -163,7 +176,7 @@ export class Game {
   }
 
   private drawCrystals(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {
-    for (const c of this.crystals) {
+    for (const c of this.world.current.crystals) {
       if (c.taken) continue;
       const bob = Math.sin(this.time * 3 + c.x) * 1.5;
       const cx = c.x + 3 - camX;
@@ -177,8 +190,9 @@ export class Game {
   }
 
   private drawDoor(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {
-    const d = this.level.doorBox;
-    const open = this.collected === this.crystals.length;
+    const d = this.world.current.level.doorBox;
+    if (!d) return; // esta sala no tiene puerta
+    const open = this.collected === this.totalCrystals;
     const sprite = open ? sprites.doorOpen : sprites.doorLocked;
     const floorY = d.y - 2 + 8; // base de la puerta sobre el piso
     const drawX = d.x + 4 - sprite.w / 2;
@@ -194,8 +208,8 @@ export class Game {
     ctx.fillStyle = '#ffe25a';
     ctx.font = '8px "JetBrains Mono", ui-monospace, monospace';
     ctx.textBaseline = 'top';
-    ctx.fillText(`CRISTALES ${this.collected}/${this.crystals.length}`, 6, 6);
-    if (this.collected === this.crystals.length && this.state === 'playing') {
+    ctx.fillText(`CRISTALES ${this.collected}/${this.totalCrystals}`, 6, 6);
+    if (this.collected === this.totalCrystals && this.state === 'playing') {
       ctx.fillStyle = '#b98bff';
       ctx.fillText('LA PUERTA ESTÁ ABIERTA', 6, 16);
     }
