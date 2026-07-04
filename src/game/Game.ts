@@ -91,14 +91,14 @@ export class Game {
     // Chocar slime -> volver al inicio (los cristales recogidos se conservan)
     for (const s of this.slimes) {
       if (overlaps(pbox, s.box())) {
-        this.player.respawn();
+        this.die();
         break;
       }
     }
 
     // Caer fuera del mundo -> volver al inicio
     if (this.player.y > this.level.heightPx + 24) {
-      this.player.respawn();
+      this.die();
     }
 
     // Llegar a la puerta con todos los cristales -> ganar
@@ -106,10 +106,17 @@ export class Game {
       this.state = 'won';
     }
 
+    this.camera.update(dt);
     this.camera.follow(
       this.player.x + this.player.w / 2,
       this.player.y + this.player.h / 2,
     );
+  }
+
+  /** Morir: sacudir la cámara y volver al punto de aparición. */
+  private die(): void {
+    this.camera.shake(3, 0.35);
+    this.player.respawn();
   }
 
   draw(ctx: CanvasRenderingContext2D): void {
