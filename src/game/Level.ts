@@ -6,6 +6,7 @@
 //    '#' = bloque sólido     '.' = aire
 //    'o' = cristal           's' = slime (enemigo)
 //    'P' = inicio del jugador 'D' = puerta (meta)
+//    '-' = plataforma de un solo sentido (subís atravesándola)
 //  Para diseñar niveles, editás ese texto. Así de directo.
 // ============================================================
 
@@ -26,6 +27,7 @@ export class Level {
   readonly heightPx: number;
 
   private solid: boolean[][] = [];
+  private oneWay: boolean[][] = [];
   readonly crystalCells: Spawn[] = [];
   readonly slimeCells: Spawn[] = [];
   playerSpawn: Spawn = { x: 0, y: 0 };
@@ -49,9 +51,11 @@ export class Level {
   private parse(): void {
     for (let row = 0; row < this.rows; row++) {
       this.solid[row] = [];
+      this.oneWay[row] = [];
       for (let col = 0; col < this.cols; col++) {
         const ch = this.map[row][col];
         this.solid[row][col] = ch === '#';
+        this.oneWay[row][col] = ch === '-';
         const px = col * TILE;
         const py = row * TILE;
         if (ch === 'o') this.crystalCells.push({ x: px, y: py });
@@ -72,6 +76,15 @@ export class Level {
 
   /** Devuelve las cajas de los tiles sólidos que tocan una caja dada. */
   solidTilesIn(box: Box): Box[] {
+    return this.tilesIn(box, this.solid);
+  }
+
+  /** Ídem, pero con las plataformas de un solo sentido. */
+  oneWayTilesIn(box: Box): Box[] {
+    return this.tilesIn(box, this.oneWay);
+  }
+
+  private tilesIn(box: Box, grid: boolean[][]): Box[] {
     const result: Box[] = [];
     const c0 = Math.max(0, Math.floor(box.x / TILE));
     const c1 = Math.min(this.cols - 1, Math.floor((box.x + box.w) / TILE));
@@ -79,7 +92,7 @@ export class Level {
     const r1 = Math.min(this.rows - 1, Math.floor((box.y + box.h) / TILE));
     for (let row = r0; row <= r1; row++) {
       for (let col = c0; col <= c1; col++) {
-        if (this.solid[row][col]) {
+        if (grid[row][col]) {
           result.push({ x: col * TILE, y: row * TILE, w: TILE, h: TILE });
         }
       }
@@ -96,10 +109,13 @@ export class Level {
 
     for (let row = r0; row <= r1; row++) {
       for (let col = c0; col <= c1; col++) {
-        if (!this.solid[row][col]) continue;
-        const exposedTop = row > 0 && !this.solid[row - 1][col];
-        const sprite = exposedTop ? sprites.tileTop : sprites.tileFill;
-        sprite.draw(ctx, col * TILE - camX, row * TILE - camY);
+        if (this.solid[row][col]) {
+          const exposedTop = row > 0 && !this.solid[row - 1][col];
+          const sprite = exposedTop ? sprites.tileTop : sprites.tileFill;
+          sprite.draw(ctx, col * TILE - camX, row * TILE - camY);
+        } else if (this.oneWay[row][col]) {
+          sprites.plank.draw(ctx, col * TILE - camX, row * TILE - camY);
+        }
       }
     }
   }

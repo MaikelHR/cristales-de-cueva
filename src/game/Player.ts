@@ -116,9 +116,11 @@ export class Player {
     this.resolveAxis('x');
     const fallSpeed = this.vy; // velocidad ANTES de chocar con el piso
     const wasOnGround = this.onGround;
+    const prevBottom = this.y + this.h; // pies ANTES de mover en Y
     this.y += this.vy * dt;
     this.onGround = false;
     this.resolveAxis('y');
+    this.resolveOneWay(prevBottom);
 
     // Aterrizar aplastado: más fuerte el golpe, más chato queda.
     if (!wasOnGround && this.onGround && fallSpeed > 60) {
@@ -145,6 +147,25 @@ export class Player {
     if (Math.abs(this.stretch - 1) < 0.01) this.stretch = 1;
 
     this.animTime += dt;
+  }
+
+  /**
+   * Plataformas de un solo sentido: solo frenan la caída si los pies
+   * venían DESDE ARRIBA del tablón. Subiendo (o desde el costado) se
+   * atraviesan sin tocarlas.
+   */
+  private resolveOneWay(prevBottom: number): void {
+    if (this.vy < 0) return; // subiendo: siempre se atraviesan
+    const box = this.box();
+    for (const tile of this.level.oneWayTilesIn(box)) {
+      if (!overlaps(box, tile)) continue;
+      if (prevBottom <= tile.y + 0.01) {
+        this.y = tile.y - this.h;
+        this.vy = 0;
+        this.onGround = true;
+        box.y = this.y;
+      }
+    }
   }
 
   private resolveAxis(axis: 'x' | 'y'): void {

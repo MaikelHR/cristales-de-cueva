@@ -90,6 +90,12 @@ const TILE_TOP = [
   'ootmmtoo', 'roooooor', 'rrrrorrr', 'orrrrrro',
   'rrrorrrr', 'rrrrrror', 'rorrrrrr', 'ssssssss',
 ];
+// Tablón de un solo sentido: fino, con brillos en el canto.
+const TILE_PLANK = [
+  'mtoootmo',
+  'orrrrrro',
+  '.s....s.',
+];
 
 export const sprites = {
   playerIdle: new Sprite(PLAYER_IDLE, PALETTE),
@@ -104,6 +110,7 @@ export const sprites = {
   doorOpen: new Sprite(DOOR_OPEN, PALETTE),
   tileFill: new Sprite(TILE_FILL, PALETTE),
   tileTop: new Sprite(TILE_TOP, PALETTE),
+  plank: new Sprite(TILE_PLANK, PALETTE),
 };
 
 // ============================================================
