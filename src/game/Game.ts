@@ -33,6 +33,8 @@ export class Game {
   private particles = new Particles();
   private state: State = 'playing';
   private time = 0;
+  private freezeTimer = 0;    // hit-stop: mundo congelado unos frames
+  private deadFrozen = false; // hay una muerte esperando el respawn
 
   constructor(
     private viewW: number,
@@ -59,16 +61,30 @@ export class Game {
     for (const c of this.crystals) c.taken = false;
     this.slimes = this.level.slimeCells.map((c) => new Slime(c.x, c.y, this.level));
     this.particles.clear();
+    this.freezeTimer = 0;
+    this.deadFrozen = false;
     this.state = 'playing';
   }
 
   update(dt: number): void {
-    this.time += dt;
-
     if (justPressed('restart')) {
       this.reset();
       return;
     }
+
+    // Hit-stop: tras un golpe mortal, el mundo entero queda clavado
+    // un instante. Al soltarse llegan la sacudida y el respawn.
+    if (this.freezeTimer > 0) {
+      this.freezeTimer -= dt;
+      if (this.freezeTimer <= 0 && this.deadFrozen) {
+        this.deadFrozen = false;
+        this.camera.shake(3, 0.35);
+        this.player.respawn();
+      }
+      return;
+    }
+
+    this.time += dt;
     // Las chispas siguen vivas incluso en la pantalla de victoria.
     this.particles.update(dt);
     if (this.state === 'won') return;
@@ -116,11 +132,13 @@ export class Game {
     );
   }
 
-  /** Morir: sacudir la cámara y volver al punto de aparición. */
+  /** Morir: congelar el mundo un instante; el respawn y la sacudida
+   *  llegan cuando el congelamiento se suelta (ver update). */
   private die(): void {
-    this.camera.shake(3, 0.35);
+    if (this.deadFrozen) return; // ya hay una muerte en curso
+    this.freezeTimer = 0.26;
+    this.deadFrozen = true;
     sfx.die();
-    this.player.respawn();
   }
 
   draw(ctx: CanvasRenderingContext2D): void {

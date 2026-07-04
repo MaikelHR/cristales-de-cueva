@@ -65,7 +65,7 @@ un demo de "se siente bien".
 - [x] **Sacudida de cámara** corta al morir
 - [x] **Sonido**: salto, recoger, morir, ganar (Web Audio API, tonos simples)
 - [x] **Partículas de polvo** al correr y al caer
-- [ ] Pequeño retardo (unos frames congelados) al morir, para dar peso
+- [x] Pequeño retardo (unos frames congelados) al morir, para dar peso
 
 > Dónde: la mayoría toca `Player.ts` (animación) y un nuevo `game/Particles.ts`.
 > El sonido puede vivir en `engine/audio.ts`.
