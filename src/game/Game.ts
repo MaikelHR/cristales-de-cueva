@@ -11,7 +11,7 @@ import { Camera } from './Camera';
 import { Particles } from './Particles';
 import { World } from './World';
 import { justPressed } from '../engine/input';
-import { overlaps, type Box } from '../engine/canvas';
+import { overlaps, clamp, type Box } from '../engine/canvas';
 import { sprites, drawGlow, drawBackground, drawDust, drawVignette, initDust } from './art';
 import { sfx } from './sfx';
 
@@ -28,6 +28,8 @@ export class Game {
   private deadFrozen = false; // hay una muerte esperando el respawn
   // Checkpoint: la sala y el punto donde reaparecés al morir.
   private checkpoint = { roomId: '', x: 0, y: 0 };
+  // Salas ya exploradas: son las que muestra el minimapa.
+  private visited = new Set<string>();
 
   constructor(
     private viewW: number,
@@ -36,6 +38,7 @@ export class Game {
     this.world = new World();
     this.player = new Player(this.world.current.level, this.particles);
     this.saveCheckpoint();
+    this.visited.add(this.world.current.def.id);
     this.makeCamera();
     initDust(viewW, viewH);
   }
@@ -68,6 +71,7 @@ export class Game {
     this.player.setLevel(this.world.current.level);
     this.player.respawn();
     this.saveCheckpoint();
+    this.visited = new Set([this.world.current.def.id]);
     this.particles.clear();
     this.makeCamera();
     this.freezeTimer = 0;
@@ -114,6 +118,7 @@ export class Game {
       this.makeCamera();
       // La boca por la que entraste es tu nuevo punto de reaparición.
       this.saveCheckpoint();
+      this.visited.add(this.world.current.def.id);
     }
 
     const room = this.world.current;
@@ -187,7 +192,37 @@ export class Game {
     drawVignette(ctx, this.viewW, this.viewH);
 
     this.drawHud(ctx);
+    this.drawMinimap(ctx);
     if (this.state === 'won') this.drawWin(ctx);
+  }
+
+  /** Minimapa (arriba a la derecha): las salas se revelan al visitarlas. */
+  private drawMinimap(ctx: CanvasRenderingContext2D): void {
+    const cellW = 12;
+    const cellH = 8;
+    const gap = 2;
+    const rooms = this.world.allRooms;
+    const maxX = Math.max(...rooms.map((r) => r.def.mapPos.x));
+    const baseX = this.viewW - 6 - ((maxX + 1) * cellW + maxX * gap);
+    const baseY = 6;
+
+    for (const room of rooms) {
+      if (!this.visited.has(room.def.id)) continue;
+      const x = baseX + room.def.mapPos.x * (cellW + gap);
+      const y = baseY + room.def.mapPos.y * (cellH + gap);
+      const isCurrent = room === this.world.current;
+      // Marco y fondo de la celda
+      ctx.fillStyle = isCurrent ? '#ffe25a' : '#4a2e70';
+      ctx.fillRect(x, y, cellW, cellH);
+      ctx.fillStyle = isCurrent ? '#3a2456' : '#241638';
+      ctx.fillRect(x + 1, y + 1, cellW - 2, cellH - 2);
+      // Puntito del jugador dentro de la sala actual
+      if (isCurrent) {
+        const rel = clamp(this.player.x / room.level.widthPx, 0, 1);
+        ctx.fillStyle = '#7ce0ff';
+        ctx.fillRect(x + 1 + Math.round(rel * (cellW - 4)), y + cellH / 2 - 1, 2, 2);
+      }
+    }
   }
 
   private drawCrystals(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {

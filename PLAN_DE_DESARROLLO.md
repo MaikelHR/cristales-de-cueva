@@ -80,7 +80,7 @@ Aquí el juego empieza a oler a metroidvania.
 - [x] Sistema de **salas conectadas**: salir por un borde entra a otra sala
 - [x] **Checkpoints** o puntos de reaparición por sala (en vez de volver al inicio)
 - [x] Plataformas de **un solo sentido** (subís atravesando, te parás encima)
-- [ ] **Mapa/minimapa** que se revela conforme explorás
+- [x] **Mapa/minimapa** que se revela conforme explorás
 - [ ] Fondo con **parallax** (capas que se mueven a distinta velocidad)
 
 > Dónde: nace `game/World.ts` (gestiona salas y transiciones). `Level.ts` pasa a

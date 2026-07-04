@@ -64,6 +64,11 @@ export class World {
     return [...this.rooms.values()].flatMap((r) => r.crystals);
   }
 
+  /** Todas las salas (para el minimapa). */
+  get allRooms(): Room[] {
+    return [...this.rooms.values()];
+  }
+
   /**
    * Si el centro del jugador cruzó un borde con salida, cambia de
    * sala y lo recoloca asomando por el borde opuesto de la nueva.
