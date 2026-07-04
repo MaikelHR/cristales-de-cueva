@@ -123,7 +123,16 @@ export class Level {
       for (let col = c0; col <= c1; col++) {
         if (this.solid[row][col]) {
           const exposedTop = row > 0 && !this.solid[row - 1][col];
-          const sprite = exposedTop ? sprites.tileTop : sprites.tileFill;
+          // Variantes de bloque elegidas por posición (siempre la misma
+          // para la misma celda): rompen la repetición sin aleatoriedad.
+          const v = (col * 7 + row * 13) % 9;
+          const sprite = exposedTop
+            ? sprites.tileTop
+            : v === 3
+              ? sprites.tileFill2
+              : v === 7
+                ? sprites.tileFill3
+                : sprites.tileFill;
           sprite.draw(ctx, col * TILE - camX, row * TILE - camY);
         } else if (this.oneWay[row][col]) {
           sprites.plank.draw(ctx, col * TILE - camX, row * TILE - camY);

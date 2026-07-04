@@ -335,6 +335,8 @@ export class Player {
     if (this.vx !== 0) {
       return Math.floor(this.animTime * 10) % 2 === 0 ? sprites.playerRun1 : sprites.playerRun2;
     }
-    return sprites.playerIdle;
+    // Idle vivo: parpadea cada tanto y "respira" despacio.
+    if (this.animTime % 3.3 < 0.15) return sprites.playerBlink;
+    return Math.floor(this.animTime * 1.6) % 2 === 0 ? sprites.playerIdle : sprites.playerIdle2;
   }
 }
