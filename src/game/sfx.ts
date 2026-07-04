@@ -19,6 +19,11 @@ export const sfx = {
     playTone({ freq: 990, duration: 0.06, type: 'triangle', volume: 0.08, delay: 0.03 });
   },
 
+  /** Dash: soplido rápido que cae. */
+  dash(): void {
+    playTone({ freq: 520, freqEnd: 160, duration: 0.16, type: 'sawtooth', volume: 0.12 });
+  },
+
   /** Recoger cristal: dos campanitas subiendo. */
   pickup(): void {
     playTone({ freq: 880, duration: 0.07, type: 'triangle', volume: 0.18 });

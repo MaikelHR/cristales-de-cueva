@@ -27,6 +27,12 @@ const JUMP_CUT = 0.45;     // al soltar saltar, recortamos el impulso
 
 const DOUBLE_JUMP = 0.92;  // fuerza del doble salto relativa al salto normal
 
+// Dash: impulso horizontal corto. Mientras dura, la gravedad se suspende.
+const DASH_SPEED = 250;    // px/s durante el dash
+const DASH_TIME = 0.14;    // segundos que dura el impulso
+const DASH_COOLDOWN = 0.5; // espera hasta poder volver a dashear
+const DASH_SQUASH = 0.8;   // achatado horizontal: sensación de velocidad
+
 // Squash & stretch: deformar el sprite da sensación de peso y energía.
 const STRETCH_JUMP = 1.28;    // estirado al despegar (alto y flaco)
 const SQUASH_MAX = 0.38;      // aplastado máximo al aterrizar (bajo y ancho)
@@ -48,8 +54,10 @@ export class Player {
 
   /** Habilidades desbloqueables (Fase 3): son datos, no código duro.
    *  Desbloquear una = poner su bandera en true. */
-  readonly abilities = { doubleJump: true };
+  readonly abilities = { doubleJump: true, dash: true };
   private airJumpsLeft = 0;
+  private dashTimer = 0;    // >0 = dash en curso
+  private dashCooldown = 0;
 
   private coyoteTimer = 0;
   private bufferTimer = 0;
@@ -88,47 +96,76 @@ export class Player {
   }
 
   update(dt: number): void {
-    // ---- Entrada horizontal ----
-    let dir = 0;
-    if (isDown('left')) dir -= 1;
-    if (isDown('right')) dir += 1;
-    this.vx = dir * MOVE_SPEED;
-    if (dir !== 0) this.facing = dir as 1 | -1;
+    // ---- Dash: ¿arranca uno? ----
+    this.dashCooldown = Math.max(0, this.dashCooldown - dt);
+    if (
+      this.dashTimer <= 0 &&
+      justPressed('dash') &&
+      this.abilities.dash &&
+      this.dashCooldown === 0
+    ) {
+      this.dashTimer = DASH_TIME;
+      this.dashCooldown = DASH_COOLDOWN;
+      this.stretch = DASH_SQUASH; // achatado por la velocidad
+      sfx.dash();
+    }
 
-    // ---- Temporizadores de coyote y buffer ----
-    this.coyoteTimer = this.onGround ? COYOTE : Math.max(0, this.coyoteTimer - dt);
-    if (this.onGround) this.airJumpsLeft = 1; // pisar recarga el doble salto
-    this.bufferTimer = justPressed('jump')
-      ? JUMP_BUFFER
-      : Math.max(0, this.bufferTimer - dt);
+    if (this.dashTimer > 0) {
+      // ---- En pleno dash: velocidad fija, sin gravedad ni control ----
+      this.dashTimer -= dt;
+      this.vx = this.facing * DASH_SPEED;
+      this.vy = 0;
+      // Estela de polvo detrás
+      this.particles.puff(
+        this.x + this.w / 2 - this.facing * 4,
+        this.y + this.h - 3,
+        1,
+        DUST_COLORS,
+        -this.facing,
+      );
+    } else {
+      // ---- Entrada horizontal ----
+      let dir = 0;
+      if (isDown('left')) dir -= 1;
+      if (isDown('right')) dir += 1;
+      this.vx = dir * MOVE_SPEED;
+      if (dir !== 0) this.facing = dir as 1 | -1;
 
-    // ---- Salto desde el piso (con coyote) o doble salto en el aire ----
-    if (this.bufferTimer > 0) {
-      if (this.coyoteTimer > 0) {
-        this.vy = -JUMP_SPEED;
-        this.onGround = false;
-        this.bufferTimer = 0;
-        this.coyoteTimer = 0;
-        this.stretch = STRETCH_JUMP; // despega estirado
-        sfx.jump();
-      } else if (this.abilities.doubleJump && this.airJumpsLeft > 0) {
-        // Doble salto: un impulso extra en pleno aire.
-        this.airJumpsLeft--;
-        this.vy = -JUMP_SPEED * DOUBLE_JUMP;
-        this.bufferTimer = 0;
-        this.stretch = STRETCH_JUMP;
-        // Nubecita bajo los pies: el "apoyo" invisible del segundo salto.
-        this.particles.puff(this.x + this.w / 2, this.y + this.h, 5, DUST_COLORS);
-        sfx.doubleJump();
+      // ---- Temporizadores de coyote y buffer ----
+      this.coyoteTimer = this.onGround ? COYOTE : Math.max(0, this.coyoteTimer - dt);
+      if (this.onGround) this.airJumpsLeft = 1; // pisar recarga el doble salto
+      this.bufferTimer = justPressed('jump')
+        ? JUMP_BUFFER
+        : Math.max(0, this.bufferTimer - dt);
+
+      // ---- Salto desde el piso (con coyote) o doble salto en el aire ----
+      if (this.bufferTimer > 0) {
+        if (this.coyoteTimer > 0) {
+          this.vy = -JUMP_SPEED;
+          this.onGround = false;
+          this.bufferTimer = 0;
+          this.coyoteTimer = 0;
+          this.stretch = STRETCH_JUMP; // despega estirado
+          sfx.jump();
+        } else if (this.abilities.doubleJump && this.airJumpsLeft > 0) {
+          // Doble salto: un impulso extra en pleno aire.
+          this.airJumpsLeft--;
+          this.vy = -JUMP_SPEED * DOUBLE_JUMP;
+          this.bufferTimer = 0;
+          this.stretch = STRETCH_JUMP;
+          // Nubecita bajo los pies: el "apoyo" invisible del segundo salto.
+          this.particles.puff(this.x + this.w / 2, this.y + this.h, 5, DUST_COLORS);
+          sfx.doubleJump();
+        }
       }
-    }
-    // Salto variable: si soltás temprano, el brinco es más bajo.
-    if (!isDown('jump') && this.vy < 0) {
-      this.vy *= JUMP_CUT;
-    }
+      // Salto variable: si soltás temprano, el brinco es más bajo.
+      if (!isDown('jump') && this.vy < 0) {
+        this.vy *= JUMP_CUT;
+      }
 
-    // ---- Gravedad ----
-    this.vy = Math.min(this.vy + GRAVITY * dt, MAX_FALL);
+      // ---- Gravedad ----
+      this.vy = Math.min(this.vy + GRAVITY * dt, MAX_FALL);
+    }
 
     // ---- Mover y resolver colisiones, un eje a la vez ----
     this.x += this.vx * dt;

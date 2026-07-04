@@ -93,7 +93,7 @@ Aquí el juego empieza a oler a metroidvania.
 La gracia del género: volver con una habilidad nueva y llegar a donde antes no.
 
 - [x] **Doble salto**
-- [ ] **Dash** (impulso horizontal corto con cooldown)
+- [x] **Dash** (impulso horizontal corto con cooldown)
 - [ ] **Wall jump / wall slide** (deslizar y saltar por paredes)
 - [ ] Puertas/zonas que **requieren** una habilidad (bloqueos de progreso)
 - [ ] Un objeto coleccionable que **otorga** cada habilidad

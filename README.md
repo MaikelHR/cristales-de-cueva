@@ -29,7 +29,8 @@ GitHub Pages.
 ## Controles
 
 - Mover: `←` `→` o `A` `D`
-- Saltar: `espacio` / `↑` / `W`
+- Saltar (y doble salto): `espacio` / `↑` / `W`
+- Dash: `shift` / `X`
 - Reiniciar: `R`
 
 ## Cómo está armado
