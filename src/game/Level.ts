@@ -1,42 +1,18 @@
 // ============================================================
-//  EL NIVEL
+//  EL NIVEL (una sala)
 // ------------------------------------------------------------
-//  El mapa es texto. Cada carácter es una celda de 8x8 px:
+//  El mapa es texto y vive en rooms/*.ts (un archivo por sala);
+//  esta clase lo interpreta. Cada carácter es una celda de 8x8 px:
 //    '#' = bloque sólido     '.' = aire
 //    'o' = cristal           's' = slime (enemigo)
 //    'P' = inicio del jugador 'D' = puerta (meta)
-//  Para diseñar niveles, editás este texto. Así de directo.
+//  Para diseñar niveles, editás ese texto. Así de directo.
 // ============================================================
 
 import type { Box } from '../engine/canvas';
 import { sprites } from './art';
 
 export const TILE = 8;
-
-const MAP: string[] = [
-  '################################################',
-  '#..............................................#',
-  '#..............................................#',
-  '#..............................................#',
-  '#..............................................#',
-  '#..............................................#',
-  '#..............................................#',
-  '#..............................................#',
-  '#..............................................#',
-  '#..............................................#',
-  '#..............................................#',
-  '#..............................................#',
-  '#..............................................#',
-  '#..............................................#',
-  '#........................................o.....#',
-  '#.......................................####...#',
-  '#..............................................#',
-  '#......o.................so....................#',
-  '#.....####.........o....#####....o....####.....#',
-  '#................######........######..........#',
-  '#..P........s................................D.#',
-  '##################...###########...#############',
-];
 
 export interface Spawn {
   x: number;
@@ -55,9 +31,9 @@ export class Level {
   playerSpawn: Spawn = { x: 0, y: 0 };
   doorBox: Box = { x: 0, y: 0, w: TILE, h: TILE };
 
-  constructor() {
-    this.rows = MAP.length;
-    this.cols = MAP[0].length;
+  constructor(private readonly map: string[]) {
+    this.rows = map.length;
+    this.cols = map[0].length;
     this.widthPx = this.cols * TILE;
     this.heightPx = this.rows * TILE;
     this.parse();
@@ -67,7 +43,7 @@ export class Level {
     for (let row = 0; row < this.rows; row++) {
       this.solid[row] = [];
       for (let col = 0; col < this.cols; col++) {
-        const ch = MAP[row][col];
+        const ch = this.map[row][col];
         this.solid[row][col] = ch === '#';
         const px = col * TILE;
         const py = row * TILE;

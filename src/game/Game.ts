@@ -11,6 +11,7 @@ import { Player } from './Player';
 import { Slime } from './Slime';
 import { Camera } from './Camera';
 import { Particles } from './Particles';
+import { ROOMS } from './rooms';
 import { justPressed } from '../engine/input';
 import { overlaps, type Box } from '../engine/canvas';
 import { sprites, drawGlow, drawBackground, drawDust, drawVignette, initDust } from './art';
@@ -40,7 +41,7 @@ export class Game {
     private viewW: number,
     private viewH: number,
   ) {
-    this.level = new Level();
+    this.level = new Level(ROOMS[0].map);
     this.player = new Player(this.level, this.particles);
     this.slimes = this.level.slimeCells.map((c) => new Slime(c.x, c.y, this.level));
     this.camera = new Camera(viewW, viewH, this.level.widthPx, this.level.heightPx);
