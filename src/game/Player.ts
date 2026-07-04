@@ -13,6 +13,7 @@ import { isDown, justPressed } from '../engine/input';
 import type { Box } from '../engine/canvas';
 import { overlaps } from '../engine/canvas';
 import { Level } from './Level';
+import { Particles } from './Particles';
 import { sprites, drawGlow } from './art';
 import { sfx } from './sfx';
 
@@ -29,6 +30,10 @@ const STRETCH_JUMP = 1.28;    // estirado al despegar (alto y flaco)
 const SQUASH_MAX = 0.38;      // aplastado máximo al aterrizar (bajo y ancho)
 const STRETCH_RECOVER = 11;   // qué tan rápido recupera la forma (por segundo)
 
+// Polvo de la cueva que levantan los pies.
+const DUST_COLORS = ['#9b86c4', '#6f5a9e', '#d7c9ec'];
+const DUST_STEP_EVERY = 0.09; // segundos entre motas mientras corre
+
 export class Player {
   x = 0;
   y = 0;
@@ -43,8 +48,12 @@ export class Player {
   private bufferTimer = 0;
   private animTime = 0;
   private stretch = 1; // escala vertical: >1 estirado, <1 aplastado, 1 normal
+  private dustTimer = 0;
 
-  constructor(private level: Level) {
+  constructor(
+    private level: Level,
+    private particles: Particles,
+  ) {
     this.respawn();
   }
 
@@ -104,6 +113,22 @@ export class Player {
     // Aterrizar aplastado: más fuerte el golpe, más chato queda.
     if (!wasOnGround && this.onGround && fallSpeed > 60) {
       this.stretch = 1 - Math.min(SQUASH_MAX, fallSpeed / 700);
+      // Nube de polvo a los pies, más grande cuanto más fuerte cae.
+      const motes = Math.min(8, Math.round(fallSpeed / 45));
+      this.particles.puff(this.x + this.w / 2, this.y + this.h - 1, motes, DUST_COLORS);
+    }
+
+    // Pasitos de polvo mientras corre por el suelo.
+    this.dustTimer -= dt;
+    if (this.onGround && this.vx !== 0 && this.dustTimer <= 0) {
+      this.dustTimer = DUST_STEP_EVERY;
+      this.particles.puff(
+        this.x + this.w / 2 - this.facing * 2, // detrás de los pies
+        this.y + this.h - 1,
+        1,
+        DUST_COLORS,
+        -this.facing * 0.6, // el polvo queda flotando hacia atrás
+      );
     }
     // La deformación vuelve suavemente a la forma normal.
     this.stretch += (1 - this.stretch) * Math.min(1, STRETCH_RECOVER * dt);
