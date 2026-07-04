@@ -81,7 +81,7 @@ Aquí el juego empieza a oler a metroidvania.
 - [x] **Checkpoints** o puntos de reaparición por sala (en vez de volver al inicio)
 - [x] Plataformas de **un solo sentido** (subís atravesando, te parás encima)
 - [x] **Mapa/minimapa** que se revela conforme explorás
-- [ ] Fondo con **parallax** (capas que se mueven a distinta velocidad)
+- [x] Fondo con **parallax** (capas que se mueven a distinta velocidad)
 
 > Dónde: nace `game/World.ts` (gestiona salas y transiciones). `Level.ts` pasa a
 > representar **una** sala. La cámara ya está lista para mundos grandes.

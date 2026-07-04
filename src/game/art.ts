@@ -154,20 +154,49 @@ export function drawGlow(
 }
 
 // ============================================================
-//  FONDO con profundidad (parallax + estalactitas + humps)
+//  FONDO con profundidad (parallax: capas a distinta velocidad)
+// ------------------------------------------------------------
+//  Cuanto más lejos está una capa, más lento se mueve respecto
+//  de la cámara. De atrás hacia adelante:
+//    0.2  cristales incrustados en la pared lejana
+//    0.45 estalactitas del techo
+//    0.7  montículos de roca
+//    1.0  los tiles del nivel (los dibuja Level)
 // ============================================================
 interface Stalactite { x: number; w: number; len: number; }
-let stalactites: Stalactite[] = [];
-let stalactitesFor = -1; // ancho de mundo para el que se generaron
+interface WallCrystal { x: number; y: number; color: string; }
+interface Mound { x: number; w: number; h: number; }
 
-function ensureStalactites(worldW: number): void {
-  if (stalactitesFor === worldW) return; // cada sala regenera las suyas
-  stalactitesFor = worldW;
-  stalactites = [];
-  let seed = 1337 + worldW; // semilla distinta por sala: otro techo
+let stalactites: Stalactite[] = [];
+let wallCrystals: WallCrystal[] = [];
+let mounds: Mound[] = [];
+let generatedFor = ''; // clave (ancho + variante) del fondo cacheado
+
+function ensureBackground(worldW: number, viewH: number, variant: number): void {
+  const key = `${worldW}:${variant}`;
+  if (generatedFor === key) return; // cada sala genera su propio fondo
+  generatedFor = key;
+  let seed = 1337 + worldW * 31 + variant * 977;
   const rng = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+
+  stalactites = [];
   for (let x = 6; x < worldW; x += 26 + Math.floor(rng() * 18)) {
     stalactites.push({ x, w: 6 + Math.floor(rng() * 8), len: 10 + Math.floor(rng() * 22) });
+  }
+
+  wallCrystals = [];
+  const wallColors = ['#4f3878', '#5a4188', '#6b4fa0'];
+  for (let i = 0; i < Math.floor(worldW / 13); i++) {
+    wallCrystals.push({
+      x: rng() * worldW,
+      y: 18 + rng() * (viewH - 58),
+      color: wallColors[Math.floor(rng() * wallColors.length)],
+    });
+  }
+
+  mounds = [];
+  for (let x = -12; x < worldW; x += 30 + Math.floor(rng() * 26)) {
+    mounds.push({ x, w: 28 + Math.floor(rng() * 30), h: 8 + Math.floor(rng() * 13) });
   }
 }
 
@@ -178,6 +207,7 @@ export function drawBackground(
   viewW: number,
   viewH: number,
   worldW: number,
+  variant = 0,
 ): void {
   // Degradado base
   const grad = ctx.createLinearGradient(0, 0, 0, viewH);
@@ -186,12 +216,22 @@ export function drawBackground(
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, viewW, viewH);
 
-  // Estalactitas lejanas (parallax 0.45)
-  ensureStalactites(worldW);
-  const par = camX * 0.45;
+  ensureBackground(worldW, viewH, variant);
+
+  // Capa lejanísima (0.2): cristales incrustados en la pared
+  const parWall = camX * 0.2;
+  for (const c of wallCrystals) {
+    const x = c.x - parWall;
+    if (x < -4 || x > viewW + 4) continue;
+    ctx.fillStyle = c.color;
+    ctx.fillRect(Math.round(x), Math.round(c.y), 2, 2);
+  }
+
+  // Capa lejana (0.45): estalactitas del techo
+  const parStal = camX * 0.45;
   ctx.fillStyle = '#241638';
   for (const s of stalactites) {
-    const x = s.x - par;
+    const x = s.x - parStal;
     if (x < -20 || x > viewW + 20) continue;
     ctx.beginPath();
     ctx.moveTo(x, 0);
@@ -200,10 +240,21 @@ export function drawBackground(
     ctx.closePath();
     ctx.fill();
   }
-  // Loma de fondo abajo
+
+  // Capa media (0.7): montículos de roca sobre la base
+  const parMound = camX * 0.7;
+  const baseY = viewH - 16 + camY * 0.2;
   ctx.fillStyle = '#1f1234';
-  const baseY = viewH - 18 + (camY * 0.2);
-  ctx.fillRect(0, baseY, viewW, 30);
+  for (const m of mounds) {
+    const x = m.x - parMound;
+    if (x + m.w < -12 || x > viewW + 12) continue;
+    ctx.beginPath();
+    ctx.moveTo(x, baseY + 18);
+    ctx.quadraticCurveTo(x + m.w / 2, baseY - m.h, x + m.w, baseY + 18);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.fillRect(0, baseY + 4, viewW, viewH - baseY - 4);
 }
 
 // ---- Polvo flotante (motes) en espacio de pantalla ----

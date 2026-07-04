@@ -179,7 +179,7 @@ export class Game {
     const camY = this.camera.y;
     const room = this.world.current;
 
-    drawBackground(ctx, camX, camY, this.viewW, this.viewH, room.level.widthPx);
+    drawBackground(ctx, camX, camY, this.viewW, this.viewH, room.level.widthPx, room.def.mapPos.x);
 
     room.level.draw(ctx, camX, camY, this.viewW, this.viewH);
     this.drawDoor(ctx, camX, camY);
