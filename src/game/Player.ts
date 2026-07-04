@@ -23,6 +23,11 @@ const COYOTE = 0.1;        // segundos de gracia tras dejar el piso
 const JUMP_BUFFER = 0.12;  // segundos que se "recuerda" el salto
 const JUMP_CUT = 0.45;     // al soltar saltar, recortamos el impulso
 
+// Squash & stretch: deformar el sprite da sensación de peso y energía.
+const STRETCH_JUMP = 1.28;    // estirado al despegar (alto y flaco)
+const SQUASH_MAX = 0.38;      // aplastado máximo al aterrizar (bajo y ancho)
+const STRETCH_RECOVER = 11;   // qué tan rápido recupera la forma (por segundo)
+
 export class Player {
   x = 0;
   y = 0;
@@ -36,6 +41,7 @@ export class Player {
   private coyoteTimer = 0;
   private bufferTimer = 0;
   private animTime = 0;
+  private stretch = 1; // escala vertical: >1 estirado, <1 aplastado, 1 normal
 
   constructor(private level: Level) {
     this.respawn();
@@ -47,6 +53,7 @@ export class Player {
     this.vx = 0;
     this.vy = 0;
     this.onGround = false;
+    this.stretch = 1;
   }
 
   box(): Box {
@@ -73,6 +80,7 @@ export class Player {
       this.onGround = false;
       this.bufferTimer = 0;
       this.coyoteTimer = 0;
+      this.stretch = STRETCH_JUMP; // despega estirado
     }
     // Salto variable: si soltás temprano, el brinco es más bajo.
     if (!isDown('jump') && this.vy < 0) {
@@ -85,9 +93,19 @@ export class Player {
     // ---- Mover y resolver colisiones, un eje a la vez ----
     this.x += this.vx * dt;
     this.resolveAxis('x');
+    const fallSpeed = this.vy; // velocidad ANTES de chocar con el piso
+    const wasOnGround = this.onGround;
     this.y += this.vy * dt;
     this.onGround = false;
     this.resolveAxis('y');
+
+    // Aterrizar aplastado: más fuerte el golpe, más chato queda.
+    if (!wasOnGround && this.onGround && fallSpeed > 60) {
+      this.stretch = 1 - Math.min(SQUASH_MAX, fallSpeed / 700);
+    }
+    // La deformación vuelve suavemente a la forma normal.
+    this.stretch += (1 - this.stretch) * Math.min(1, STRETCH_RECOVER * dt);
+    if (Math.abs(this.stretch - 1) < 0.01) this.stretch = 1;
 
     this.animTime += dt;
   }
@@ -115,16 +133,21 @@ export class Player {
   }
 
   draw(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {
-    // El sprite (12x14) es un poco más grande que la caja de colisión (6x11):
-    // lo centramos horizontalmente y alineamos los pies con el suelo.
     const sprite = this.currentSprite();
-    const drawX = this.x + this.w / 2 - sprite.w / 2;
-    const drawY = this.y + this.h - sprite.h;
 
     // Brillo tenue de cristal detrás del jugador
     drawGlow(ctx, this.x + this.w / 2 - camX, this.y + this.h / 2 - camY, 16, '#3aa6d6', 0.35);
 
-    sprite.draw(ctx, drawX - camX, drawY - camY, this.facing === -1);
+    // Anclado a los pies y deformado: al estirarse pierde ancho y al
+    // aplastarse lo gana (conservación aproximada del "volumen").
+    sprite.drawStretched(
+      ctx,
+      this.x + this.w / 2 - camX,
+      this.y + this.h - camY,
+      2 - this.stretch,
+      this.stretch,
+      this.facing === -1,
+    );
   }
 
   private currentSprite() {

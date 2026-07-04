@@ -61,7 +61,7 @@ El objetivo de esta fase no es contenido nuevo, es **jugo**. Es lo que separa
 un demo de "se siente bien".
 
 - [x] **Partículas** al recoger un cristal (chispas amarillas que se dispersan)
-- [ ] **Squash & stretch** del jugador al saltar y al aterrizar
+- [x] **Squash & stretch** del jugador al saltar y al aterrizar
 - [ ] **Sacudida de cámara** corta al morir
 - [ ] **Sonido**: salto, recoger, morir, ganar (Web Audio API, tonos simples)
 - [ ] **Partículas de polvo** al correr y al caer

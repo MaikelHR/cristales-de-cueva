@@ -37,6 +37,27 @@ export class Sprite {
     }
   }
 
+  /**
+   * Dibuja el sprite escalado, anclado al CENTRO de su BASE (los pies).
+   * Así, al estirarlo o aplastarlo (squash & stretch), el personaje
+   * crece hacia arriba y a los lados pero nunca se hunde en el piso.
+   * Con scaleX = scaleY = 1 equivale a draw().
+   */
+  drawStretched(
+    ctx: CanvasRenderingContext2D,
+    centerX: number,
+    bottomY: number,
+    scaleX: number,
+    scaleY: number,
+    flip = false,
+  ): void {
+    ctx.save();
+    ctx.translate(Math.round(centerX), Math.round(bottomY));
+    ctx.scale(flip ? -scaleX : scaleX, scaleY);
+    ctx.drawImage(this.canvas, -this.w / 2, -this.h);
+    ctx.restore();
+  }
+
   /** Dibuja el sprite con su esquina superior izquierda en (x, y). */
   draw(ctx: CanvasRenderingContext2D, x: number, y: number, flip = false): void {
     const px = Math.round(x);
