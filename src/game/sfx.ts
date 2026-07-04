@@ -13,6 +13,12 @@ export const sfx = {
     playTone({ freq: 220, freqEnd: 520, duration: 0.12, volume: 0.1 });
   },
 
+  /** Doble salto: como el salto pero más agudo, con destello cristalino. */
+  doubleJump(): void {
+    playTone({ freq: 330, freqEnd: 720, duration: 0.11, volume: 0.1 });
+    playTone({ freq: 990, duration: 0.06, type: 'triangle', volume: 0.08, delay: 0.03 });
+  },
+
   /** Recoger cristal: dos campanitas subiendo. */
   pickup(): void {
     playTone({ freq: 880, duration: 0.07, type: 'triangle', volume: 0.18 });

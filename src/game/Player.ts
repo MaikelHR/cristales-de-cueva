@@ -25,6 +25,8 @@ const COYOTE = 0.1;        // segundos de gracia tras dejar el piso
 const JUMP_BUFFER = 0.12;  // segundos que se "recuerda" el salto
 const JUMP_CUT = 0.45;     // al soltar saltar, recortamos el impulso
 
+const DOUBLE_JUMP = 0.92;  // fuerza del doble salto relativa al salto normal
+
 // Squash & stretch: deformar el sprite da sensación de peso y energía.
 const STRETCH_JUMP = 1.28;    // estirado al despegar (alto y flaco)
 const SQUASH_MAX = 0.38;      // aplastado máximo al aterrizar (bajo y ancho)
@@ -43,6 +45,11 @@ export class Player {
   vy = 0;
   facing: 1 | -1 = 1;
   onGround = false;
+
+  /** Habilidades desbloqueables (Fase 3): son datos, no código duro.
+   *  Desbloquear una = poner su bandera en true. */
+  readonly abilities = { doubleJump: true };
+  private airJumpsLeft = 0;
 
   private coyoteTimer = 0;
   private bufferTimer = 0;
@@ -90,18 +97,30 @@ export class Player {
 
     // ---- Temporizadores de coyote y buffer ----
     this.coyoteTimer = this.onGround ? COYOTE : Math.max(0, this.coyoteTimer - dt);
+    if (this.onGround) this.airJumpsLeft = 1; // pisar recarga el doble salto
     this.bufferTimer = justPressed('jump')
       ? JUMP_BUFFER
       : Math.max(0, this.bufferTimer - dt);
 
-    // ---- Salto ----
-    if (this.bufferTimer > 0 && this.coyoteTimer > 0) {
-      this.vy = -JUMP_SPEED;
-      this.onGround = false;
-      this.bufferTimer = 0;
-      this.coyoteTimer = 0;
-      this.stretch = STRETCH_JUMP; // despega estirado
-      sfx.jump();
+    // ---- Salto desde el piso (con coyote) o doble salto en el aire ----
+    if (this.bufferTimer > 0) {
+      if (this.coyoteTimer > 0) {
+        this.vy = -JUMP_SPEED;
+        this.onGround = false;
+        this.bufferTimer = 0;
+        this.coyoteTimer = 0;
+        this.stretch = STRETCH_JUMP; // despega estirado
+        sfx.jump();
+      } else if (this.abilities.doubleJump && this.airJumpsLeft > 0) {
+        // Doble salto: un impulso extra en pleno aire.
+        this.airJumpsLeft--;
+        this.vy = -JUMP_SPEED * DOUBLE_JUMP;
+        this.bufferTimer = 0;
+        this.stretch = STRETCH_JUMP;
+        // Nubecita bajo los pies: el "apoyo" invisible del segundo salto.
+        this.particles.puff(this.x + this.w / 2, this.y + this.h, 5, DUST_COLORS);
+        sfx.doubleJump();
+      }
     }
     // Salto variable: si soltás temprano, el brinco es más bajo.
     if (!isDown('jump') && this.vy < 0) {
