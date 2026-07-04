@@ -63,7 +63,7 @@ un demo de "se siente bien".
 - [x] **Partículas** al recoger un cristal (chispas amarillas que se dispersan)
 - [x] **Squash & stretch** del jugador al saltar y al aterrizar
 - [x] **Sacudida de cámara** corta al morir
-- [ ] **Sonido**: salto, recoger, morir, ganar (Web Audio API, tonos simples)
+- [x] **Sonido**: salto, recoger, morir, ganar (Web Audio API, tonos simples)
 - [ ] **Partículas de polvo** al correr y al caer
 - [ ] Pequeño retardo (unos frames congelados) al morir, para dar peso
 

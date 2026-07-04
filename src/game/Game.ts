@@ -14,6 +14,7 @@ import { Particles } from './Particles';
 import { justPressed } from '../engine/input';
 import { overlaps, type Box } from '../engine/canvas';
 import { sprites, drawGlow, drawBackground, drawDust, drawVignette, initDust } from './art';
+import { sfx } from './sfx';
 
 interface Crystal {
   x: number;
@@ -85,6 +86,7 @@ export class Game {
         c.taken = true;
         // Chispas doradas desde el centro del cristal
         this.particles.burst(c.x + 3, c.y + 4, 14, ['#ffd23a', '#fff7c9', '#ffe25a']);
+        sfx.pickup();
       }
     }
 
@@ -104,6 +106,7 @@ export class Game {
     // Llegar a la puerta con todos los cristales -> ganar
     if (this.collected === this.crystals.length && overlaps(pbox, this.level.doorBox)) {
       this.state = 'won';
+      sfx.win();
     }
 
     this.camera.update(dt);
@@ -116,6 +119,7 @@ export class Game {
   /** Morir: sacudir la cámara y volver al punto de aparición. */
   private die(): void {
     this.camera.shake(3, 0.35);
+    sfx.die();
     this.player.respawn();
   }
 

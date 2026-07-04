@@ -14,6 +14,7 @@ import type { Box } from '../engine/canvas';
 import { overlaps } from '../engine/canvas';
 import { Level } from './Level';
 import { sprites, drawGlow } from './art';
+import { sfx } from './sfx';
 
 const MOVE_SPEED = 92;     // px/s horizontal
 const GRAVITY = 680;       // px/s^2
@@ -81,6 +82,7 @@ export class Player {
       this.bufferTimer = 0;
       this.coyoteTimer = 0;
       this.stretch = STRETCH_JUMP; // despega estirado
+      sfx.jump();
     }
     // Salto variable: si soltás temprano, el brinco es más bajo.
     if (!isDown('jump') && this.vy < 0) {

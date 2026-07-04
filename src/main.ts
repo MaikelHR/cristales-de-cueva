@@ -8,6 +8,7 @@
 import './style.css';
 import { setupContext } from './engine/canvas';
 import { initInput, endStep } from './engine/input';
+import { initAudio } from './engine/audio';
 import { startLoop } from './engine/loop';
 import { Game } from './game/Game';
 
@@ -20,6 +21,7 @@ canvas.height = VIEW_H;
 const ctx = setupContext(canvas);
 
 initInput();
+initAudio();
 const game = new Game(VIEW_W, VIEW_H);
 
 // Gancho de depuración: con la consola del navegador abierta (F12)
