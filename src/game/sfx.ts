@@ -19,6 +19,12 @@ export const sfx = {
     playTone({ freq: 990, duration: 0.06, type: 'triangle', volume: 0.08, delay: 0.03 });
   },
 
+  /** Wall jump: salto con un golpecito seco de roca. */
+  wallJump(): void {
+    playTone({ freq: 260, freqEnd: 560, duration: 0.11, volume: 0.1 });
+    playTone({ freq: 140, duration: 0.05, volume: 0.08 });
+  },
+
   /** Dash: soplido rápido que cae. */
   dash(): void {
     playTone({ freq: 520, freqEnd: 160, duration: 0.16, type: 'sawtooth', volume: 0.12 });

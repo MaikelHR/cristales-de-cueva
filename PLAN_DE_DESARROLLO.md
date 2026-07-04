@@ -94,7 +94,7 @@ La gracia del género: volver con una habilidad nueva y llegar a donde antes no.
 
 - [x] **Doble salto**
 - [x] **Dash** (impulso horizontal corto con cooldown)
-- [ ] **Wall jump / wall slide** (deslizar y saltar por paredes)
+- [x] **Wall jump / wall slide** (deslizar y saltar por paredes)
 - [ ] Puertas/zonas que **requieren** una habilidad (bloqueos de progreso)
 - [ ] Un objeto coleccionable que **otorga** cada habilidad
 

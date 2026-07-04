@@ -33,6 +33,12 @@ const DASH_TIME = 0.14;    // segundos que dura el impulso
 const DASH_COOLDOWN = 0.5; // espera hasta poder volver a dashear
 const DASH_SQUASH = 0.8;   // achatado horizontal: sensación de velocidad
 
+// Wall slide y wall jump
+const WALL_SLIDE_SPEED = 55; // caída máxima mientras rozás la pared
+const WALL_JUMP_V = 0.98;    // altura del wall jump vs salto normal
+const WALL_JUMP_H = 130;     // empujón horizontal alejándose de la pared
+const WALL_LOCK = 0.14;      // control bloqueado tras el wall jump
+
 // Squash & stretch: deformar el sprite da sensación de peso y energía.
 const STRETCH_JUMP = 1.28;    // estirado al despegar (alto y flaco)
 const SQUASH_MAX = 0.38;      // aplastado máximo al aterrizar (bajo y ancho)
@@ -54,10 +60,12 @@ export class Player {
 
   /** Habilidades desbloqueables (Fase 3): son datos, no código duro.
    *  Desbloquear una = poner su bandera en true. */
-  readonly abilities = { doubleJump: true, dash: true };
+  readonly abilities = { doubleJump: true, dash: true, wallJump: true };
   private airJumpsLeft = 0;
   private dashTimer = 0;    // >0 = dash en curso
   private dashCooldown = 0;
+  private wallLock = 0;     // >0 = control bloqueado tras un wall jump
+  private wallLockDir: 1 | -1 = 1;
 
   private coyoteTimer = 0;
   private bufferTimer = 0;
@@ -128,8 +136,15 @@ export class Player {
       let dir = 0;
       if (isDown('left')) dir -= 1;
       if (isDown('right')) dir += 1;
-      this.vx = dir * MOVE_SPEED;
-      if (dir !== 0) this.facing = dir as 1 | -1;
+      this.wallLock = Math.max(0, this.wallLock - dt);
+      if (this.wallLock > 0) {
+        // Tras un wall jump, unos frames de empujón fijo: sin esto,
+        // mantener la tecla hacia la pared te re-pegaría al instante.
+        this.vx = this.wallLockDir * WALL_JUMP_H;
+      } else {
+        this.vx = dir * MOVE_SPEED;
+        if (dir !== 0) this.facing = dir as 1 | -1;
+      }
 
       // ---- Temporizadores de coyote y buffer ----
       this.coyoteTimer = this.onGround ? COYOTE : Math.max(0, this.coyoteTimer - dt);
@@ -138,8 +153,9 @@ export class Player {
         ? JUMP_BUFFER
         : Math.max(0, this.bufferTimer - dt);
 
-      // ---- Salto desde el piso (con coyote) o doble salto en el aire ----
+      // ---- Saltos: piso (con coyote) > pared > doble salto ----
       if (this.bufferTimer > 0) {
+        const wall = this.onGround ? 0 : this.wallDir();
         if (this.coyoteTimer > 0) {
           this.vy = -JUMP_SPEED;
           this.onGround = false;
@@ -147,6 +163,18 @@ export class Player {
           this.coyoteTimer = 0;
           this.stretch = STRETCH_JUMP; // despega estirado
           sfx.jump();
+        } else if (this.abilities.wallJump && wall !== 0) {
+          // Wall jump: salto en diagonal, alejándose de la pared.
+          this.vy = -JUMP_SPEED * WALL_JUMP_V;
+          this.wallLock = WALL_LOCK;
+          this.wallLockDir = -wall as 1 | -1;
+          this.facing = this.wallLockDir;
+          this.bufferTimer = 0;
+          this.stretch = STRETCH_JUMP;
+          // Virutas en el punto de empuje contra la pared
+          const px = wall === 1 ? this.x + this.w : this.x;
+          this.particles.puff(px, this.y + this.h / 2, 4, DUST_COLORS, -wall);
+          sfx.wallJump();
         } else if (this.abilities.doubleJump && this.airJumpsLeft > 0) {
           // Doble salto: un impulso extra en pleno aire.
           this.airJumpsLeft--;
@@ -165,6 +193,22 @@ export class Player {
 
       // ---- Gravedad ----
       this.vy = Math.min(this.vy + GRAVITY * dt, MAX_FALL);
+
+      // ---- Wall slide: empujar contra la pared en el aire frena la caída ----
+      if (
+        this.abilities.wallJump &&
+        !this.onGround &&
+        this.vy > WALL_SLIDE_SPEED &&
+        dir !== 0 &&
+        dir === this.wallDir()
+      ) {
+        this.vy = WALL_SLIDE_SPEED;
+        // Virutas de roca al rozar
+        if (Math.random() < 0.35) {
+          const px = dir === 1 ? this.x + this.w : this.x;
+          this.particles.puff(px, this.y + 3, 1, DUST_COLORS, -dir * 0.3);
+        }
+      }
     }
 
     // ---- Mover y resolver colisiones, un eje a la vez ----
@@ -203,6 +247,17 @@ export class Player {
     if (Math.abs(this.stretch - 1) < 0.01) this.stretch = 1;
 
     this.animTime += dt;
+  }
+
+  /** ¿Hay pared sólida pegada a un costado? -1 izquierda, 1 derecha, 0 nada. */
+  private wallDir(): -1 | 0 | 1 {
+    const top = this.y + 2;
+    const bottom = this.y + this.h - 2;
+    const leftX = this.x - 1;
+    const rightX = this.x + this.w + 1;
+    if (this.level.isSolidAt(leftX, top) || this.level.isSolidAt(leftX, bottom)) return -1;
+    if (this.level.isSolidAt(rightX, top) || this.level.isSolidAt(rightX, bottom)) return 1;
+    return 0;
   }
 
   /**
