@@ -7,7 +7,7 @@
 //  del jugador cruza un borde que tiene salida definida.
 // ============================================================
 
-import { Level } from './Level';
+import { Level, type AbilityName } from './Level';
 import { Slime } from './Slime';
 import { Player } from './Player';
 import { ROOMS } from './rooms';
@@ -19,10 +19,18 @@ export interface Crystal {
   taken: boolean;
 }
 
+export interface Relic {
+  x: number;
+  y: number;
+  ability: AbilityName;
+  taken: boolean;
+}
+
 export class Room {
   readonly level: Level;
   readonly slimes: Slime[];
   readonly crystals: Crystal[];
+  readonly relics: Relic[];
 
   constructor(readonly def: RoomDef) {
     this.level = new Level(def.map);
@@ -30,6 +38,12 @@ export class Room {
     this.crystals = this.level.crystalCells.map((c) => ({
       x: c.x + 1,
       y: c.y + 1,
+      taken: false,
+    }));
+    this.relics = this.level.relicCells.map((c) => ({
+      x: c.x + 1,
+      y: c.y + 1,
+      ability: c.ability,
       taken: false,
     }));
   }

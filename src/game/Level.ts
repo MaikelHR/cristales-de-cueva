@@ -7,6 +7,7 @@
 //    'o' = cristal           's' = slime (enemigo)
 //    'P' = inicio del jugador 'D' = puerta (meta)
 //    '-' = plataforma de un solo sentido (subís atravesándola)
+//    'j' / 'k' / 'w' = reliquia de doble salto / dash / wall jump
 //  Para diseñar niveles, editás ese texto. Así de directo.
 // ============================================================
 
@@ -20,6 +21,15 @@ export interface Spawn {
   y: number;
 }
 
+/** Las habilidades que existen en el juego (banderas del jugador). */
+export type AbilityName = 'doubleJump' | 'dash' | 'wallJump';
+
+const RELIC_CHARS: Record<string, AbilityName> = {
+  j: 'doubleJump',
+  k: 'dash',
+  w: 'wallJump',
+};
+
 export class Level {
   readonly cols: number;
   readonly rows: number;
@@ -30,6 +40,7 @@ export class Level {
   private oneWay: boolean[][] = [];
   readonly crystalCells: Spawn[] = [];
   readonly slimeCells: Spawn[] = [];
+  readonly relicCells: (Spawn & { ability: AbilityName })[] = [];
   playerSpawn: Spawn = { x: 0, y: 0 };
   doorBox: Box | null = null; // solo en la sala que tiene 'D'
 
@@ -60,6 +71,7 @@ export class Level {
         const py = row * TILE;
         if (ch === 'o') this.crystalCells.push({ x: px, y: py });
         else if (ch === 's') this.slimeCells.push({ x: px, y: py });
+        else if (RELIC_CHARS[ch]) this.relicCells.push({ x: px, y: py, ability: RELIC_CHARS[ch] });
         else if (ch === 'P') this.playerSpawn = { x: px, y: py };
         else if (ch === 'D') this.doorBox = { x: px, y: py + 2, w: TILE, h: TILE * 2 - 2 };
       }

@@ -12,7 +12,7 @@
 import { isDown, justPressed } from '../engine/input';
 import type { Box } from '../engine/canvas';
 import { overlaps } from '../engine/canvas';
-import { Level } from './Level';
+import { Level, type AbilityName } from './Level';
 import { Particles } from './Particles';
 import { sprites, drawGlow } from './art';
 import { sfx } from './sfx';
@@ -59,8 +59,12 @@ export class Player {
   onGround = false;
 
   /** Habilidades desbloqueables (Fase 3): son datos, no código duro.
-   *  Desbloquear una = poner su bandera en true. */
-  readonly abilities = { doubleJump: true, dash: true, wallJump: true };
+   *  Arrancan apagadas; cada reliquia del mundo enciende la suya. */
+  readonly abilities: Record<AbilityName, boolean> = {
+    doubleJump: false,
+    dash: false,
+    wallJump: false,
+  };
   private airJumpsLeft = 0;
   private dashTimer = 0;    // >0 = dash en curso
   private dashCooldown = 0;

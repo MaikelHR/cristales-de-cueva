@@ -41,6 +41,13 @@ export const sfx = {
     playTone({ freq: 300, freqEnd: 55, duration: 0.3, type: 'sawtooth', volume: 0.16 });
   },
 
+  /** Reliquia: fanfarria corta — algo importante acaba de pasar. */
+  relic(): void {
+    [392, 523, 659, 784, 1047].forEach((freq, i) => {
+      playTone({ freq, duration: 0.14, type: 'triangle', volume: 0.14, delay: i * 0.07 });
+    });
+  },
+
   /** Ganar: arpegio ascendente (Do-Mi-Sol-Do). */
   win(): void {
     [523, 659, 784, 1047].forEach((freq, i) => {

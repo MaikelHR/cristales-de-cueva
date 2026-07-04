@@ -10,12 +10,25 @@ import { Player } from './Player';
 import { Camera } from './Camera';
 import { Particles } from './Particles';
 import { World } from './World';
+import type { AbilityName } from './Level';
 import { justPressed } from '../engine/input';
 import { overlaps, clamp, type Box } from '../engine/canvas';
 import { sprites, drawGlow, drawBackground, drawDust, drawVignette, initDust } from './art';
 import { sfx } from './sfx';
 
 type State = 'playing' | 'won';
+
+const ABILITY_LABEL: Record<AbilityName, string> = {
+  doubleJump: '¡DOBLE SALTO!',
+  dash: '¡DASH!',
+  wallJump: '¡SALTO DE PARED!',
+};
+
+const ABILITY_GLOW: Record<AbilityName, string> = {
+  doubleJump: '#7ce0ff',
+  dash: '#ff9a5a',
+  wallJump: '#5ce06a',
+};
 
 export class Game {
   private world: World;
@@ -30,6 +43,9 @@ export class Game {
   private checkpoint = { roomId: '', x: 0, y: 0 };
   // Salas ya exploradas: son las que muestra el minimapa.
   private visited = new Set<string>();
+  // Aviso grande en pantalla (al ganar una habilidad).
+  private announceText = '';
+  private announceTimer = 0;
 
   constructor(
     private viewW: number,
@@ -72,6 +88,11 @@ export class Game {
     this.player.respawn();
     this.saveCheckpoint();
     this.visited = new Set([this.world.current.def.id]);
+    // Un mundo nuevo también apaga las habilidades ganadas.
+    for (const key of Object.keys(this.player.abilities) as AbilityName[]) {
+      this.player.abilities[key] = false;
+    }
+    this.announceTimer = 0;
     this.particles.clear();
     this.makeCamera();
     this.freezeTimer = 0;
@@ -106,6 +127,7 @@ export class Game {
     }
 
     this.time += dt;
+    this.announceTimer = Math.max(0, this.announceTimer - dt);
     // Las chispas siguen vivas incluso en la pantalla de victoria.
     this.particles.update(dt);
     if (this.state === 'won') return;
@@ -135,6 +157,20 @@ export class Game {
         // Chispas doradas desde el centro del cristal
         this.particles.burst(c.x + 3, c.y + 4, 14, ['#ffd23a', '#fff7c9', '#ffe25a']);
         sfx.pickup();
+      }
+    }
+
+    // Recoger reliquias: otorgan su habilidad para siempre
+    for (const r of room.relics) {
+      if (r.taken) continue;
+      const rbox: Box = { x: r.x, y: r.y, w: 6, h: 6 };
+      if (overlaps(pbox, rbox)) {
+        r.taken = true;
+        this.player.abilities[r.ability] = true;
+        this.particles.burst(r.x + 3, r.y + 4, 22, ['#7ce0ff', '#f5fcff', '#b98bff']);
+        this.announceText = ABILITY_LABEL[r.ability];
+        this.announceTimer = 2.5;
+        sfx.relic();
       }
     }
 
@@ -184,6 +220,7 @@ export class Game {
     room.level.draw(ctx, camX, camY, this.viewW, this.viewH);
     this.drawDoor(ctx, camX, camY);
     this.drawCrystals(ctx, camX, camY);
+    this.drawRelics(ctx, camX, camY);
     for (const s of room.slimes) s.draw(ctx, camX, camY);
     this.player.draw(ctx, camX, camY);
     this.particles.draw(ctx, camX, camY);
@@ -239,6 +276,18 @@ export class Game {
     }
   }
 
+  private drawRelics(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {
+    for (const r of this.world.current.relics) {
+      if (r.taken) continue;
+      const bob = Math.sin(this.time * 2.2 + r.x) * 2;
+      const cx = r.x + 3 - camX;
+      const cy = r.y + 4 - camY + bob;
+      const pulse = 0.5 + Math.sin(this.time * 5 + r.x) * 0.2;
+      drawGlow(ctx, cx, cy, 15, ABILITY_GLOW[r.ability], pulse);
+      sprites.relic.draw(ctx, cx - sprites.relic.w / 2, cy - sprites.relic.h / 2);
+    }
+  }
+
   private drawDoor(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {
     const d = this.world.current.level.doorBox;
     if (!d) return; // esta sala no tiene puerta
@@ -262,6 +311,17 @@ export class Game {
     if (this.collected === this.totalCrystals && this.state === 'playing') {
       ctx.fillStyle = '#b98bff';
       ctx.fillText('LA PUERTA ESTÁ ABIERTA', 6, 16);
+    }
+    // Aviso grande al ganar una habilidad (se desvanece al final)
+    if (this.announceTimer > 0) {
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, this.announceTimer * 2);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#7ce0ff';
+      ctx.font = '12px "JetBrains Mono", ui-monospace, monospace';
+      ctx.fillText(this.announceText, this.viewW / 2, 34);
+      ctx.restore();
+      ctx.textAlign = 'left';
     }
   }
 

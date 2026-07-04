@@ -66,6 +66,11 @@ const CRYSTAL = [
   '...yy...', '..yhYy..', '.yhYYYy.', 'yhYYYYYy',
   'yYYYYYYy', 'yYYYYYYy', '.yYYYYy.', '..yYYy..', '...yy...',
 ];
+// Reliquia: orbe blanco-celeste que otorga una habilidad.
+const RELIC = [
+  '...WW...', '..WHHW..', '.WHBBHW.', 'WHBWWBHW',
+  '.WHBBHW.', '..WHHW..', '...WW...',
+];
 const DOOR_LOCKED = [
   '....FIIF....', '...FIIIIF...', '..FIIIIIIF..', '.fFIIIIIIFf.',
   '.fFIIIIIIFf.', '.fFIIIIIIFf.', '.fFIIIIIIFf.', '.fFIIffIIFf.',
@@ -106,6 +111,7 @@ export const sprites = {
   slime1: new Sprite(SLIME_1, PALETTE),
   slime2: new Sprite(SLIME_2, PALETTE),
   crystal: new Sprite(CRYSTAL, PALETTE),
+  relic: new Sprite(RELIC, PALETTE),
   doorLocked: new Sprite(DOOR_LOCKED, PALETTE),
   doorOpen: new Sprite(DOOR_OPEN, PALETTE),
   tileFill: new Sprite(TILE_FILL, PALETTE),
