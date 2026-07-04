@@ -24,35 +24,45 @@ const PALETTE: Palette = {
 };
 
 // ---- Grillas (generadas y revisadas visualmente) ----
+// Las manitas son los pixeles 'd' que asoman a los costados (filas 8-9):
+// quietas en idle, balanceándose al correr, apoyada en la pared al deslizar.
 const PLAYER_IDLE = [
   '....KKKK....', '...KBBBBK...', '..KBBBBBBK..', '.KBBBHBBBBK.',
   'KBBBBBBBBBBK', 'KBWWBBBBWWBK', 'KBWPBBBBWPBK', 'KBBBBBBBBBBK',
-  '.KBBbbbbBBK.', '..KBbbbbBK..', '...KbbddK...', '...Kd..dK...',
+  'dKBBbbbbBBKd', '..KBbbbbBK..', '...KbbddK...', '...Kd..dK...',
   '...KK..KK...', '............',
 ];
 const PLAYER_RUN1 = [
   '....KKKK....', '...KBBBBK...', '..KBBBBBBK..', '.KBBBHBBBBK.',
   'KBBBBBBBBBBK', 'KBWWBBBBWWBK', 'KBWPBBBBWPBK', 'KBBBBBBBBBBK',
-  '.KBBbbbbBBK.', '..KBbbbbBK..', '...KbbddK...', '...Kd..dK...',
+  'dKBBbbbbBBK.', '..KBbbbbBKd.', '...KbbddK...', '...Kd..dK...',
   '..KK....KK..', '............',
 ];
 const PLAYER_RUN2 = [
   '....KKKK....', '...KBBBBK...', '..KBBBBBBK..', '.KBBBHBBBBK.',
   'KBBBBBBBBBBK', 'KBWWBBBBWWBK', 'KBWPBBBBWPBK', 'KBBBBBBBBBBK',
-  '.KBBbbbbBBK.', '..KBbbbbBK..', '...KbbddK...', '...KddddK...',
+  '.KBBbbbbBBKd', '.dKBbbbbBK..', '...KbbddK...', '...KddddK...',
   '...KK..KK...', '............',
 ];
 const PLAYER_JUMP = [
   '....KKKK....', '...KBBBBK...', '..KBBBBBBK..', '.KBBBHBBBBK.',
   'KBBBBBBBBBBK', 'KBWWBBBBWWBK', 'KBWPBBBBWPBK', 'KBBBBBBBBBBK',
-  '.KBBbbbbBBK.', '..KBbbbbBK..', '...KbddbK...', '...KddddK...',
+  'dKBBbbbbBBKd', '..KBbbbbBK..', '...KbddbK...', '...KddddK...',
   '....KKKK....', '............',
 ];
 const PLAYER_FALL = [
   '....KKKK....', '...KBBBBK...', '..KBBBBBBK..', '.KBBBHBBBBK.',
   'KBBBBBBBBBBK', 'KBWWBBBBWWBK', 'KBWPBBBBWPBK', 'KBBBBBBBBBBK',
-  '.KBBbbbbBBK.', '..KBbbbbBK..', '...KbbddK...', '..Kd....dK..',
+  'dKBBbbbbBBKd', '..KBbbbbBK..', '...KbbddK...', '..Kd....dK..',
   '.KK......KK.', '............',
+];
+// Deslizando por la pared: la mano del frente apoyada contra ella
+// (el sprite mira a la derecha; el flip lo invierte si hace falta).
+const PLAYER_WALL = [
+  '....KKKK....', '...KBBBBK...', '..KBBBBBBK..', '.KBBBHBBBBK.',
+  'KBBBBBBBBBBK', 'KBWWBBBBWWBK', 'KBWPBBBBWPBK', 'KBBBBBBBBBBK',
+  'dKBBbbbbBBKK', '..KBbbbbBKdd', '...KbbddK...', '..Kd...dK...',
+  '..KK...KK...', '............',
 ];
 const SLIME_1 = [
   '...JJJJ...', '..JGGGGJ..', '.JGGLLGGJ.', 'JGGGGGGGGJ',
@@ -108,6 +118,7 @@ export const sprites = {
   playerRun2: new Sprite(PLAYER_RUN2, PALETTE),
   playerJump: new Sprite(PLAYER_JUMP, PALETTE),
   playerFall: new Sprite(PLAYER_FALL, PALETTE),
+  playerWall: new Sprite(PLAYER_WALL, PALETTE),
   slime1: new Sprite(SLIME_1, PALETTE),
   slime2: new Sprite(SLIME_2, PALETTE),
   crystal: new Sprite(CRYSTAL, PALETTE),

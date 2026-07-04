@@ -70,6 +70,7 @@ export class Player {
   private dashCooldown = 0;
   private wallLock = 0;     // >0 = control bloqueado tras un wall jump
   private wallLockDir: 1 | -1 = 1;
+  private wallSliding = false; // para elegir el sprite de pared
 
   private coyoteTimer = 0;
   private bufferTimer = 0;
@@ -108,6 +109,8 @@ export class Player {
   }
 
   update(dt: number): void {
+    this.wallSliding = false;
+
     // ---- Dash: ¿arranca uno? ----
     this.dashCooldown = Math.max(0, this.dashCooldown - dt);
     if (
@@ -207,6 +210,7 @@ export class Player {
         dir === this.wallDir()
       ) {
         this.vy = WALL_SLIDE_SPEED;
+        this.wallSliding = true;
         // Virutas de roca al rozar
         if (Math.random() < 0.35) {
           const px = dir === 1 ? this.x + this.w : this.x;
@@ -325,6 +329,7 @@ export class Player {
 
   private currentSprite() {
     if (!this.onGround) {
+      if (this.wallSliding) return sprites.playerWall;
       return this.vy < 0 ? sprites.playerJump : sprites.playerFall;
     }
     if (this.vx !== 0) {
