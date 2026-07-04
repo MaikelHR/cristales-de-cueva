@@ -22,6 +22,13 @@ const ctx = setupContext(canvas);
 initInput();
 const game = new Game(VIEW_W, VIEW_H);
 
+// Gancho de depuración: con la consola del navegador abierta (F12)
+// podés inspeccionar el juego en vivo, p. ej. `__game.player.vy`.
+// Solo existe en desarrollo: el build de producción no lo incluye.
+if (import.meta.env.DEV) {
+  (window as unknown as { __game: Game }).__game = game;
+}
+
 startLoop(
   (dt) => {
     game.update(dt);

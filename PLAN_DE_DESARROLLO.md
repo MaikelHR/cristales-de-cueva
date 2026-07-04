@@ -60,7 +60,7 @@ Mensajes de commit simples y consistentes ayudan al portafolio:
 El objetivo de esta fase no es contenido nuevo, es **jugo**. Es lo que separa
 un demo de "se siente bien".
 
-- [ ] **Partículas** al recoger un cristal (chispas amarillas que se dispersan)
+- [x] **Partículas** al recoger un cristal (chispas amarillas que se dispersan)
 - [ ] **Squash & stretch** del jugador al saltar y al aterrizar
 - [ ] **Sacudida de cámara** corta al morir
 - [ ] **Sonido**: salto, recoger, morir, ganar (Web Audio API, tonos simples)

@@ -10,6 +10,7 @@ import { Level } from './Level';
 import { Player } from './Player';
 import { Slime } from './Slime';
 import { Camera } from './Camera';
+import { Particles } from './Particles';
 import { justPressed } from '../engine/input';
 import { overlaps, type Box } from '../engine/canvas';
 import { sprites, drawGlow, drawBackground, drawDust, drawVignette, initDust } from './art';
@@ -28,6 +29,7 @@ export class Game {
   private slimes: Slime[];
   private camera: Camera;
   private crystals: Crystal[];
+  private particles = new Particles();
   private state: State = 'playing';
   private time = 0;
 
@@ -55,6 +57,7 @@ export class Game {
     this.player.respawn();
     for (const c of this.crystals) c.taken = false;
     this.slimes = this.level.slimeCells.map((c) => new Slime(c.x, c.y, this.level));
+    this.particles.clear();
     this.state = 'playing';
   }
 
@@ -65,6 +68,8 @@ export class Game {
       this.reset();
       return;
     }
+    // Las chispas siguen vivas incluso en la pantalla de victoria.
+    this.particles.update(dt);
     if (this.state === 'won') return;
 
     this.player.update(dt);
@@ -76,7 +81,11 @@ export class Game {
     for (const c of this.crystals) {
       if (c.taken) continue;
       const cbox: Box = { x: c.x, y: c.y, w: 6, h: 6 };
-      if (overlaps(pbox, cbox)) c.taken = true;
+      if (overlaps(pbox, cbox)) {
+        c.taken = true;
+        // Chispas doradas desde el centro del cristal
+        this.particles.burst(c.x + 3, c.y + 4, 14, ['#ffd23a', '#fff7c9', '#ffe25a']);
+      }
     }
 
     // Chocar slime -> volver al inicio (los cristales recogidos se conservan)
@@ -114,6 +123,7 @@ export class Game {
     this.drawCrystals(ctx, camX, camY);
     for (const s of this.slimes) s.draw(ctx, camX, camY);
     this.player.draw(ctx, camX, camY);
+    this.particles.draw(ctx, camX, camY);
 
     drawDust(ctx, this.viewW, this.viewH, this.time, 1 / 60);
     drawVignette(ctx, this.viewW, this.viewH);
