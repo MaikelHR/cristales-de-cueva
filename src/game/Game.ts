@@ -26,6 +26,8 @@ export class Game {
   private time = 0;
   private freezeTimer = 0;    // hit-stop: mundo congelado unos frames
   private deadFrozen = false; // hay una muerte esperando el respawn
+  // Checkpoint: la sala y el punto donde reaparecés al morir.
+  private checkpoint = { roomId: '', x: 0, y: 0 };
 
   constructor(
     private viewW: number,
@@ -33,8 +35,18 @@ export class Game {
   ) {
     this.world = new World();
     this.player = new Player(this.world.current.level, this.particles);
+    this.saveCheckpoint();
     this.makeCamera();
     initDust(viewW, viewH);
+  }
+
+  /** El punto actual del jugador pasa a ser su lugar de reaparición. */
+  private saveCheckpoint(): void {
+    this.checkpoint = {
+      roomId: this.world.current.def.id,
+      x: this.player.x,
+      y: this.player.y,
+    };
   }
 
   /** La cámara se ajusta al tamaño de la sala actual. */
@@ -55,6 +67,7 @@ export class Game {
     this.world = new World(); // mundo nuevo: salas, slimes y cristales de cero
     this.player.setLevel(this.world.current.level);
     this.player.respawn();
+    this.saveCheckpoint();
     this.particles.clear();
     this.makeCamera();
     this.freezeTimer = 0;
@@ -62,11 +75,11 @@ export class Game {
     this.state = 'playing';
   }
 
-  /** Volver al punto de aparición tras morir. */
+  /** Volver al último checkpoint tras morir. */
   private respawnPlayer(): void {
-    this.world.goToStart();
+    this.world.goTo(this.checkpoint.roomId);
     this.player.setLevel(this.world.current.level);
-    this.player.respawn();
+    this.player.respawnAt(this.checkpoint.x, this.checkpoint.y);
     this.makeCamera();
   }
 
@@ -99,6 +112,8 @@ export class Game {
     if (this.world.tryTransition(this.player)) {
       this.player.setLevel(this.world.current.level);
       this.makeCamera();
+      // La boca por la que entraste es tu nuevo punto de reaparición.
+      this.saveCheckpoint();
     }
 
     const room = this.world.current;

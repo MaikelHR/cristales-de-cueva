@@ -63,8 +63,13 @@ export class Player {
   }
 
   respawn(): void {
-    this.x = this.level.playerSpawn.x + 1;
-    this.y = this.level.playerSpawn.y;
+    this.respawnAt(this.level.playerSpawn.x + 1, this.level.playerSpawn.y);
+  }
+
+  /** Reaparecer en un punto concreto (checkpoint). */
+  respawnAt(x: number, y: number): void {
+    this.x = x;
+    this.y = y;
     this.vx = 0;
     this.vy = 0;
     this.onGround = false;

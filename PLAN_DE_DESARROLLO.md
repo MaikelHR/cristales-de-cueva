@@ -78,7 +78,7 @@ Aquí el juego empieza a oler a metroidvania.
 
 - [x] Mover el mapa de `Level.ts` a archivos separados (un archivo por sala)
 - [x] Sistema de **salas conectadas**: salir por un borde entra a otra sala
-- [ ] **Checkpoints** o puntos de reaparición por sala (en vez de volver al inicio)
+- [x] **Checkpoints** o puntos de reaparición por sala (en vez de volver al inicio)
 - [ ] Plataformas de **un solo sentido** (subís atravesando, te parás encima)
 - [ ] **Mapa/minimapa** que se revela conforme explorás
 - [ ] Fondo con **parallax** (capas que se mueven a distinta velocidad)
