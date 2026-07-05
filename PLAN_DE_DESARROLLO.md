@@ -134,7 +134,7 @@ de animación reales. Vamos punto por punto.
 - [x] **Jugador**: rediseño más detallado, ciclo de correr real y estados pulidos
 - [x] **Enemigos**: más volumen y carácter (slime, volador, cazador, jefe)
 - [x] **Cristales, reliquias y puerta**: animación con más frames
-- [ ] **Tileset** de paredes: bordes, esquinas y variaciones reales
+- [x] **Tileset** de paredes: bordes, esquinas y variaciones reales
 - [ ] **Atmósfera**: pulido final del fondo/parallax (opcional)
 
 > Dónde: todo vive en `game/art.ts` (grillas de píxeles + `Sprite`). El pipeline
