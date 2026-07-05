@@ -28,61 +28,75 @@ const PALETTE: Palette = {
   V: '#ff5a7a', v: '#b83a5a',
 };
 
-// ---- Grillas (generadas y revisadas visualmente) ----
-// Sel-out: el contorno es claro (C) arriba, donde pega la luz, y
-// oscuro (K) abajo. El brillo W corona la cabeza; las sombras b/d
-// se acumulan en la panza. Las manitas son los pixeles 'd' laterales.
+// ---- Jugador (ser de cristal) — 14x16 ----
+// Rampa fría con hue shift: W>H>B>b>d>K (luz cenital). Contorno sel-out:
+// claro (C) arriba donde pega la luz, oscuro (K) abajo. Cabeza redonda con
+// corona brillante y ojos de pupila oscura; cuerpo con panza en sombra (d);
+// manitas (B) a los lados. Cabeza (0-8), torso (9-11), piernas (12-15).
 const PLAYER_IDLE = [
-  '....CCCC....', '...CHWWHC...', '..CHHHHHHC..', '.CHHBBBBHHC.',
-  'CBBBBBBBBBBC', 'CBWWBBBBWWBC', 'KBWPBBBBWPBK', 'KBBBBBBBBBBK',
-  'dKBbbbbbbBKd', '.KbbbbbbbbK.', '..KbbddbbK..', '...Kd..dK...',
-  '...KK..KK...', '............',
+  '.....CCCC.....', '...CCWWWWCC...', '..CWWHHHHWWC..', '.CWHHBBBBHHWC.',
+  '.CHBBBBBBBBHC.', 'CHBBBBBBBBBBHC', 'CHBWPBBBBPWBHC', 'CKBBBBBBBBBBKC',
+  '..KBBbbbbBBK..', '.BKBBbbbbBBKB.', '..KBbbbbbbBK..', '..KBbdddbBK...',
+  '...KBb..bBK...', '...KB....BK...', '...KK....KK...', '..............',
 ];
-// Respiración: el mismo cuerpo, comprimido un pixel (los pies no se mueven).
+// Respiración: cuerpo bajado un pixel (los pies quedan fijos abajo).
 const PLAYER_IDLE2 = [
-  '............', '....CCCC....', '...CHWWHC...', '.CHHBBBBHHC.',
-  'CBBBBBBBBBBC', 'CBWWBBBBWWBC', 'KBWPBBBBWPBK', 'KBBBBBBBBBBK',
-  'dKBbbbbbbBKd', '.KbbbbbbbbK.', '..KbbddbbK..', '...Kd..dK...',
-  '...KK..KK...', '............',
+  '..............', '.....CCCC.....', '...CCWWWWCC...', '..CWWHHHHWWC..',
+  '.CWHHBBBBHHWC.', '.CHBBBBBBBBHC.', 'CHBBBBBBBBBBHC', 'CHBWPBBBBPWBHC',
+  'CKBBBBBBBBBBKC', '..KBBbbbbBBK..', '.BKBBbbbbBBKB.', '..KBbbbbbbBK..',
+  '..KBbdddbBK...', '...KBb..bBK...', '...KB....BK...', '...KK....KK...',
 ];
-// Parpadeo: los ojos se cierran en dos rayitas.
+// Parpadeo: ojos cerrados en dos rayitas.
 const PLAYER_BLINK = [
-  '....CCCC....', '...CHWWHC...', '..CHHHHHHC..', '.CHHBBBBHHC.',
-  'CBBBBBBBBBBC', 'CBBBBBBBBBBC', 'KBddBBBBddBK', 'KBBBBBBBBBBK',
-  'dKBbbbbbbBKd', '.KbbbbbbbbK.', '..KbbddbbK..', '...Kd..dK...',
-  '...KK..KK...', '............',
+  '.....CCCC.....', '...CCWWWWCC...', '..CWWHHHHWWC..', '.CWHHBBBBHHWC.',
+  '.CHBBBBBBBBHC.', 'CHBBBBBBBBBBHC', 'CHBBKKBBKKBBHC', 'CKBBBBBBBBBBKC',
+  '..KBBbbbbBBK..', '.BKBBbbbbBBKB.', '..KBbbbbbbBK..', '..KBbdddbBK...',
+  '...KBb..bBK...', '...KB....BK...', '...KK....KK...', '..............',
 ];
+// Correr: 4 frames. Piernas alternan apoyo (abiertas) y paso (juntas).
+// run1/run3 = contacto, run2/run4 = pasada. Todos a 16 filas.
 const PLAYER_RUN1 = [
-  '....CCCC....', '...CHWWHC...', '..CHHHHHHC..', '.CHHBBBBHHC.',
-  'CBBBBBBBBBBC', 'CBWWBBBBWWBC', 'KBWPBBBBWPBK', 'KBBBBBBBBBBK',
-  'dKBbbbbbbBK.', '.KbbbbbbbbKd', '..KbbddbbK..', '...Kd..dK...',
-  '..KK....KK..', '............',
+  '.....CCCC.....', '...CCWWWWCC...', '..CWWHHHHWWC..', '.CWHHBBBBHHWC.',
+  '.CHBBBBBBBBHC.', 'CHBBBBBBBBBBHC', 'CHBWPBBBBPWBHC', 'CKBBBBBBBBBBKC',
+  '..KBBbbbbBBK..', '.BKBBbbbbBBKB.', '..KBbbbbbbBK..', '..KBbdddbBK...',
+  '..KBb...bBK...', '.KKB.....BK...', '.KK......KK...', '..............',
 ];
 const PLAYER_RUN2 = [
-  '....CCCC....', '...CHWWHC...', '..CHHHHHHC..', '.CHHBBBBHHC.',
-  'CBBBBBBBBBBC', 'CBWWBBBBWWBC', 'KBWPBBBBWPBK', 'KBBBBBBBBBBK',
-  '.KBbbbbbbBKd', 'dKbbbbbbbbK.', '..KbbddbbK..', '...KddddK...',
-  '...KK..KK...', '............',
+  '.....CCCC.....', '...CCWWWWCC...', '..CWWHHHHWWC..', '.CWHHBBBBHHWC.',
+  '.CHBBBBBBBBHC.', 'CHBBBBBBBBBBHC', 'CHBWPBBBBPWBHC', 'CKBBBBBBBBBBKC',
+  '..KBBbbbbBBK..', '.BKBBbbbbBBKB.', '..KBbbbbbbBK..', '..KBbdddbBK...',
+  '...KBbbBK.....', '...KBBBK......', '...KKKK.......', '..............',
+];
+const PLAYER_RUN3 = [
+  '.....CCCC.....', '...CCWWWWCC...', '..CWWHHHHWWC..', '.CWHHBBBBHHWC.',
+  '.CHBBBBBBBBHC.', 'CHBBBBBBBBBBHC', 'CHBWPBBBBPWBHC', 'CKBBBBBBBBBBKC',
+  '..KBBbbbbBBK..', '.BKBBbbbbBBKB.', '..KBbbbbbbBK..', '..KBbdddbBK...',
+  '...KBb...bBK..', '...KB.....BKK.', '...KK......KK.', '..............',
+];
+const PLAYER_RUN4 = [
+  '.....CCCC.....', '...CCWWWWCC...', '..CWWHHHHWWC..', '.CWHHBBBBHHWC.',
+  '.CHBBBBBBBBHC.', 'CHBBBBBBBBBBHC', 'CHBWPBBBBPWBHC', 'CKBBBBBBBBBBKC',
+  '..KBBbbbbBBK..', '.BKBBbbbbBBKB.', '..KBbbbbbbBK..', '..KBbdddbBK...',
+  '...KBbbBK.....', '...KBBBK......', '...KKKK.......', '..............',
 ];
 const PLAYER_JUMP = [
-  '....CCCC....', '...CHWWHC...', '..CHHHHHHC..', '.CHHBBBBHHC.',
-  'CBBBBBBBBBBC', 'CBWWBBBBWWBC', 'KBWPBBBBWPBK', 'KBBBBBBBBBBK',
-  'dKBbbbbbbBKd', '.KbbbbbbbbK.', '..KbbddbbK..', '...KddddK...',
-  '....KKKK....', '............',
+  '.....CCCC.....', '...CCWWWWCC...', '..CWWHHHHWWC..', '.CWHHBBBBHHWC.',
+  '.CHBBBBBBBBHC.', 'CHBBBBBBBBBBHC', 'CHBWPBBBBPWBHC', 'CKBBBBBBBBBBKC',
+  '.BKBBbbbbBBKB.', '.BKBBbbbbBBKB.', '..KBbbbbbbBK..', '..KBbdddbBK...',
+  '...KBb..bBK...', '....KddddK....', '....KKKK......', '..............',
 ];
 const PLAYER_FALL = [
-  '....CCCC....', '...CHWWHC...', '..CHHHHHHC..', '.CHHBBBBHHC.',
-  'CBBBBBBBBBBC', 'CBWWBBBBWWBC', 'KBWPBBBBWPBK', 'KBBBBBBBBBBK',
-  'dKBbbbbbbBKd', '.KbbbbbbbbK.', '..KbbddbbK..', '..Kd....dK..',
-  '.KK......KK.', '............',
+  '.....CCCC.....', '...CCWWWWCC...', '..CWWHHHHWWC..', '.CWHHBBBBHHWC.',
+  '.CHBBBBBBBBHC.', 'CHBBBBBBBBBBHC', 'CHBWPBBBBPWBHC', 'CKBBBBBBBBBBKC',
+  'BKBBbbbbBBKB.', '.BKBBbbbbBBKB.', '..KBbbbbbbBK..', '..KBbdddbBK...',
+  '..KBb...bBK...', '.Kd.......dK..', '.KK.......KK..', '..............',
 ];
-// Deslizando por la pared: la mano del frente apoyada contra ella
-// (el sprite mira a la derecha; el flip lo invierte si hace falta).
+// Deslizando por la pared: mira a la derecha; el flip lo invierte.
 const PLAYER_WALL = [
-  '....CCCC....', '...CHWWHC...', '..CHHHHHHC..', '.CHHBBBBHHC.',
-  'CBBBBBBBBBBC', 'CBWWBBBBWWBC', 'KBWPBBBBWPBK', 'KBBBBBBBBBBK',
-  'dKBbbbbbbBKK', '.KbbbbbbbKdd', '..KbbddbbK..', '..Kd...dK...',
-  '..KK...KK...', '............',
+  '.....CCCC.....', '...CCWWWWCC...', '..CWWHHHHWWC..', '.CWHHBBBBHHWC.',
+  '.CHBBBBBBBBHC.', 'CHBBBBBBBBBBHC', 'CHBWPBBBBPWBHC', 'CKBBBBBBBBBBKC',
+  '..KBBbbbbBBKB', '..KBbbbbbbBKd', '..KBbbbbbbBK..', '..KBbdddbBK...',
+  '..KBb..bBK...', '..Kd...dK....', '..KK...KK....', '..............',
 ];
 // Slime: cúpula de luz arriba (gel brillante), sombra azulada abajo.
 const SLIME_1 = [
@@ -176,6 +190,8 @@ export const sprites = {
   playerBlink: new Sprite(PLAYER_BLINK, PALETTE),
   playerRun1: new Sprite(PLAYER_RUN1, PALETTE),
   playerRun2: new Sprite(PLAYER_RUN2, PALETTE),
+  playerRun3: new Sprite(PLAYER_RUN3, PALETTE),
+  playerRun4: new Sprite(PLAYER_RUN4, PALETTE),
   playerJump: new Sprite(PLAYER_JUMP, PALETTE),
   playerFall: new Sprite(PLAYER_FALL, PALETTE),
   playerWall: new Sprite(PLAYER_WALL, PALETTE),

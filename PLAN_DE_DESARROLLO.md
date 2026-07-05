@@ -121,20 +121,26 @@ La gracia del género: volver con una habilidad nueva y llegar a donde antes no.
 
 ---
 
-## Fase 5 — Arte de verdad (reemplazar los sprites de código)
+## Fase 5 — Arte de verdad (pixel art pulido, por código)
 
-Acá entran las herramientas que ya tenías en mente.
+Decisión: en vez de assets externos (PixelLab/Aseprite son de pago o requieren
+manejo manual), **elevamos el arte autorado por código** a calidad de asset.
+Para un juego de sprites chicos y cohesivos como este, el arte a mano gana en
+coherencia y encaja perfecto (tamaños, paleta y timing ya cableados). Bonus de
+portafolio: **todo el arte procedural, sin dependencias de terceros.**
+Técnicas guía: hue shifting, sel-out, más pasos de sombra, sub-pixel y ciclos
+de animación reales. Vamos punto por punto.
 
-- [ ] Generar sprites base en **PixelLab** (jugador, enemigos, cristales, tiles)
-- [ ] Limpiar y animar en **Aseprite** (idle, correr, saltar, daño)
-- [ ] Cargar imágenes en el juego y dibujarlas en vez de los rectángulos
-- [ ] **Tileset** real para las paredes (esquinas, bordes, variaciones)
-- [ ] Animación de cristales y puerta con frames reales
+- [ ] **Jugador**: rediseño más detallado, ciclo de correr real y estados pulidos
+- [ ] **Enemigos**: más volumen y carácter (slime, volador, cazador, jefe)
+- [ ] **Cristales, reliquias y puerta**: animación con más frames
+- [ ] **Tileset** de paredes: bordes, esquinas y variaciones reales
+- [ ] **Atmósfera**: pulido final del fondo/parallax (opcional)
 
-> Dónde: nace `engine/Sprite.ts` (carga y dibuja hojas de sprites). Los `draw()`
-> de cada entidad cambian de "pintar rectángulos" a "dibujar un frame".
-> **Importante:** mantené `image-rendering: pixelated` y dibujá en coordenadas
-> enteras (ya lo hacemos) para que no se vea borroso.
+> Dónde: todo vive en `game/art.ts` (grillas de píxeles + `Sprite`). El pipeline
+> ya está: cada `draw()` elige un frame. Si algún día conseguís assets reales,
+> se reemplaza cómo se llena cada `Sprite` sin tocar la lógica.
+> **Importante:** coordenadas enteras + `image-rendering: pixelated` (ya lo hacemos).
 
 ---
 

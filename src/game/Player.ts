@@ -390,7 +390,8 @@ export class Player {
       return this.vy < 0 ? sprites.playerJump : sprites.playerFall;
     }
     if (this.vx !== 0) {
-      return Math.floor(this.animTime * 10) % 2 === 0 ? sprites.playerRun1 : sprites.playerRun2;
+      const run = [sprites.playerRun1, sprites.playerRun2, sprites.playerRun3, sprites.playerRun4];
+      return run[Math.floor(this.animTime * 12) % 4];
     }
     // Idle vivo: parpadea cada tanto y "respira" despacio.
     if (this.animTime % 3.3 < 0.15) return sprites.playerBlink;

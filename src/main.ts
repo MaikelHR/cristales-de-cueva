@@ -11,6 +11,7 @@ import { initInput, endStep } from './engine/input';
 import { initAudio } from './engine/audio';
 import { startLoop } from './engine/loop';
 import { Game } from './game/Game';
+import { sprites } from './game/art';
 
 const VIEW_W = 320;
 const VIEW_H = 176;
@@ -29,6 +30,7 @@ const game = new Game(VIEW_W, VIEW_H);
 // Solo existe en desarrollo: el build de producción no lo incluye.
 if (import.meta.env.DEV) {
   (window as unknown as { __game: Game }).__game = game;
+  (window as unknown as { __sprites: typeof sprites }).__sprites = sprites;
 }
 
 startLoop(
