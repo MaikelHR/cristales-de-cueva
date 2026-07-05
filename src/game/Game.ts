@@ -17,6 +17,7 @@ import { justPressed } from '../engine/input';
 import { overlaps, clamp, type Box } from '../engine/canvas';
 import { sprites, drawGlow, drawBackground, drawDust, drawFog, drawVignette, initDust } from './art';
 import { sfx } from './sfx';
+import { loadSave, writeSave, type SaveData } from './save';
 
 // Los estados del juego. 'title' = menú de inicio; 'playing' = jugando;
 // 'won' = pantalla de victoria; 'gameover' = te quedaste sin corazones.
@@ -46,6 +47,8 @@ export class Game {
   private pendingReset = false; // al soltar el freeze, ¿reiniciar el mundo?
   private hitStop = 0;        // micro-pausa al pisar (impacto, sin muerte)
   private score = 0;          // puntos por monstruos eliminados
+  private save: SaveData = loadSave(); // récords persistidos (localStorage)
+  private newRecord = false;  // ¿la última corrida batió el mejor puntaje?
   // Textos flotantes "+N" que suben y se desvanecen (world space).
   private popups: { x: number; y: number; text: string; life: number }[] = [];
   // Checkpoint: la sala y el punto donde reaparecés al morir.
@@ -105,6 +108,7 @@ export class Game {
     }
     this.announceTimer = 0;
     this.score = 0;
+    this.newRecord = false;
     this.popups = [];
     this.particles.clear();
     this.makeCamera();
@@ -166,6 +170,7 @@ export class Game {
         if (this.pendingReset) {
           this.pendingReset = false;
           this.state = 'gameover'; // sin corazones: a la pantalla de game over
+          this.endRun(false);
         } else {
           this.respawnPlayer(); // cayó a un foso pero le quedan corazones
           this.camera.shake(3, 0.35);
@@ -278,6 +283,7 @@ export class Game {
       overlaps(pbox, door)
     ) {
       this.state = 'won';
+      this.endRun(true);
       sfx.win();
     }
 
@@ -355,6 +361,15 @@ export class Game {
     this.deadFrozen = true;
     this.pendingReset = true;
     sfx.die();
+  }
+
+  /** Cierre de una corrida (ganaste o game over): actualiza los récords
+   *  persistidos y marca si batiste el mejor puntaje. */
+  private endRun(won: boolean): void {
+    this.newRecord = this.score > this.save.bestScore;
+    if (this.newRecord) this.save.bestScore = this.score;
+    if (won) this.save.victories++;
+    writeSave(this.save);
   }
 
   draw(ctx: CanvasRenderingContext2D): void {
@@ -526,16 +541,34 @@ export class Game {
   private drawWin(ctx: CanvasRenderingContext2D): void {
     ctx.fillStyle = 'rgba(17,9,26,0.78)';
     ctx.fillRect(0, 0, this.viewW, this.viewH);
+    const cx = this.viewW / 2;
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ffd36e';
     ctx.font = '16px "JetBrains Mono", ui-monospace, monospace';
-    ctx.fillText('¡LO LOGRASTE!', this.viewW / 2, this.viewH / 2 - 16);
+    ctx.fillText('¡LO LOGRASTE!', cx, this.viewH / 2 - 22);
     ctx.fillStyle = '#ffe25a';
     ctx.font = '8px "JetBrains Mono", ui-monospace, monospace';
-    ctx.fillText(`PUNTOS: ${this.score}`, this.viewW / 2, this.viewH / 2 + 2);
+    ctx.fillText(`PUNTOS: ${this.score}`, cx, this.viewH / 2 - 6);
+    this.drawRecordLine(ctx, cx, this.viewH / 2 + 6);
     ctx.fillStyle = '#9b86c4';
-    ctx.fillText('ENTER para volver al menú', this.viewW / 2, this.viewH / 2 + 14);
+    ctx.fillText('ENTER para volver al menú', cx, this.viewH / 2 + 20);
     ctx.textAlign = 'left';
+  }
+
+  /** Línea de récord bajo el puntaje: si batiste tu marca, un "¡NUEVO
+   *  RÉCORD!" pulsante; si no, tu mejor puntaje para comparar. */
+  private drawRecordLine(ctx: CanvasRenderingContext2D, cx: number, y: number): void {
+    ctx.font = '8px "JetBrains Mono", ui-monospace, monospace';
+    if (this.newRecord) {
+      ctx.save();
+      ctx.globalAlpha = 0.6 + Math.sin(this.time * 8) * 0.4;
+      ctx.fillStyle = '#ffe25a';
+      ctx.fillText('¡NUEVO RÉCORD!', cx, y);
+      ctx.restore();
+    } else {
+      ctx.fillStyle = '#ffd36e';
+      ctx.fillText(`MEJOR: ${this.save.bestScore}`, cx, y);
+    }
   }
 
   /** Menú de inicio: el título del juego sobre el mundo, con un cristal
@@ -563,12 +596,23 @@ export class Game {
     ctx.font = '11px "JetBrains Mono", ui-monospace, monospace';
     ctx.fillText('DE LA CUEVA', cx, this.viewH / 2 + 8);
 
+    // Récords guardados (solo si ya jugaste alguna vez).
+    ctx.font = '8px "JetBrains Mono", ui-monospace, monospace';
+    if (this.save.bestScore > 0 || this.save.victories > 0) {
+      ctx.fillStyle = '#ffd36e';
+      ctx.fillText(`MEJOR PUNTAJE: ${this.save.bestScore}`, cx, this.viewH / 2 + 22);
+      if (this.save.victories > 0) {
+        ctx.fillStyle = '#5ce06a';
+        const veces = this.save.victories === 1 ? 'vez' : 'veces';
+        ctx.fillText(`completado ${this.save.victories} ${veces}`, cx, this.viewH / 2 + 32);
+      }
+    }
+
     // Aviso pulsante para empezar (parpadeo suave con seno).
     const blink = 0.55 + Math.sin(this.time * 4) * 0.45;
     ctx.globalAlpha = blink;
     ctx.fillStyle = '#ffe25a';
-    ctx.font = '8px "JetBrains Mono", ui-monospace, monospace';
-    ctx.fillText('ENTER o ↑ para empezar', cx, this.viewH / 2 + 34);
+    ctx.fillText('ENTER o ↑ para empezar', cx, this.viewH / 2 + 46);
     ctx.globalAlpha = 1;
 
     ctx.fillStyle = '#6f5a94';
@@ -585,14 +629,15 @@ export class Game {
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ff5a7a';
     ctx.font = '18px "JetBrains Mono", ui-monospace, monospace';
-    ctx.fillText('GAME OVER', cx, this.viewH / 2 - 14);
+    ctx.fillText('GAME OVER', cx, this.viewH / 2 - 20);
     ctx.fillStyle = '#ffd0dc';
     ctx.font = '8px "JetBrains Mono", ui-monospace, monospace';
-    ctx.fillText(`PUNTOS: ${this.score}`, cx, this.viewH / 2 + 2);
+    ctx.fillText(`PUNTOS: ${this.score}`, cx, this.viewH / 2 - 4);
+    this.drawRecordLine(ctx, cx, this.viewH / 2 + 8);
     const blink = 0.55 + Math.sin(this.time * 4) * 0.45;
     ctx.globalAlpha = blink;
     ctx.fillStyle = '#9b86c4';
-    ctx.fillText('ENTER para volver al menú', cx, this.viewH / 2 + 16);
+    ctx.fillText('ENTER para volver al menú', cx, this.viewH / 2 + 22);
     ctx.globalAlpha = 1;
     ctx.textAlign = 'left';
   }
