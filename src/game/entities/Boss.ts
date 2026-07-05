@@ -139,26 +139,36 @@ export class Boss implements Enemy {
 
     const flashing = this.invuln > 0 && Math.floor(this.invuln * 20) % 2 === 0;
 
-    // Cuerpo: diamante de cristal (blanco si acaba de recibir un golpe)
+    // Cuerpo: diamante de cristal con borde oscuro (blanco si golpeado)
     ctx.beginPath();
     ctx.moveTo(cx, cy - hh);
     ctx.lineTo(cx + hw, cy);
     ctx.lineTo(cx, cy + hh);
     ctx.lineTo(cx - hw, cy);
     ctx.closePath();
-    ctx.fillStyle = flashing ? '#ffffff' : '#5a3a8c';
+    ctx.fillStyle = flashing ? '#ffffff' : '#241436';
     ctx.fill();
 
     if (!flashing) {
-      // Faceta interior más clara
+      // Faceta superior iluminada e inferior en sombra (luz cenital).
+      ctx.fillStyle = '#8a5fd0';
       ctx.beginPath();
-      ctx.moveTo(cx, cy - hh + 3);
-      ctx.lineTo(cx + hw - 3, cy);
-      ctx.lineTo(cx, cy + hh - 3);
-      ctx.lineTo(cx - hw + 3, cy);
+      ctx.moveTo(cx, cy - hh + 2);
+      ctx.lineTo(cx + hw - 2, cy);
+      ctx.lineTo(cx - hw + 2, cy);
       ctx.closePath();
-      ctx.fillStyle = '#7a4bd6';
       ctx.fill();
+      ctx.fillStyle = '#472a6e';
+      ctx.beginPath();
+      ctx.moveTo(cx - hw + 2, cy);
+      ctx.lineTo(cx + hw - 2, cy);
+      ctx.lineTo(cx, cy + hh - 2);
+      ctx.closePath();
+      ctx.fill();
+
+      // Destello en el vértice superior (cristal).
+      ctx.fillStyle = '#e9d6ff';
+      ctx.fillRect(cx - 1, cy - hh + 1, 2, 2);
 
       // Ojo: blanco con pupila roja que mira al jugador
       ctx.fillStyle = '#f5fcff';

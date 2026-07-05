@@ -98,32 +98,35 @@ const PLAYER_WALL = [
   '..KBBbbbbBBKB', '..KBbbbbbbBKd', '..KBbbbbbbBK..', '..KBbdddbBK...',
   '..KBb..bBK...', '..Kd...dK....', '..KK...KK....', '..............',
 ];
-// Slime: cúpula de luz arriba (gel brillante), sombra azulada abajo.
+// Slime: gel translúcido con cúpula glossy (WW), cuerpo verde con
+// sombra azulada abajo y ojos brillantes. 2 frames (parpadeo). 11x8.
 const SLIME_1 = [
-  '...EEEE...', '..ELLLLE..', '.ELWWLLGE.', 'EGLLGGGGGJ',
-  'EGWPGGWPGJ', 'JGGGGGGGGJ', '.JggggggJ.', '..JJJJJJ..',
+  '...EEEEE...', '..ELLLLLE..', '.ELWWLGGGE.', 'EGLGGGGGGGJ',
+  'EGWPGGWPGGJ', 'JGGGGGGGGGJ', '.JgggggggJ.', '..JJJJJJJ..',
 ];
 const SLIME_2 = [
-  '..........', '...EEEE...', '..ELLLLE..', '.ELWWLLGE.',
-  'EGPPGGPPGJ', 'JGGGGGGGGJ', '.JggggggJ.', '..JJJJJJ..',
+  '...EEEEE...', '..ELLLLLE..', '.ELWWLGGGE.', 'EGLGGGGGGGJ',
+  'EGddGGddGGJ', 'JGGGGGGGGGJ', '.JgggggggJ.', '..JJJJJJJ..',
 ];
-// Volador (murciélago de cristal): cuerpo cian, alas moradas que baten.
+// Volador (murciélago de cristal): cuerpo cian con destello, ojos y
+// alas moradas (M vivo, m sombra) que baten. 9x7.
 const FLYER_1 = [
-  'MM.....MM', '.MM.B.MM.', '..MBWBM..', '..KBBBK..',
-  '...KKK...', '.........', '.........',
+  'MM.....MM', '.Mm...mM.', '..mBWBm..', '..bBBBb..',
+  '..KPBPK..', '...KKK...', '.........',
 ];
 const FLYER_2 = [
-  '.........', '..M.B.M..', '.MMBWBMM.', '..KBBBK..',
-  '..MKKKM..', '.M.....M.', '.........',
+  '.........', 'M.......M', '.Mm...mM.', '..mBWBm..',
+  '..bBBBb..', '.MKPBPKM.', '.M.....M.',
 ];
-// Cazador (bola con púas): rojo amenazante, ojos oscuros, patitas.
+// Cazador (bola con púas): rojo amenazante con brillo arriba, sombra
+// abajo, ojos oscuros y patitas que ruedan. 9x7.
 const CHASER_1 = [
-  '.v.v.v.v.', '.vVVVVVv.', 'vVVVVVVVv', 'vVPVVVPVv',
-  'vVVVVVVVv', '.vVVVVVv.', '.K.K.K.K.',
+  '.v.v.v.v.', '.vVWVVVv.', 'vVVVVVVVv', 'vVPVVVPVv',
+  'vVVVVVVVv', '.vvvvvvv.', '.K.K.K.K.',
 ];
 const CHASER_2 = [
-  '.v.v.v.v.', '.vVVVVVv.', 'vVVVVVVVv', 'vVPVVVPVv',
-  'vVVVVVVVv', '.vVVVVVv.', 'K.K.K.K.K',
+  '.v.v.v.v.', '.vVWVVVv.', 'vVVVVVVVv', 'vVPVVVPVv',
+  'vVVVVVVVv', '.vvvvvvv.', 'K.K.K.K.K',
 ];
 // Cristal facetado: destello arriba, sombra rojiza abajo-derecha.
 const CRYSTAL = [
