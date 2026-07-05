@@ -1,14 +1,15 @@
 // ============================================================
 //  EL MUNDO (las salas y sus conexiones)
 // ------------------------------------------------------------
-//  Cada sala tiene su Level (los tiles) y su estado vivo: slimes
+//  Cada sala tiene su Level (los tiles) y su estado vivo: enemigos
 //  y cristales. El estado persiste al salir y volver: un cristal
 //  recogido sigue recogido. La transición ocurre cuando el CENTRO
 //  del jugador cruza un borde que tiene salida definida.
 // ============================================================
 
 import { Level, type AbilityName } from './Level';
-import { Slime } from './Slime';
+import type { Enemy } from './entities/Enemy';
+import { Slime } from './entities/Slime';
 import { Player } from './Player';
 import { ROOMS } from './rooms';
 import type { RoomDef } from './rooms/RoomDef';
@@ -28,13 +29,13 @@ export interface Relic {
 
 export class Room {
   readonly level: Level;
-  readonly slimes: Slime[];
+  readonly enemies: Enemy[];
   readonly crystals: Crystal[];
   readonly relics: Relic[];
 
   constructor(readonly def: RoomDef) {
     this.level = new Level(def.map);
-    this.slimes = this.level.slimeCells.map((c) => new Slime(c.x, c.y, this.level));
+    this.enemies = this.level.slimeCells.map((c) => new Slime(c.x, c.y, this.level));
     this.crystals = this.level.crystalCells.map((c) => ({
       x: c.x + 1,
       y: c.y + 1,

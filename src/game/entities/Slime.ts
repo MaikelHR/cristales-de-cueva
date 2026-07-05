@@ -5,13 +5,14 @@
 //  o si llega al borde de la plataforma (para no caerse).
 // ============================================================
 
-import type { Box } from '../engine/canvas';
-import { Level, TILE } from './Level';
-import { sprites } from './art';
+import type { Box } from '../../engine/canvas';
+import { Level, TILE } from '../Level';
+import { sprites } from '../art';
+import type { Enemy } from './Enemy';
 
 const SPEED = 26;
 
-export class Slime {
+export class Slime implements Enemy {
   x: number;
   y: number;
   readonly w = 8;

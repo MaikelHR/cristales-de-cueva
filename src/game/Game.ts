@@ -144,7 +144,7 @@ export class Game {
     }
 
     const room = this.world.current;
-    for (const s of room.slimes) s.update(dt);
+    for (const e of room.enemies) e.update(dt);
 
     const pbox = this.player.box();
 
@@ -174,9 +174,9 @@ export class Game {
       }
     }
 
-    // Chocar slime -> morir (los cristales recogidos se conservan)
-    for (const s of room.slimes) {
-      if (overlaps(pbox, s.box())) {
+    // Chocar enemigo -> morir (los cristales recogidos se conservan)
+    for (const e of room.enemies) {
+      if (overlaps(pbox, e.box())) {
         this.die();
         break;
       }
@@ -221,7 +221,7 @@ export class Game {
     this.drawDoor(ctx, camX, camY);
     this.drawCrystals(ctx, camX, camY);
     this.drawRelics(ctx, camX, camY);
-    for (const s of room.slimes) s.draw(ctx, camX, camY);
+    for (const e of room.enemies) e.draw(ctx, camX, camY);
     this.player.draw(ctx, camX, camY);
     this.particles.draw(ctx, camX, camY);
 
