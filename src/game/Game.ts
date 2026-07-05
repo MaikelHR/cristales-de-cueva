@@ -124,27 +124,34 @@ export class Game {
 
   update(dt: number): void {
     // Menú de inicio: el mundo se anima de fondo y esperamos a que el
-    // jugador confirme para empezar. (Cualquier tecla de saltar también sirve.)
+    // jugador confirme para EMPEZAR UNA PARTIDA NUEVA. (Saltar también sirve.)
     if (this.state === 'title') {
       this.time += dt;
       this.particles.update(dt);
       if (justPressed('confirm') || justPressed('jump')) {
-        this.state = 'playing';
+        this.reset(); // mundo fresco -> a jugar (reset deja el estado en 'playing')
         sfx.relic();
       }
       return;
     }
 
-    // Pantalla de game over: esperamos confirmar/reiniciar para un mundo nuevo.
-    if (this.state === 'gameover') {
+    // Pantallas de fin (ganaste o game over): una tecla vuelve al menú de
+    // inicio, que es el "hub" desde donde se arranca cada partida.
+    if (this.state === 'won' || this.state === 'gameover') {
       this.time += dt;
       this.particles.update(dt);
+      for (const p of this.popups) {
+        p.y -= 16 * dt;
+        p.life -= dt;
+      }
+      this.popups = this.popups.filter((p) => p.life > 0);
       if (justPressed('confirm') || justPressed('restart') || justPressed('jump')) {
-        this.reset();
+        this.state = 'title';
       }
       return;
     }
 
+    // Reinicio rápido durante la partida (tecla R): mundo nuevo, a jugar.
     if (justPressed('restart')) {
       this.reset();
       return;
@@ -173,16 +180,15 @@ export class Game {
       return;
     }
 
+    // A partir de acá el estado siempre es 'playing' (los demás retornaron).
     this.time += dt;
     this.announceTimer = Math.max(0, this.announceTimer - dt);
-    // Las chispas y los "+N" siguen vivos incluso en la pantalla de victoria.
     this.particles.update(dt);
     for (const p of this.popups) {
       p.y -= 16 * dt;
       p.life -= dt;
     }
     this.popups = this.popups.filter((p) => p.life > 0);
-    if (this.state === 'won') return;
 
     this.player.update(dt);
 
@@ -528,7 +534,7 @@ export class Game {
     ctx.font = '8px "JetBrains Mono", ui-monospace, monospace';
     ctx.fillText(`PUNTOS: ${this.score}`, this.viewW / 2, this.viewH / 2 + 2);
     ctx.fillStyle = '#9b86c4';
-    ctx.fillText('R para jugar de nuevo', this.viewW / 2, this.viewH / 2 + 14);
+    ctx.fillText('ENTER para volver al menú', this.viewW / 2, this.viewH / 2 + 14);
     ctx.textAlign = 'left';
   }
 
@@ -586,7 +592,7 @@ export class Game {
     const blink = 0.55 + Math.sin(this.time * 4) * 0.45;
     ctx.globalAlpha = blink;
     ctx.fillStyle = '#9b86c4';
-    ctx.fillText('ENTER o R para reintentar', cx, this.viewH / 2 + 16);
+    ctx.fillText('ENTER para volver al menú', cx, this.viewH / 2 + 16);
     ctx.globalAlpha = 1;
     ctx.textAlign = 'left';
   }
