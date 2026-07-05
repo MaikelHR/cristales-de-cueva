@@ -12,8 +12,8 @@ import { Level } from '../Level';
 import { drawGlow } from '../art';
 import type { Enemy } from './Enemy';
 
-const MOVE_SPEED = 30;    // px/s de vaivén lateral
-const MOVE_RANGE = 72;    // px a cada lado del origen
+const MOVE_SPEED = 28;    // px/s de vaivén lateral
+const MOVE_RANGE = 44;    // px a cada lado del origen (queda sobre el altar)
 const BOB_AMP = 6;        // cabeceo vertical
 const BOB_SPEED = 1.6;
 const SHOOT_EVERY = 1.8;  // segundos entre disparos

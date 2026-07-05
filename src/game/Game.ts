@@ -419,7 +419,7 @@ export class Game {
     if (this.collected === this.totalCrystals && this.state === 'playing') {
       if (this.bossAlive) {
         ctx.fillStyle = '#ff5a7a';
-        ctx.fillText('DERROTA AL GUARDIÁN', 6, 25);
+        ctx.fillText('SALTA SOBRE EL GUARDIÁN', 6, 25);
       } else {
         ctx.fillStyle = '#b98bff';
         ctx.fillText('LA PUERTA ESTÁ ABIERTA', 6, 25);
