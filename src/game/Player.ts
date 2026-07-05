@@ -46,6 +46,8 @@ const HURT_LOCK = 0.2;     // control bloqueado durante el retroceso
 const KNOCKBACK_X = 150;   // empujón horizontal al recibir daño
 const KNOCKBACK_Y = 150;   // empujón hacia arriba al recibir daño
 
+const STOMP_BOUNCE = 200;  // rebote hacia arriba tras pisar un enemigo
+
 // Squash & stretch: deformar el sprite da sensación de peso y energía.
 const STRETCH_JUMP = 1.28;    // estirado al despegar (alto y flaco)
 const SQUASH_MAX = 0.38;      // aplastado máximo al aterrizar (bajo y ancho)
@@ -124,6 +126,15 @@ export class Player {
 
   get invulnerable(): boolean {
     return this.invulnTimer > 0;
+  }
+
+  /** Rebote al pisar un enemigo: salta hacia arriba y recupera el
+   *  salto aéreo (para poder encadenar pisotones). */
+  bounce(): void {
+    this.vy = -STOMP_BOUNCE;
+    this.onGround = false;
+    this.airJumpsLeft = 1;
+    this.stretch = STRETCH_JUMP;
   }
 
   /**

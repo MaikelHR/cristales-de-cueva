@@ -17,6 +17,9 @@ export class Slime implements Enemy {
   y: number;
   readonly w = 8;
   readonly h = 6;
+  dead = false;
+  readonly stompable = true;
+  readonly gooColors = ['#5ce06a', '#33a843', '#beffc8'];
   private dir: 1 | -1 = -1;
   private animTime = 0;
 

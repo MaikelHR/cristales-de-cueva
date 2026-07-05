@@ -12,6 +12,7 @@ import { Camera } from './Camera';
 import { Particles } from './Particles';
 import { World } from './World';
 import type { AbilityName } from './Level';
+import type { Enemy } from './entities/Enemy';
 import { justPressed } from '../engine/input';
 import { overlaps, clamp, type Box } from '../engine/canvas';
 import { sprites, drawGlow, drawBackground, drawDust, drawVignette, initDust } from './art';
@@ -41,6 +42,7 @@ export class Game {
   private freezeTimer = 0;    // hit-stop: mundo congelado unos frames
   private deadFrozen = false; // hay una muerte esperando el respawn
   private pendingReset = false; // al soltar el freeze, ¿reiniciar el mundo?
+  private hitStop = 0;        // micro-pausa al pisar (impacto, sin muerte)
   // Checkpoint: la sala y el punto donde reaparecés al morir.
   private checkpoint = { roomId: '', x: 0, y: 0 };
   // Salas ya exploradas: son las que muestra el minimapa.
@@ -101,6 +103,7 @@ export class Game {
     this.makeCamera();
     this.freezeTimer = 0;
     this.deadFrozen = false;
+    this.hitStop = 0;
     this.state = 'playing';
   }
 
@@ -135,6 +138,12 @@ export class Game {
       return;
     }
 
+    // Micro-pausa de impacto al pisar: un instante clavado y sigue.
+    if (this.hitStop > 0) {
+      this.hitStop -= dt;
+      return;
+    }
+
     this.time += dt;
     this.announceTimer = Math.max(0, this.announceTimer - dt);
     // Las chispas siguen vivas incluso en la pantalla de victoria.
@@ -153,7 +162,9 @@ export class Game {
     }
 
     const room = this.world.current;
-    for (const e of room.enemies) e.update(dt);
+    for (const e of room.enemies) {
+      if (!e.dead) e.update(dt, this.player);
+    }
 
     const pbox = this.player.box();
 
@@ -183,12 +194,30 @@ export class Game {
       }
     }
 
-    // Chocar enemigo -> recibir daño (retroceso + invulnerabilidad)
+    // Contacto con enemigos: pisar desde arriba lo derrota; de costado
+    // o desde abajo, te daña. También sus proyectiles (hazards) dañan.
     for (const e of room.enemies) {
-      if (overlaps(pbox, e.box())) {
-        const b = e.box();
-        this.hurtPlayer(b.x + b.w / 2);
+      if (e.dead) continue;
+      const eb = e.box();
+      if (overlaps(pbox, eb)) {
+        const feetY = pbox.y + pbox.h;
+        const stomped =
+          e.stompable && this.player.vy > 0 && feetY <= eb.y + eb.h * 0.6;
+        if (stomped) this.stompEnemy(e, eb);
+        else this.hurtPlayer(eb.x + eb.w / 2);
         break;
+      }
+      // Proyectiles del enemigo (si dispara)
+      if (e.hazards) {
+        let hit = false;
+        for (const hz of e.hazards()) {
+          if (overlaps(pbox, hz)) {
+            this.hurtPlayer(hz.x + hz.w / 2);
+            hit = true;
+            break;
+          }
+        }
+        if (hit) break;
       }
     }
 
@@ -209,6 +238,17 @@ export class Game {
       this.player.x + this.player.w / 2,
       this.player.y + this.player.h / 2,
     );
+  }
+
+  /** Pisar un enemigo: lo derrota con estallido, rebota al jugador y
+   *  clava una micro-pausa de impacto (juice proporcional: chico). */
+  private stompEnemy(e: Enemy, eb: Box): void {
+    e.dead = true;
+    this.particles.burst(eb.x + eb.w / 2, eb.y + eb.h / 2, 12, [...e.gooColors]);
+    this.player.bounce();
+    this.hitStop = 0.06;
+    this.camera.shake(1.5, 0.15);
+    sfx.stomp();
   }
 
   /** Recibir daño de un enemigo: quita un corazón, empuja y da unos
@@ -258,7 +298,9 @@ export class Game {
     this.drawDoor(ctx, camX, camY);
     this.drawCrystals(ctx, camX, camY);
     this.drawRelics(ctx, camX, camY);
-    for (const e of room.enemies) e.draw(ctx, camX, camY);
+    for (const e of room.enemies) {
+      if (!e.dead) e.draw(ctx, camX, camY);
+    }
     this.player.draw(ctx, camX, camY);
     this.particles.draw(ctx, camX, camY);
 

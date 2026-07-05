@@ -35,6 +35,12 @@ export const sfx = {
     playTone({ freq: 200, freqEnd: 80, duration: 0.16, type: 'square', volume: 0.15 });
   },
 
+  /** Pisar un enemigo: un "boink" seco y jugoso. */
+  stomp(): void {
+    playTone({ freq: 420, freqEnd: 130, duration: 0.09, type: 'square', volume: 0.14 });
+    playTone({ freq: 700, duration: 0.05, type: 'triangle', volume: 0.1, delay: 0.02 });
+  },
+
   /** Recoger cristal: dos campanitas subiendo. */
   pickup(): void {
     playTone({ freq: 880, duration: 0.07, type: 'triangle', volume: 0.18 });
