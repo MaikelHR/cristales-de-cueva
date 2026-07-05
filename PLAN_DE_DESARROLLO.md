@@ -135,7 +135,7 @@ de animación reales. Vamos punto por punto.
 - [x] **Enemigos**: más volumen y carácter (slime, volador, cazador, jefe)
 - [x] **Cristales, reliquias y puerta**: animación con más frames
 - [x] **Tileset** de paredes: bordes, esquinas y variaciones reales
-- [ ] **Atmósfera**: pulido final del fondo/parallax (opcional)
+- [x] **Atmósfera**: rayos de luz, brasas doradas, cristales que titilan y niebla baja
 
 > Dónde: todo vive en `game/art.ts` (grillas de píxeles + `Sprite`). El pipeline
 > ya está: cada `draw()` elige un frame. Si algún día conseguís assets reales,

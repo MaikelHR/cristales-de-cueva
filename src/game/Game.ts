@@ -15,7 +15,7 @@ import type { AbilityName } from './Level';
 import type { Enemy } from './entities/Enemy';
 import { justPressed } from '../engine/input';
 import { overlaps, clamp, type Box } from '../engine/canvas';
-import { sprites, drawGlow, drawBackground, drawDust, drawVignette, initDust } from './art';
+import { sprites, drawGlow, drawBackground, drawDust, drawFog, drawVignette, initDust } from './art';
 import { sfx } from './sfx';
 
 type State = 'playing' | 'won';
@@ -332,7 +332,7 @@ export class Game {
     const camY = this.camera.y;
     const room = this.world.current;
 
-    drawBackground(ctx, camX, camY, this.viewW, this.viewH, room.level.widthPx, room.def.mapPos.x);
+    drawBackground(ctx, camX, camY, this.viewW, this.viewH, room.level.widthPx, room.def.mapPos.x, this.time);
 
     room.level.draw(ctx, camX, camY, this.viewW, this.viewH);
     this.drawDoor(ctx, camX, camY);
@@ -345,6 +345,7 @@ export class Game {
     this.particles.draw(ctx, camX, camY);
     this.drawPopups(ctx, camX, camY);
 
+    drawFog(ctx, camX, this.viewW, this.viewH, this.time);
     drawDust(ctx, this.viewW, this.viewH, this.time, 1 / 60);
     drawVignette(ctx, this.viewW, this.viewH);
 
