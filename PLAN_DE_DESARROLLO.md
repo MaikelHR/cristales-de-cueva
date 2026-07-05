@@ -150,7 +150,8 @@ de animación reales. Vamos punto por punto.
 - [x] **Guardado** del progreso (localStorage para la versión web)
 - [x] Pantalla de **pausa**
 - [x] Contador de tiempo / cristales totales (incentivo de speedrun)
-- [ ] Soporte de **gamepad** (la API de navegador es directa)
+- [x] Soporte de **gamepad** (la API de navegador es directa) + **prompts adaptativos**
+      (los controles en pantalla cambian entre teclas y botones según el último dispositivo usado)
 
 ---
 

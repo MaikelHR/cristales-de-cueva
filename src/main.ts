@@ -7,7 +7,7 @@
 
 import './style.css';
 import { setupContext } from './engine/canvas';
-import { initInput, endStep } from './engine/input';
+import { initInput, endStep, pollGamepad, inputDevice, type InputDevice } from './engine/input';
 import { initAudio } from './engine/audio';
 import { startLoop } from './engine/loop';
 import { Game } from './game/Game';
@@ -33,9 +33,32 @@ if (import.meta.env.DEV) {
   (window as unknown as { __sprites: typeof sprites }).__sprites = sprites;
 }
 
+// Footer de controles adaptativo: muestra teclas o botones según el
+// último dispositivo usado, y cambia al instante al detectar el otro.
+const controlsEl = document.getElementById('controles');
+const CONTROLS_HTML: Record<InputDevice, string> = {
+  keyboard:
+    '<kbd>←</kbd> <kbd>→</kbd> o <kbd>A</kbd> <kbd>D</kbd> para moverte &nbsp;·&nbsp; ' +
+    '<kbd>espacio</kbd> / <kbd>↑</kbd> / <kbd>W</kbd> para saltar (¡doble!) &nbsp;·&nbsp; ' +
+    '<kbd>shift</kbd> / <kbd>X</kbd> para dash &nbsp;·&nbsp; <kbd>R</kbd> para reiniciar',
+  gamepad:
+    '<kbd>D-pad</kbd> / <kbd>stick</kbd> para moverte &nbsp;·&nbsp; ' +
+    '<kbd>A</kbd> para saltar (¡doble!) &nbsp;·&nbsp; ' +
+    '<kbd>X</kbd> para dash &nbsp;·&nbsp; <kbd>Y</kbd> reiniciar &nbsp;·&nbsp; <kbd>START</kbd> pausa',
+};
+let shownDevice: InputDevice | null = null;
+function syncControls(): void {
+  const dev = inputDevice();
+  if (dev === shownDevice || !controlsEl) return;
+  shownDevice = dev;
+  controlsEl.innerHTML = CONTROLS_HTML[dev];
+}
+
 startLoop(
   (dt) => {
+    pollGamepad(); // leer el estado del control antes de actualizar el juego
     game.update(dt);
+    syncControls();
     endStep(); // limpiar "recién presionado" después de cada paso de lógica
   },
   () => game.draw(ctx),

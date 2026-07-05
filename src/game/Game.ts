@@ -13,7 +13,7 @@ import { Particles } from './Particles';
 import { World } from './World';
 import type { AbilityName } from './Level';
 import type { Enemy } from './entities/Enemy';
-import { justPressed } from '../engine/input';
+import { justPressed, inputDevice } from '../engine/input';
 import { overlaps, clamp, type Box } from '../engine/canvas';
 import { sprites, drawGlow, drawBackground, drawDust, drawFog, drawVignette, initDust } from './art';
 import { sfx } from './sfx';
@@ -444,11 +444,12 @@ export class Game {
     ctx.fillStyle = '#e9d6ff';
     ctx.font = '18px "JetBrains Mono", ui-monospace, monospace';
     ctx.fillText('PAUSA', cx, this.viewH / 2 - 10);
+    const gp = inputDevice() === 'gamepad';
     ctx.fillStyle = '#9b86c4';
     ctx.font = '8px "JetBrains Mono", ui-monospace, monospace';
-    ctx.fillText('ESC o P para continuar', cx, this.viewH / 2 + 8);
+    ctx.fillText(gp ? 'START para continuar' : 'ESC o P para continuar', cx, this.viewH / 2 + 8);
     ctx.fillStyle = '#6f5a94';
-    ctx.fillText('R para reiniciar', cx, this.viewH / 2 + 20);
+    ctx.fillText(gp ? 'Y para reiniciar' : 'R para reiniciar', cx, this.viewH / 2 + 20);
     ctx.textAlign = 'left';
   }
 
@@ -617,8 +618,13 @@ export class Game {
       ctx.fillText(`MEJOR TIEMPO: ${formatTime(this.save.bestTime)}`, cx, this.viewH / 2 + 9);
     }
     ctx.fillStyle = '#9b86c4';
-    ctx.fillText('ENTER para volver al menú', cx, this.viewH / 2 + 22);
+    ctx.fillText(this.backToMenuText(), cx, this.viewH / 2 + 22);
     ctx.textAlign = 'left';
+  }
+
+  /** El texto para volver al menú, según teclado o gamepad. */
+  private backToMenuText(): string {
+    return inputDevice() === 'gamepad' ? 'botón A para volver al menú' : 'ENTER para volver al menú';
   }
 
   /** Línea de récord bajo el puntaje: si batiste tu marca, un "¡NUEVO
@@ -678,15 +684,17 @@ export class Game {
       }
     }
 
-    // Aviso pulsante para empezar (parpadeo suave con seno).
+    // Aviso pulsante para empezar (parpadeo suave con seno). Los textos
+    // se adaptan al último dispositivo usado (teclado o gamepad).
+    const gp = inputDevice() === 'gamepad';
     const blink = 0.55 + Math.sin(this.time * 4) * 0.45;
     ctx.globalAlpha = blink;
     ctx.fillStyle = '#ffe25a';
-    ctx.fillText('ENTER o ↑ para empezar', cx, this.viewH / 2 + 54);
+    ctx.fillText(gp ? 'botón A o START para empezar' : 'ENTER o ↑ para empezar', cx, this.viewH / 2 + 54);
     ctx.globalAlpha = 1;
 
     ctx.fillStyle = '#6f5a94';
-    ctx.fillText('← → mover · ↑ saltar · X dash', cx, this.viewH - 12);
+    ctx.fillText(gp ? 'D-pad mover · A saltar · X dash' : '← → mover · ↑ saltar · X dash', cx, this.viewH - 12);
     ctx.textAlign = 'left';
   }
 
