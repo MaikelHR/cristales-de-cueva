@@ -105,7 +105,7 @@ La gracia del género: volver con una habilidad nueva y llegar a donde antes no.
 
 ## Fase 4 — Enemigos y combate
 
-- [ ] Más tipos de enemigo (que vuelan, que disparan, que persiguen)
+- [x] Más tipos de enemigo (que vuelan, que disparan, que persiguen)
 - [x] **Vida del jugador** (corazones) en vez de morir de un toque
 - [x] Forma de atacar: pisar tipo Mario, o un golpe corto
 - [x] **Knockback** e invulnerabilidad breve tras recibir daño

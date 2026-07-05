@@ -93,6 +93,24 @@ const SLIME_2 = [
   '..........', '...EEEE...', '..ELLLLE..', '.ELWWLLGE.',
   'EGPPGGPPGJ', 'JGGGGGGGGJ', '.JggggggJ.', '..JJJJJJ..',
 ];
+// Volador (murciélago de cristal): cuerpo cian, alas moradas que baten.
+const FLYER_1 = [
+  'MM.....MM', '.MM.B.MM.', '..MBWBM..', '..KBBBK..',
+  '...KKK...', '.........', '.........',
+];
+const FLYER_2 = [
+  '.........', '..M.B.M..', '.MMBWBMM.', '..KBBBK..',
+  '..MKKKM..', '.M.....M.', '.........',
+];
+// Cazador (bola con púas): rojo amenazante, ojos oscuros, patitas.
+const CHASER_1 = [
+  '.v.v.v.v.', '.vVVVVVv.', 'vVVVVVVVv', 'vVPVVVPVv',
+  'vVVVVVVVv', '.vVVVVVv.', '.K.K.K.K.',
+];
+const CHASER_2 = [
+  '.v.v.v.v.', '.vVVVVVv.', 'vVVVVVVVv', 'vVPVVVPVv',
+  'vVVVVVVVv', '.vVVVVVv.', 'K.K.K.K.K',
+];
 // Cristal facetado: destello arriba, sombra rojiza abajo-derecha.
 const CRYSTAL = [
   '...hh...', '..hWWy..', '.hWYYYy.', 'hWYYYYyu',
@@ -163,6 +181,10 @@ export const sprites = {
   playerWall: new Sprite(PLAYER_WALL, PALETTE),
   slime1: new Sprite(SLIME_1, PALETTE),
   slime2: new Sprite(SLIME_2, PALETTE),
+  flyer1: new Sprite(FLYER_1, PALETTE),
+  flyer2: new Sprite(FLYER_2, PALETTE),
+  chaser1: new Sprite(CHASER_1, PALETTE),
+  chaser2: new Sprite(CHASER_2, PALETTE),
   crystal: new Sprite(CRYSTAL, PALETTE),
   relic: new Sprite(RELIC, PALETTE),
   heartFull: new Sprite(HEART_FULL, PALETTE),

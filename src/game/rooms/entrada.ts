@@ -1,7 +1,8 @@
 import type { RoomDef } from './RoomDef';
 
 /** La caverna inicial: donde aprendés a moverte. La reliquia del
- *  doble salto brilla en lo alto, a la derecha. Salida a la derecha. */
+ *  doble salto brilla en lo alto, a la derecha. Un cazador patrulla
+ *  el tramo derecho. Salida a la derecha. */
 export const entrada: RoomDef = {
   id: 'entrada',
   mapPos: { x: 0, y: 0 },
@@ -27,7 +28,7 @@ export const entrada: RoomDef = {
     '#.......o........................s.............................#',
     '#......####..............o.....######...........#####..........#',
     '#.....................#######...........#######.................',
-    '#..P...............................s............................',
+    '#..P...............................s..............c.............',
     '########################...#############...#####################',
   ],
 };

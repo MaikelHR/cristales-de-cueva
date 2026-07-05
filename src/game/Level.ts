@@ -4,9 +4,9 @@
 //  El mapa es texto y vive en rooms/*.ts (un archivo por sala);
 //  esta clase lo interpreta. Cada carácter es una celda de 8x8 px:
 //    '#' = bloque sólido     '.' = aire
-//    'o' = cristal           's' = slime (enemigo)
-//    'P' = inicio del jugador 'D' = puerta (meta)
-//    '-' = plataforma de un solo sentido (subís atravesándola)
+//    'o' = cristal           'P' = inicio del jugador
+//    'D' = puerta (meta)      '-' = plataforma de un solo sentido
+//    's' = slime   'b' = volador (murciélago)   'c' = cazador   'B' = jefe
 //    'j' / 'k' / 'w' = reliquia de doble salto / dash / wall jump
 //  Para diseñar niveles, editás ese texto. Así de directo.
 // ============================================================
@@ -30,6 +30,16 @@ const RELIC_CHARS: Record<string, AbilityName> = {
   w: 'wallJump',
 };
 
+/** Los tipos de enemigo, según el carácter del mapa. */
+export type EnemyKind = 'slime' | 'flyer' | 'chaser' | 'boss';
+
+const ENEMY_CHARS: Record<string, EnemyKind> = {
+  s: 'slime',
+  b: 'flyer',
+  c: 'chaser',
+  B: 'boss',
+};
+
 export class Level {
   readonly cols: number;
   readonly rows: number;
@@ -39,7 +49,7 @@ export class Level {
   private solid: boolean[][] = [];
   private oneWay: boolean[][] = [];
   readonly crystalCells: Spawn[] = [];
-  readonly slimeCells: Spawn[] = [];
+  readonly enemyCells: (Spawn & { kind: EnemyKind })[] = [];
   readonly relicCells: (Spawn & { ability: AbilityName })[] = [];
   playerSpawn: Spawn = { x: 0, y: 0 };
   doorBox: Box | null = null; // solo en la sala que tiene 'D'
@@ -70,7 +80,7 @@ export class Level {
         const px = col * TILE;
         const py = row * TILE;
         if (ch === 'o') this.crystalCells.push({ x: px, y: py });
-        else if (ch === 's') this.slimeCells.push({ x: px, y: py });
+        else if (ENEMY_CHARS[ch]) this.enemyCells.push({ x: px, y: py, kind: ENEMY_CHARS[ch] });
         else if (RELIC_CHARS[ch]) this.relicCells.push({ x: px, y: py, ability: RELIC_CHARS[ch] });
         else if (ch === 'P') this.playerSpawn = { x: px, y: py };
         else if (ch === 'D') this.doorBox = { x: px, y: py + 2, w: TILE, h: TILE * 2 - 2 };

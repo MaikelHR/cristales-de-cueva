@@ -10,6 +10,8 @@
 import { Level, type AbilityName } from './Level';
 import type { Enemy } from './entities/Enemy';
 import { Slime } from './entities/Slime';
+import { Flyer } from './entities/Flyer';
+import { Chaser } from './entities/Chaser';
 import { Player } from './Player';
 import { ROOMS } from './rooms';
 import type { RoomDef } from './rooms/RoomDef';
@@ -35,7 +37,16 @@ export class Room {
 
   constructor(readonly def: RoomDef) {
     this.level = new Level(def.map);
-    this.enemies = this.level.slimeCells.map((c) => new Slime(c.x, c.y, this.level));
+    this.enemies = this.level.enemyCells.map((c) => {
+      switch (c.kind) {
+        case 'flyer':
+          return new Flyer(c.x, c.y, this.level);
+        case 'chaser':
+          return new Chaser(c.x, c.y, this.level);
+        default:
+          return new Slime(c.x, c.y, this.level);
+      }
+    });
     this.crystals = this.level.crystalCells.map((c) => ({
       x: c.x + 1,
       y: c.y + 1,

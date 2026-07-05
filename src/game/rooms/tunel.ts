@@ -2,7 +2,8 @@ import type { RoomDef } from './RoomDef';
 
 /** Pasaje con un foso al medio y una torre de tablones que sube hasta
  *  un cristal. El primer tablón queda alto a propósito: sin el doble
- *  salto no se alcanza. La reliquia del wall jump espera a la izquierda. */
+ *  salto no se alcanza. Un volador ronda el ascenso y la reliquia del
+ *  wall jump espera a la izquierda. */
 export const tunel: RoomDef = {
   id: 'tunel',
   mapPos: { x: 1, y: 0 },
@@ -14,7 +15,7 @@ export const tunel: RoomDef = {
     '#......................................................#',
     '#......................................................#',
     '#......................................................#',
-    '#......................................................#',
+    '#..........................b...........................#',
     '#......................................................#',
     '#..........................o...........................#',
     '#.........................----.........................#',
