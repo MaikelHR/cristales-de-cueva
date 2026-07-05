@@ -12,6 +12,7 @@ import type { Enemy } from './entities/Enemy';
 import { Slime } from './entities/Slime';
 import { Flyer } from './entities/Flyer';
 import { Chaser } from './entities/Chaser';
+import { Boss } from './entities/Boss';
 import { Player } from './Player';
 import { ROOMS } from './rooms';
 import type { RoomDef } from './rooms/RoomDef';
@@ -43,6 +44,8 @@ export class Room {
           return new Flyer(c.x, c.y, this.level);
         case 'chaser':
           return new Chaser(c.x, c.y, this.level);
+        case 'boss':
+          return new Boss(c.x, c.y, this.level);
         default:
           return new Slime(c.x, c.y, this.level);
       }

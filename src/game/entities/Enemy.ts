@@ -24,4 +24,8 @@ export interface Enemy {
   readonly isBoss?: boolean;
   /** cajas peligrosas propias (p. ej. proyectiles) que dañan al jugador. */
   hazards?(): Box[];
+  /** Reacción propia al pisotón (para enemigos con varios golpes).
+   *  Devuelve true si el pisotón lo derrotó. Si no está, un pisotón
+   *  lo mata de una. */
+  onStomp?(): boolean;
 }

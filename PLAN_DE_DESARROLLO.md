@@ -109,12 +109,12 @@ La gracia del género: volver con una habilidad nueva y llegar a donde antes no.
 - [x] **Vida del jugador** (corazones) en vez de morir de un toque
 - [x] Forma de atacar: pisar tipo Mario, o un golpe corto
 - [x] **Knockback** e invulnerabilidad breve tras recibir daño
-- [ ] Un **jefe** sencillo de fin de zona
+- [x] Un **jefe** sencillo de fin de zona
 
-> Nota: el modelo de daño se hizo junto con el refactor de `game/entities/`.
-> Tocar un enemigo cuesta un corazón con retroceso + invulnerabilidad;
-> el foso cuesta un corazón y te devuelve al checkpoint; a 0 corazones,
-> mundo nuevo. Sigue: pisar/atacar enemigos y más tipos.
+> **Fase 4 completa.** Enemigos con interfaz común en `game/entities/`
+> (Slime, Flyer, Chaser, Boss). Corazones + retroceso + invulnerabilidad;
+> pisar derrota (con rebote y hit-stop); volador y cazador; y un jefe
+> guardián con proyectiles que aguanta 3 pisotones y bloquea la puerta.
 
 > Dónde: refactor para que enemigos compartan una interfaz común
 > (`game/entities/`), y un `game/Combat.ts` o lógica en `Game.ts`.

@@ -1,7 +1,8 @@
 import type { RoomDef } from './RoomDef';
 
 /** La sala final: el altar con la puerta, y la reliquia del dash en
- *  un nicho alto a la derecha. Tranquila, sin enemigos. */
+ *  un nicho alto a la derecha. Un guardián de cristal flota sobre el
+ *  altar: hay que derrotarlo (3 pisotones) para que la puerta abra. */
 export const santuario: RoomDef = {
   id: 'santuario',
   mapPos: { x: 2, y: 0 },
@@ -11,7 +12,7 @@ export const santuario: RoomDef = {
     '#......................................................#',
     '#......................................................#',
     '#......................................................#',
-    '#......................................................#',
+    '#..........................B...........................#',
     '#......................................................#',
     '#......................................................#',
     '#......................................................#',

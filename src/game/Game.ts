@@ -226,9 +226,14 @@ export class Game {
       this.loseLifeAndRespawn();
     }
 
-    // Llegar a la puerta con todos los cristales -> ganar
+    // Llegar a la puerta con todos los cristales y sin jefes vivos -> ganar
     const door = room.level.doorBox;
-    if (door && this.collected === this.totalCrystals && overlaps(pbox, door)) {
+    if (
+      door &&
+      this.collected === this.totalCrystals &&
+      !this.bossAlive &&
+      overlaps(pbox, door)
+    ) {
       this.state = 'won';
       sfx.win();
     }
@@ -240,15 +245,33 @@ export class Game {
     );
   }
 
-  /** Pisar un enemigo: lo derrota con estallido, rebota al jugador y
-   *  clava una micro-pausa de impacto (juice proporcional: chico). */
+  /** Pisar un enemigo: rebota al jugador y clava una micro-pausa de
+   *  impacto. Los enemigos con onStomp (el jefe) deciden si el golpe
+   *  los derrota; el resto muere de un pisotón. */
   private stompEnemy(e: Enemy, eb: Box): void {
-    e.dead = true;
-    this.particles.burst(eb.x + eb.w / 2, eb.y + eb.h / 2, 12, [...e.gooColors]);
+    const defeated = e.onStomp ? e.onStomp() : ((e.dead = true), true);
     this.player.bounce();
     this.hitStop = 0.06;
-    this.camera.shake(1.5, 0.15);
     sfx.stomp();
+    if (defeated) {
+      const count = e.isBoss ? 30 : 12;
+      this.particles.burst(eb.x + eb.w / 2, eb.y + eb.h / 2, count, [...e.gooColors]);
+      this.camera.shake(e.isBoss ? 4 : 1.5, e.isBoss ? 0.4 : 0.15);
+      if (e.isBoss) {
+        this.announceText = '¡GUARDIÁN DERROTADO!';
+        this.announceTimer = 2.5;
+        sfx.relic();
+      }
+    } else {
+      // Golpe que no derrota (jefe con vida restante): chispas y sacudida chica.
+      this.particles.burst(eb.x + eb.w / 2, eb.y, 8, [...e.gooColors]);
+      this.camera.shake(1.5, 0.15);
+    }
+  }
+
+  /** ¿Queda algún jefe vivo en el mundo? Bloquea la puerta. */
+  private get bossAlive(): boolean {
+    return this.world.allRooms.some((r) => r.enemies.some((e) => e.isBoss && !e.dead));
   }
 
   /** Recibir daño de un enemigo: quita un corazón, empuja y da unos
@@ -370,7 +393,7 @@ export class Game {
   private drawDoor(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {
     const d = this.world.current.level.doorBox;
     if (!d) return; // esta sala no tiene puerta
-    const open = this.collected === this.totalCrystals;
+    const open = this.collected === this.totalCrystals && !this.bossAlive;
     const sprite = open ? sprites.doorOpen : sprites.doorLocked;
     const floorY = d.y - 2 + 8; // base de la puerta sobre el piso
     const drawX = d.x + 4 - sprite.w / 2;
@@ -394,8 +417,13 @@ export class Game {
     ctx.textBaseline = 'top';
     ctx.fillText(`CRISTALES ${this.collected}/${this.totalCrystals}`, 6, 15);
     if (this.collected === this.totalCrystals && this.state === 'playing') {
-      ctx.fillStyle = '#b98bff';
-      ctx.fillText('LA PUERTA ESTÁ ABIERTA', 6, 25);
+      if (this.bossAlive) {
+        ctx.fillStyle = '#ff5a7a';
+        ctx.fillText('DERROTA AL GUARDIÁN', 6, 25);
+      } else {
+        ctx.fillStyle = '#b98bff';
+        ctx.fillText('LA PUERTA ESTÁ ABIERTA', 6, 25);
+      }
     }
     // Aviso grande al ganar una habilidad (se desvanece al final)
     if (this.announceTimer > 0) {
