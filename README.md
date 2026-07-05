@@ -12,7 +12,7 @@ niebla, parallax) se genera en tiempo real.
 
 ## Jugar
 
-- **Demo en vivo:** _(pendiente de desplegar en Vercel)_
+- **Demo en vivo:** **[cristales-de-cueva.vercel.app](https://cristales-de-cueva.vercel.app)**
 - **Local:**
   ```bash
   npm install
