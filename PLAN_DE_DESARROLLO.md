@@ -157,10 +157,11 @@ de animación reales. Vamos punto por punto.
 
 ## Fase 7 — Publicar (gratis)
 
-- [ ] `npm run build` y subir la carpeta `dist/` a **itch.io** (gratis, ideal para juegos web)
-- [ ] También sirve Vercel / Netlify / GitHub Pages
-- [ ] Capturas y un GIF corto para el README y el portafolio
-- [ ] Página de itch con descripción y controles
+- [x] `npm run build` y desplegar la carpeta `dist/` — **publicado en Vercel:**
+      https://cristales-de-cueva.vercel.app
+- [x] Vercel / Netlify / GitHub Pages (elegido: **Vercel**, autodetecta Vite)
+- [x] Capturas en el README + descripción para el portafolio
+- [ ] (Opcional) GIF corto animado y/o página de itch.io
 
 ---
 
