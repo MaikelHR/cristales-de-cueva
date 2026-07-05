@@ -16,9 +16,10 @@ const KEY = 'cristales-save-v1';
 export interface SaveData {
   bestScore: number; // el puntaje más alto logrado
   victories: number; // cuántas veces se completó el juego
+  bestTime: number;  // mejor tiempo de completado, en segundos (0 = ninguno)
 }
 
-const DEFAULT: SaveData = { bestScore: 0, victories: 0 };
+const DEFAULT: SaveData = { bestScore: 0, victories: 0, bestTime: 0 };
 
 /** Lee el guardado. Si no existe o está corrupto, devuelve los valores por defecto. */
 export function loadSave(): SaveData {
@@ -30,6 +31,7 @@ export function loadSave(): SaveData {
     return {
       bestScore: Number(data.bestScore) || 0,
       victories: Number(data.victories) || 0,
+      bestTime: Number(data.bestTime) || 0,
     };
   } catch {
     return { ...DEFAULT };

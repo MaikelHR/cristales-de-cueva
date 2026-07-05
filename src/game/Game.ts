@@ -35,6 +35,14 @@ const ABILITY_GLOW: Record<AbilityName, string> = {
   wallJump: '#5ce06a',
 };
 
+/** Formatea segundos como m:ss (p. ej. 83.4 -> "1:23"). */
+function formatTime(seconds: number): string {
+  const total = Math.floor(seconds);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
 export class Game {
   private world: World;
   private player: Player;
@@ -49,7 +57,9 @@ export class Game {
   private score = 0;          // puntos por monstruos eliminados
   private save: SaveData = loadSave(); // récords persistidos (localStorage)
   private newRecord = false;  // ¿la última corrida batió el mejor puntaje?
+  private newBestTime = false;// ¿la última victoria batió el mejor tiempo?
   private paused = false;     // pausa (congela la partida sin salir de ella)
+  private runTime = 0;        // cronómetro de la partida actual (segundos)
   // Textos flotantes "+N" que suben y se desvanecen (world space).
   private popups: { x: number; y: number; text: string; life: number }[] = [];
   // Checkpoint: la sala y el punto donde reaparecés al morir.
@@ -110,6 +120,8 @@ export class Game {
     this.announceTimer = 0;
     this.score = 0;
     this.newRecord = false;
+    this.newBestTime = false;
+    this.runTime = 0;
     this.paused = false;
     this.popups = [];
     this.particles.clear();
@@ -196,6 +208,7 @@ export class Game {
 
     // A partir de acá el estado siempre es 'playing' (los demás retornaron).
     this.time += dt;
+    this.runTime += dt; // el cronómetro solo corre mientras se juega de verdad
     this.announceTimer = Math.max(0, this.announceTimer - dt);
     this.particles.update(dt);
     for (const p of this.popups) {
@@ -377,7 +390,13 @@ export class Game {
   private endRun(won: boolean): void {
     this.newRecord = this.score > this.save.bestScore;
     if (this.newRecord) this.save.bestScore = this.score;
-    if (won) this.save.victories++;
+    if (won) {
+      this.save.victories++;
+      // Mejor tiempo: solo cuenta al ganar. El primer completado siempre
+      // es récord (bestTime arranca en 0 = "sin marca").
+      this.newBestTime = this.save.bestTime === 0 || this.runTime < this.save.bestTime;
+      if (this.newBestTime) this.save.bestTime = this.runTime;
+    }
     writeSave(this.save);
   }
 
@@ -545,6 +564,11 @@ export class Game {
     ctx.fillText(`CRISTALES ${this.collected}/${this.totalCrystals}`, 6, 15);
     ctx.fillStyle = '#9b86c4';
     ctx.fillText(`PUNTOS ${this.score}`, 6, 24);
+    // Cronómetro de la partida, arriba al centro (estilo speedrun).
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#c7b8e6';
+    ctx.fillText(formatTime(this.runTime), this.viewW / 2, 6);
+    ctx.textAlign = 'left';
     if (this.collected === this.totalCrystals && this.state === 'playing') {
       if (this.bossAlive) {
         ctx.fillStyle = '#ff5a7a';
@@ -574,13 +598,26 @@ export class Game {
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ffd36e';
     ctx.font = '16px "JetBrains Mono", ui-monospace, monospace';
-    ctx.fillText('¡LO LOGRASTE!', cx, this.viewH / 2 - 22);
-    ctx.fillStyle = '#ffe25a';
+    ctx.fillText('¡LO LOGRASTE!', cx, this.viewH / 2 - 30);
     ctx.font = '8px "JetBrains Mono", ui-monospace, monospace';
-    ctx.fillText(`PUNTOS: ${this.score}`, cx, this.viewH / 2 - 6);
-    this.drawRecordLine(ctx, cx, this.viewH / 2 + 6);
+    ctx.fillStyle = '#ffe25a';
+    ctx.fillText(`PUNTOS: ${this.score}`, cx, this.viewH / 2 - 14);
+    ctx.fillStyle = '#7ce0ff';
+    ctx.fillText(`TIEMPO: ${formatTime(this.runTime)}`, cx, this.viewH / 2 - 3);
+    // Récord de tiempo (la métrica de speedrun): si lo batiste, celebración
+    // pulsante; si no, tu mejor marca para comparar.
+    if (this.newBestTime) {
+      ctx.save();
+      ctx.globalAlpha = 0.6 + Math.sin(this.time * 8) * 0.4;
+      ctx.fillStyle = '#ffe25a';
+      ctx.fillText('¡NUEVO RÉCORD DE TIEMPO!', cx, this.viewH / 2 + 9);
+      ctx.restore();
+    } else {
+      ctx.fillStyle = '#ffd36e';
+      ctx.fillText(`MEJOR TIEMPO: ${formatTime(this.save.bestTime)}`, cx, this.viewH / 2 + 9);
+    }
     ctx.fillStyle = '#9b86c4';
-    ctx.fillText('ENTER para volver al menú', cx, this.viewH / 2 + 20);
+    ctx.fillText('ENTER para volver al menú', cx, this.viewH / 2 + 22);
     ctx.textAlign = 'left';
   }
 
@@ -629,11 +666,15 @@ export class Game {
     ctx.font = '8px "JetBrains Mono", ui-monospace, monospace';
     if (this.save.bestScore > 0 || this.save.victories > 0) {
       ctx.fillStyle = '#ffd36e';
-      ctx.fillText(`MEJOR PUNTAJE: ${this.save.bestScore}`, cx, this.viewH / 2 + 22);
+      ctx.fillText(`MEJOR PUNTAJE: ${this.save.bestScore}`, cx, this.viewH / 2 + 20);
+      if (this.save.bestTime > 0) {
+        ctx.fillStyle = '#7ce0ff';
+        ctx.fillText(`MEJOR TIEMPO: ${formatTime(this.save.bestTime)}`, cx, this.viewH / 2 + 30);
+      }
       if (this.save.victories > 0) {
         ctx.fillStyle = '#5ce06a';
         const veces = this.save.victories === 1 ? 'vez' : 'veces';
-        ctx.fillText(`completado ${this.save.victories} ${veces}`, cx, this.viewH / 2 + 32);
+        ctx.fillText(`completado ${this.save.victories} ${veces}`, cx, this.viewH / 2 + 40);
       }
     }
 
@@ -641,7 +682,7 @@ export class Game {
     const blink = 0.55 + Math.sin(this.time * 4) * 0.45;
     ctx.globalAlpha = blink;
     ctx.fillStyle = '#ffe25a';
-    ctx.fillText('ENTER o ↑ para empezar', cx, this.viewH / 2 + 46);
+    ctx.fillText('ENTER o ↑ para empezar', cx, this.viewH / 2 + 54);
     ctx.globalAlpha = 1;
 
     ctx.fillStyle = '#6f5a94';
