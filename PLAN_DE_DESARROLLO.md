@@ -146,7 +146,7 @@ de animación reales. Vamos punto por punto.
 
 ## Fase 6 — Estructura de juego (que se sienta completo)
 
-- [ ] **Menú** de inicio y pantalla de game over
+- [x] **Menú** de inicio y pantalla de game over
 - [ ] **Guardado** del progreso (localStorage para la versión web)
 - [ ] Pantalla de **pausa**
 - [ ] Contador de tiempo / cristales totales (incentivo de speedrun)

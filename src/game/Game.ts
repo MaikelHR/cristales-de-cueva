@@ -18,7 +18,9 @@ import { overlaps, clamp, type Box } from '../engine/canvas';
 import { sprites, drawGlow, drawBackground, drawDust, drawFog, drawVignette, initDust } from './art';
 import { sfx } from './sfx';
 
-type State = 'playing' | 'won';
+// Los estados del juego. 'title' = menú de inicio; 'playing' = jugando;
+// 'won' = pantalla de victoria; 'gameover' = te quedaste sin corazones.
+type State = 'title' | 'playing' | 'won' | 'gameover';
 
 const ABILITY_LABEL: Record<AbilityName, string> = {
   doubleJump: '¡DOBLE SALTO!',
@@ -37,7 +39,7 @@ export class Game {
   private player: Player;
   private camera!: Camera; // la crea makeCamera()
   private particles = new Particles();
-  private state: State = 'playing';
+  private state: State = 'title';
   private time = 0;
   private freezeTimer = 0;    // hit-stop: mundo congelado unos frames
   private deadFrozen = false; // hay una muerte esperando el respawn
@@ -121,6 +123,28 @@ export class Game {
   }
 
   update(dt: number): void {
+    // Menú de inicio: el mundo se anima de fondo y esperamos a que el
+    // jugador confirme para empezar. (Cualquier tecla de saltar también sirve.)
+    if (this.state === 'title') {
+      this.time += dt;
+      this.particles.update(dt);
+      if (justPressed('confirm') || justPressed('jump')) {
+        this.state = 'playing';
+        sfx.relic();
+      }
+      return;
+    }
+
+    // Pantalla de game over: esperamos confirmar/reiniciar para un mundo nuevo.
+    if (this.state === 'gameover') {
+      this.time += dt;
+      this.particles.update(dt);
+      if (justPressed('confirm') || justPressed('restart') || justPressed('jump')) {
+        this.reset();
+      }
+      return;
+    }
+
     if (justPressed('restart')) {
       this.reset();
       return;
@@ -134,7 +158,7 @@ export class Game {
         this.deadFrozen = false;
         if (this.pendingReset) {
           this.pendingReset = false;
-          this.reset(); // sin corazones: mundo nuevo
+          this.state = 'gameover'; // sin corazones: a la pantalla de game over
         } else {
           this.respawnPlayer(); // cayó a un foso pero le quedan corazones
           this.camera.shake(3, 0.35);
@@ -349,9 +373,14 @@ export class Game {
     drawDust(ctx, this.viewW, this.viewH, this.time, 1 / 60);
     drawVignette(ctx, this.viewW, this.viewH);
 
-    this.drawHud(ctx);
-    this.drawMinimap(ctx);
+    // El HUD (corazones, contador, minimapa) solo mientras se juega o al ganar.
+    if (this.state !== 'title') {
+      this.drawHud(ctx);
+      this.drawMinimap(ctx);
+    }
     if (this.state === 'won') this.drawWin(ctx);
+    if (this.state === 'title') this.drawTitle(ctx);
+    if (this.state === 'gameover') this.drawGameOver(ctx);
   }
 
   /** Minimapa (arriba a la derecha): las salas se revelan al visitarlas. */
@@ -500,6 +529,65 @@ export class Game {
     ctx.fillText(`PUNTOS: ${this.score}`, this.viewW / 2, this.viewH / 2 + 2);
     ctx.fillStyle = '#9b86c4';
     ctx.fillText('R para jugar de nuevo', this.viewW / 2, this.viewH / 2 + 14);
+    ctx.textAlign = 'left';
+  }
+
+  /** Menú de inicio: el título del juego sobre el mundo, con un cristal
+   *  que flota y un aviso pulsante para empezar. */
+  private drawTitle(ctx: CanvasRenderingContext2D): void {
+    ctx.fillStyle = 'rgba(17,9,26,0.72)';
+    ctx.fillRect(0, 0, this.viewW, this.viewH);
+    const cx = this.viewW / 2;
+
+    // Un cristal grande flotando sobre el título, con su halo.
+    const bob = Math.sin(this.time * 2) * 2;
+    const frames = [sprites.crystal, sprites.crystal2, sprites.crystal3, sprites.crystal4];
+    const spr = frames[Math.floor(this.time * 6) % 4];
+    const cy = this.viewH / 2 - 44 + bob;
+    drawGlow(ctx, cx, cy, 20, '#ffe25a', 0.5 + Math.sin(this.time * 4) * 0.15);
+    // Cristal al doble de tamaño, centrado en (cx, cy).
+    spr.drawStretched(ctx, cx, cy + spr.h, 2, 2);
+
+    ctx.textAlign = 'center';
+    // Título en dos líneas para que entre bien en 320px.
+    ctx.fillStyle = '#e9d6ff';
+    ctx.font = '18px "JetBrains Mono", ui-monospace, monospace';
+    ctx.fillText('CRISTALES', cx, this.viewH / 2 - 8);
+    ctx.fillStyle = '#b98bff';
+    ctx.font = '11px "JetBrains Mono", ui-monospace, monospace';
+    ctx.fillText('DE LA CUEVA', cx, this.viewH / 2 + 8);
+
+    // Aviso pulsante para empezar (parpadeo suave con seno).
+    const blink = 0.55 + Math.sin(this.time * 4) * 0.45;
+    ctx.globalAlpha = blink;
+    ctx.fillStyle = '#ffe25a';
+    ctx.font = '8px "JetBrains Mono", ui-monospace, monospace';
+    ctx.fillText('ENTER o ↑ para empezar', cx, this.viewH / 2 + 34);
+    ctx.globalAlpha = 1;
+
+    ctx.fillStyle = '#6f5a94';
+    ctx.fillText('← → mover · ↑ saltar · X dash', cx, this.viewH - 12);
+    ctx.textAlign = 'left';
+  }
+
+  /** Pantalla de game over: el mundo congelado tras la muerte, oscurecido,
+   *  con el puntaje logrado y el aviso para reintentar. */
+  private drawGameOver(ctx: CanvasRenderingContext2D): void {
+    ctx.fillStyle = 'rgba(26,6,10,0.8)';
+    ctx.fillRect(0, 0, this.viewW, this.viewH);
+    const cx = this.viewW / 2;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ff5a7a';
+    ctx.font = '18px "JetBrains Mono", ui-monospace, monospace';
+    ctx.fillText('GAME OVER', cx, this.viewH / 2 - 14);
+    ctx.fillStyle = '#ffd0dc';
+    ctx.font = '8px "JetBrains Mono", ui-monospace, monospace';
+    ctx.fillText(`PUNTOS: ${this.score}`, cx, this.viewH / 2 + 2);
+    const blink = 0.55 + Math.sin(this.time * 4) * 0.45;
+    ctx.globalAlpha = blink;
+    ctx.fillStyle = '#9b86c4';
+    ctx.fillText('ENTER o R para reintentar', cx, this.viewH / 2 + 16);
+    ctx.globalAlpha = 1;
     ctx.textAlign = 'left';
   }
 }
