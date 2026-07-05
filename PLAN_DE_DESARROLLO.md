@@ -131,7 +131,7 @@ portafolio: **todo el arte procedural, sin dependencias de terceros.**
 Técnicas guía: hue shifting, sel-out, más pasos de sombra, sub-pixel y ciclos
 de animación reales. Vamos punto por punto.
 
-- [ ] **Jugador**: rediseño más detallado, ciclo de correr real y estados pulidos
+- [x] **Jugador**: rediseño más detallado, ciclo de correr real y estados pulidos
 - [ ] **Enemigos**: más volumen y carácter (slime, volador, cazador, jefe)
 - [ ] **Cristales, reliquias y puerta**: animación con más frames
 - [ ] **Tileset** de paredes: bordes, esquinas y variaciones reales
