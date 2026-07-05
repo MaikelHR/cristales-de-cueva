@@ -49,6 +49,7 @@ export class Game {
   private score = 0;          // puntos por monstruos eliminados
   private save: SaveData = loadSave(); // récords persistidos (localStorage)
   private newRecord = false;  // ¿la última corrida batió el mejor puntaje?
+  private paused = false;     // pausa (congela la partida sin salir de ella)
   // Textos flotantes "+N" que suben y se desvanecen (world space).
   private popups: { x: number; y: number; text: string; life: number }[] = [];
   // Checkpoint: la sala y el punto donde reaparecés al morir.
@@ -109,6 +110,7 @@ export class Game {
     this.announceTimer = 0;
     this.score = 0;
     this.newRecord = false;
+    this.paused = false;
     this.popups = [];
     this.particles.clear();
     this.makeCamera();
@@ -160,6 +162,13 @@ export class Game {
       this.reset();
       return;
     }
+
+    // Pausa (Esc/P): congela TODO —incluida la muerte en curso— y muestra el
+    // overlay. Volver a pulsar reanuda exactamente donde estaba.
+    if (justPressed('pause')) {
+      this.paused = !this.paused;
+    }
+    if (this.paused) return;
 
     // Hit-stop: tras un golpe mortal, el mundo entero queda clavado
     // un instante. Al soltarse llegan el respawn y la sacudida.
@@ -402,6 +411,26 @@ export class Game {
     if (this.state === 'won') this.drawWin(ctx);
     if (this.state === 'title') this.drawTitle(ctx);
     if (this.state === 'gameover') this.drawGameOver(ctx);
+    if (this.state === 'playing' && this.paused) this.drawPause(ctx);
+  }
+
+  /** Overlay de pausa: la partida queda congelada detrás. Texto a opacidad
+   *  plena (el tiempo no avanza en pausa, así que un parpadeo quedaría
+   *  clavado). Recuerda cómo seguir, reiniciar o volver al menú. */
+  private drawPause(ctx: CanvasRenderingContext2D): void {
+    ctx.fillStyle = 'rgba(17,9,26,0.68)';
+    ctx.fillRect(0, 0, this.viewW, this.viewH);
+    const cx = this.viewW / 2;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#e9d6ff';
+    ctx.font = '18px "JetBrains Mono", ui-monospace, monospace';
+    ctx.fillText('PAUSA', cx, this.viewH / 2 - 10);
+    ctx.fillStyle = '#9b86c4';
+    ctx.font = '8px "JetBrains Mono", ui-monospace, monospace';
+    ctx.fillText('ESC o P para continuar', cx, this.viewH / 2 + 8);
+    ctx.fillStyle = '#6f5a94';
+    ctx.fillText('R para reiniciar', cx, this.viewH / 2 + 20);
+    ctx.textAlign = 'left';
   }
 
   /** Minimapa (arriba a la derecha): las salas se revelan al visitarlas. */

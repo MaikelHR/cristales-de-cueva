@@ -6,7 +6,7 @@
 //  sino por la intención. Cambiar los controles = cambiar este mapa.
 // ============================================================
 
-type Action = 'left' | 'right' | 'jump' | 'dash' | 'restart' | 'confirm';
+type Action = 'left' | 'right' | 'jump' | 'dash' | 'restart' | 'confirm' | 'pause';
 
 const KEY_TO_ACTION: Record<string, Action> = {
   ArrowLeft: 'left',
@@ -25,6 +25,9 @@ const KEY_TO_ACTION: Record<string, Action> = {
   r: 'restart',
   R: 'restart',
   Enter: 'confirm',
+  Escape: 'pause',
+  p: 'pause',
+  P: 'pause',
 };
 
 const down = new Set<Action>();

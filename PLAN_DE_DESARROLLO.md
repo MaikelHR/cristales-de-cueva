@@ -148,7 +148,7 @@ de animación reales. Vamos punto por punto.
 
 - [x] **Menú** de inicio y pantalla de game over
 - [x] **Guardado** del progreso (localStorage para la versión web)
-- [ ] Pantalla de **pausa**
+- [x] Pantalla de **pausa**
 - [ ] Contador de tiempo / cristales totales (incentivo de speedrun)
 - [ ] Soporte de **gamepad** (la API de navegador es directa)
 
