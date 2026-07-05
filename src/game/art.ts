@@ -128,15 +128,32 @@ const CHASER_2 = [
   '.v.v.v.v.', '.vVWVVVv.', 'vVVVVVVVv', 'vVPVVVPVv',
   'vVVVVVVVv', '.vvvvvvv.', 'K.K.K.K.K',
 ];
-// Cristal facetado: destello arriba, sombra rojiza abajo-derecha.
-const CRYSTAL = [
-  '...hh...', '..hWWy..', '.hWYYYy.', 'hWYYYYyu',
+// Cristal facetado: 4 frames de brillo que barre las facetas (destello
+// izq -> arriba -> der -> reposo). Sombra rojiza abajo-derecha.
+const CRYSTAL_1 = [
+  '...hh...', '..hWYy..', '.hWYYYy.', 'hWYYYYyu',
   'hYYYYYyu', 'yYYYYYyu', '.yYYYyu.', '..yYyu..', '...yu...',
 ];
-// Reliquia: orbe blanco-celeste con destello y sombra inferior.
-const RELIC = [
+const CRYSTAL_2 = [
+  '...WW...', '..hWWy..', '.hYWYYy.', 'hYYWYYyu',
+  'hYYYYYyu', 'yYYYYYyu', '.yYYYyu.', '..yYyu..', '...yu...',
+];
+const CRYSTAL_3 = [
+  '...hh...', '..hYWy..', '.hYYWYy.', 'hYYYWYyu',
+  'hYYYYWyu', 'yYYYYYyu', '.yYYYyu.', '..yYyu..', '...yu...',
+];
+const CRYSTAL_4 = [
+  '...hh...', '..hYYy..', '.hYYYYy.', 'hYYYYYyu',
+  'hYYYYYyu', 'yYYYYYyu', '.yYYYyu.', '..yYyu..', '...yu...',
+];
+// Reliquia: orbe blanco-celeste que respira luz (2 frames).
+const RELIC_1 = [
   '...WW...', '..WHHW..', '.WHHHHW.', 'WHHWWHHW',
   '.WHbbHW.', '..WbbW..', '...bb...',
+];
+const RELIC_2 = [
+  '...WW...', '..WWWW..', '.WWWWWW.', 'WWWWWWWW',
+  '.WWbbWW.', '..WbbW..', '...bb...',
 ];
 // Corazones del HUD: lleno (con destello W) y vacío (contorno hueco).
 const HEART_FULL = [
@@ -159,6 +176,15 @@ const DOOR_OPEN = [
   '.fMiiiiiiFf.', '.fMiiiiiiFf.', '.fMiiiiiiFf.', '.fMiiRRiiFf.',
   '.fMiiiiiiFf.', '.fMIIIIIIFf.', '.fMIIRRIIFf.', '.fMIIIIIIFf.',
   '.fMIIIIIIFf.', '.fMIIRRIIFf.', '.fMIIIIIIFf.', '.fMIIIIIIFf.',
+  '.fMIIIIIIFf.', '.fMIIIIIIFf.', '.fMIIIIIIFf.', '.fMIIIIIIFf.',
+  '.fMIIIIIIFf.', '.ffffffffff.',
+];
+// Puerta abierta, frame B: las runas laten en blanco brillante.
+const DOOR_OPEN2 = [
+  '....FiiF....', '...FiiiiF...', '..FiiiiiiF..', '.fMiiiiiiFf.',
+  '.fMiiiiiiFf.', '.fMiiiiiiFf.', '.fMiiiiiiFf.', '.fMiiWWiiFf.',
+  '.fMiiiiiiFf.', '.fMIIIIIIFf.', '.fMIIWWIIFf.', '.fMIIIIIIFf.',
+  '.fMIIIIIIFf.', '.fMIIWWIIFf.', '.fMIIIIIIFf.', '.fMIIIIIIFf.',
   '.fMIIIIIIFf.', '.fMIIIIIIFf.', '.fMIIIIIIFf.', '.fMIIIIIIFf.',
   '.fMIIIIIIFf.', '.ffffffffff.',
 ];
@@ -204,12 +230,17 @@ export const sprites = {
   flyer2: new Sprite(FLYER_2, PALETTE),
   chaser1: new Sprite(CHASER_1, PALETTE),
   chaser2: new Sprite(CHASER_2, PALETTE),
-  crystal: new Sprite(CRYSTAL, PALETTE),
-  relic: new Sprite(RELIC, PALETTE),
+  crystal: new Sprite(CRYSTAL_1, PALETTE),
+  crystal2: new Sprite(CRYSTAL_2, PALETTE),
+  crystal3: new Sprite(CRYSTAL_3, PALETTE),
+  crystal4: new Sprite(CRYSTAL_4, PALETTE),
+  relic: new Sprite(RELIC_1, PALETTE),
+  relic2: new Sprite(RELIC_2, PALETTE),
   heartFull: new Sprite(HEART_FULL, PALETTE),
   heartEmpty: new Sprite(HEART_EMPTY, PALETTE),
   doorLocked: new Sprite(DOOR_LOCKED, PALETTE),
   doorOpen: new Sprite(DOOR_OPEN, PALETTE),
+  doorOpen2: new Sprite(DOOR_OPEN2, PALETTE),
   tileFill: new Sprite(TILE_FILL, PALETTE),
   tileFill2: new Sprite(TILE_FILL2, PALETTE),
   tileFill3: new Sprite(TILE_FILL3, PALETTE),

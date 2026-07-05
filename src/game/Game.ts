@@ -383,6 +383,7 @@ export class Game {
   }
 
   private drawCrystals(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {
+    const frames = [sprites.crystal, sprites.crystal2, sprites.crystal3, sprites.crystal4];
     for (const c of this.world.current.crystals) {
       if (c.taken) continue;
       const bob = Math.sin(this.time * 3 + c.x) * 1.5;
@@ -391,8 +392,17 @@ export class Game {
       // Halo pulsante
       const pulse = 0.45 + Math.sin(this.time * 4 + c.x) * 0.15;
       drawGlow(ctx, cx, cy, 12, '#ffe25a', pulse);
-      // Cristal centrado en su halo
-      sprites.crystal.draw(ctx, cx - sprites.crystal.w / 2, cy - sprites.crystal.h / 2);
+      // Cristal con destello que barre las facetas (offset por posición)
+      const spr = frames[Math.floor(this.time * 7 + c.x * 0.5) % 4];
+      spr.draw(ctx, cx - spr.w / 2, cy - spr.h / 2);
+      // Twinkle: una estrellita que centellea de a ratos, arriba a la derecha
+      if ((this.time * 1.6 + c.x * 0.7) % 2.2 < 0.2) {
+        const sx = Math.round(cx + 4);
+        const sy = Math.round(cy - 4);
+        ctx.fillStyle = '#fff7c9';
+        ctx.fillRect(sx, sy - 1, 1, 3);
+        ctx.fillRect(sx - 1, sy, 3, 1);
+      }
     }
   }
 
@@ -402,9 +412,11 @@ export class Game {
       const bob = Math.sin(this.time * 2.2 + r.x) * 2;
       const cx = r.x + 3 - camX;
       const cy = r.y + 4 - camY + bob;
-      const pulse = 0.5 + Math.sin(this.time * 5 + r.x) * 0.2;
-      drawGlow(ctx, cx, cy, 15, ABILITY_GLOW[r.ability], pulse);
-      sprites.relic.draw(ctx, cx - sprites.relic.w / 2, cy - sprites.relic.h / 2);
+      const shine = Math.sin(this.time * 5 + r.x);
+      drawGlow(ctx, cx, cy, 15, ABILITY_GLOW[r.ability], 0.5 + shine * 0.2);
+      // Respira luz: en el pico del pulso, el orbe se enciende (frame 2)
+      const spr = shine > 0.3 ? sprites.relic2 : sprites.relic;
+      spr.draw(ctx, cx - spr.w / 2, cy - spr.h / 2);
     }
   }
 
@@ -412,7 +424,9 @@ export class Game {
     const d = this.world.current.level.doorBox;
     if (!d) return; // esta sala no tiene puerta
     const open = this.collected === this.totalCrystals && !this.bossAlive;
-    const sprite = open ? sprites.doorOpen : sprites.doorLocked;
+    // Abierta: las runas laten alternando dos frames.
+    const openSprite = Math.sin(this.time * 4) > 0 ? sprites.doorOpen2 : sprites.doorOpen;
+    const sprite = open ? openSprite : sprites.doorLocked;
     const floorY = d.y - 2 + 8; // base de la puerta sobre el piso
     const drawX = d.x + 4 - sprite.w / 2;
     const drawY = floorY - sprite.h;
