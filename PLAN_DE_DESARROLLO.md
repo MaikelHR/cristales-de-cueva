@@ -161,7 +161,8 @@ de animación reales. Vamos punto por punto.
       https://cristales-de-cueva.vercel.app
 - [x] Vercel / Netlify / GitHub Pages (elegido: **Vercel**, autodetecta Vite)
 - [x] Capturas en el README + descripción para el portafolio
-- [ ] (Opcional) GIF corto animado y/o página de itch.io
+- [x] Agregado al portafolio y a GitHub — **proyecto cerrado** 🎉
+      _(un GIF animado y/o una página de itch.io quedan como extras opcionales a futuro)_
 
 ---
 
@@ -197,4 +198,6 @@ se vuelven escenas de TileMap. Pensá esta versión como tu "campo de pruebas".
 
 ---
 
-*Última actualización: define vos el ritmo. Una casilla a la vez es suficiente.*
+*Proyecto completado el 2026-07-05: las 7 fases cerradas, publicado en Vercel
+(https://cristales-de-cueva.vercel.app) y agregado al portafolio. De prototipo a
+juego terminado, una casilla a la vez.*
