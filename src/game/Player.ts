@@ -39,6 +39,13 @@ const WALL_JUMP_V = 0.98;    // altura del wall jump vs salto normal
 const WALL_JUMP_H = 130;     // empujón horizontal alejándose de la pared
 const WALL_LOCK = 0.14;      // control bloqueado tras el wall jump
 
+// Vida y daño
+const MAX_HEALTH = 3;      // corazones
+const HURT_INVULN = 1.1;   // segundos de invulnerabilidad tras un golpe
+const HURT_LOCK = 0.2;     // control bloqueado durante el retroceso
+const KNOCKBACK_X = 150;   // empujón horizontal al recibir daño
+const KNOCKBACK_Y = 150;   // empujón hacia arriba al recibir daño
+
 // Squash & stretch: deformar el sprite da sensación de peso y energía.
 const STRETCH_JUMP = 1.28;    // estirado al despegar (alto y flaco)
 const SQUASH_MAX = 0.38;      // aplastado máximo al aterrizar (bajo y ancho)
@@ -57,6 +64,11 @@ export class Player {
   vy = 0;
   facing: 1 | -1 = 1;
   onGround = false;
+
+  readonly maxHealth = MAX_HEALTH;
+  health = MAX_HEALTH;
+  private invulnTimer = 0;  // >0 = invulnerable (parpadea)
+  private hurtLock = 0;     // >0 = control bloqueado por retroceso
 
   /** Habilidades desbloqueables (Fase 3): son datos, no código duro.
    *  Arrancan apagadas; cada reliquia del mundo enciende la suya. */
@@ -102,14 +114,41 @@ export class Player {
     this.vy = 0;
     this.onGround = false;
     this.stretch = 1;
+    this.invulnTimer = 0;
+    this.hurtLock = 0;
   }
 
   box(): Box {
     return { x: this.x, y: this.y, w: this.w, h: this.h };
   }
 
+  get invulnerable(): boolean {
+    return this.invulnTimer > 0;
+  }
+
+  /**
+   * Recibir daño desde una fuente ubicada en fromX. Devuelve true si
+   * el golpe conectó (false si estaba invulnerable). Quita un corazón,
+   * empuja al jugador lejos de la fuente y activa la invulnerabilidad.
+   */
+  hurt(fromX: number): boolean {
+    if (this.invulnTimer > 0) return false;
+    this.health--;
+    this.invulnTimer = HURT_INVULN;
+    this.hurtLock = HURT_LOCK;
+    this.dashTimer = 0; // un golpe corta el dash
+    this.wallLock = 0;
+    const away: 1 | -1 = this.x + this.w / 2 < fromX ? -1 : 1;
+    this.vx = away * KNOCKBACK_X;
+    this.vy = -KNOCKBACK_Y;
+    this.onGround = false;
+    this.facing = (-away) as 1 | -1; // mira hacia lo que lo golpeó
+    return true;
+  }
+
   update(dt: number): void {
     this.wallSliding = false;
+    this.invulnTimer = Math.max(0, this.invulnTimer - dt);
 
     // ---- Dash: ¿arranca uno? ----
     this.dashCooldown = Math.max(0, this.dashCooldown - dt);
@@ -144,7 +183,11 @@ export class Player {
       if (isDown('left')) dir -= 1;
       if (isDown('right')) dir += 1;
       this.wallLock = Math.max(0, this.wallLock - dt);
-      if (this.wallLock > 0) {
+      this.hurtLock = Math.max(0, this.hurtLock - dt);
+      if (this.hurtLock > 0) {
+        // Retroceso por daño: no hay control, la velocidad se frena sola.
+        this.vx *= 0.86;
+      } else if (this.wallLock > 0) {
         // Tras un wall jump, unos frames de empujón fijo: sin esto,
         // mantener la tecla hacia la pared te re-pegaría al instante.
         this.vx = this.wallLockDir * WALL_JUMP_H;
@@ -310,6 +353,9 @@ export class Player {
   }
 
   draw(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {
+    // Invulnerable: parpadea (desaparece en frames alternos, ~10 Hz).
+    if (this.invulnTimer > 0 && Math.floor(this.invulnTimer * 20) % 2 === 0) return;
+
     const sprite = this.currentSprite();
 
     // Brillo tenue de cristal detrás del jugador

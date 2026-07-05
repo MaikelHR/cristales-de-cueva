@@ -30,6 +30,11 @@ export const sfx = {
     playTone({ freq: 520, freqEnd: 160, duration: 0.16, type: 'sawtooth', volume: 0.12 });
   },
 
+  /** Recibir daño: un "ough" corto y grave. */
+  hurt(): void {
+    playTone({ freq: 200, freqEnd: 80, duration: 0.16, type: 'square', volume: 0.15 });
+  },
+
   /** Recoger cristal: dos campanitas subiendo. */
   pickup(): void {
     playTone({ freq: 880, duration: 0.07, type: 'triangle', volume: 0.18 });

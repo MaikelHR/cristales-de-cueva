@@ -106,10 +106,15 @@ La gracia del género: volver con una habilidad nueva y llegar a donde antes no.
 ## Fase 4 — Enemigos y combate
 
 - [ ] Más tipos de enemigo (que vuelan, que disparan, que persiguen)
-- [ ] **Vida del jugador** (corazones) en vez de morir de un toque
+- [x] **Vida del jugador** (corazones) en vez de morir de un toque
 - [ ] Forma de atacar: pisar tipo Mario, o un golpe corto
-- [ ] **Knockback** e invulnerabilidad breve tras recibir daño
+- [x] **Knockback** e invulnerabilidad breve tras recibir daño
 - [ ] Un **jefe** sencillo de fin de zona
+
+> Nota: el modelo de daño se hizo junto con el refactor de `game/entities/`.
+> Tocar un enemigo cuesta un corazón con retroceso + invulnerabilidad;
+> el foso cuesta un corazón y te devuelve al checkpoint; a 0 corazones,
+> mundo nuevo. Sigue: pisar/atacar enemigos y más tipos.
 
 > Dónde: refactor para que enemigos compartan una interfaz común
 > (`game/entities/`), y un `game/Combat.ts` o lógica en `Game.ts`.

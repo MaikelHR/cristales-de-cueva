@@ -3,7 +3,8 @@
 // ------------------------------------------------------------
 //  Junta todo: mundo (salas), jugador, cámara y reglas.
 //  Recoge todos los cristales del mundo y llega a la puerta.
-//  Tocar un slime o caer a un foso = volver al inicio.
+//  Tocar un enemigo cuesta un corazón (con retroceso e invulnerabilidad);
+//  caer a un foso también. Sin corazones = game over (mundo nuevo).
 // ============================================================
 
 import { Player } from './Player';
@@ -39,6 +40,7 @@ export class Game {
   private time = 0;
   private freezeTimer = 0;    // hit-stop: mundo congelado unos frames
   private deadFrozen = false; // hay una muerte esperando el respawn
+  private pendingReset = false; // al soltar el freeze, ¿reiniciar el mundo?
   // Checkpoint: la sala y el punto donde reaparecés al morir.
   private checkpoint = { roomId: '', x: 0, y: 0 };
   // Salas ya exploradas: son las que muestra el minimapa.
@@ -83,9 +85,11 @@ export class Game {
   }
 
   private reset(): void {
-    this.world = new World(); // mundo nuevo: salas, slimes y cristales de cero
+    this.world = new World(); // mundo nuevo: enemigos y cristales de cero
     this.player.setLevel(this.world.current.level);
     this.player.respawn();
+    this.player.health = this.player.maxHealth; // corazones al máximo
+    this.pendingReset = false;
     this.saveCheckpoint();
     this.visited = new Set([this.world.current.def.id]);
     // Un mundo nuevo también apaga las habilidades ganadas.
@@ -120,8 +124,13 @@ export class Game {
       this.freezeTimer -= dt;
       if (this.freezeTimer <= 0 && this.deadFrozen) {
         this.deadFrozen = false;
-        this.respawnPlayer();
-        this.camera.shake(3, 0.35);
+        if (this.pendingReset) {
+          this.pendingReset = false;
+          this.reset(); // sin corazones: mundo nuevo
+        } else {
+          this.respawnPlayer(); // cayó a un foso pero le quedan corazones
+          this.camera.shake(3, 0.35);
+        }
       }
       return;
     }
@@ -174,17 +183,18 @@ export class Game {
       }
     }
 
-    // Chocar enemigo -> morir (los cristales recogidos se conservan)
+    // Chocar enemigo -> recibir daño (retroceso + invulnerabilidad)
     for (const e of room.enemies) {
       if (overlaps(pbox, e.box())) {
-        this.die();
+        const b = e.box();
+        this.hurtPlayer(b.x + b.w / 2);
         break;
       }
     }
 
-    // Caer fuera del mundo -> morir
+    // Caer fuera del mundo -> perder un corazón y reaparecer
     if (this.player.y > room.level.heightPx + 24) {
-      this.die();
+      this.loseLifeAndRespawn();
     }
 
     // Llegar a la puerta con todos los cristales -> ganar
@@ -201,12 +211,39 @@ export class Game {
     );
   }
 
-  /** Morir: congelar el mundo un instante; el respawn y la sacudida
-   *  llegan cuando el congelamiento se suelta (ver update). */
-  private die(): void {
-    if (this.deadFrozen) return; // ya hay una muerte en curso
+  /** Recibir daño de un enemigo: quita un corazón, empuja y da unos
+   *  frames de invulnerabilidad. NO congela el mundo: seguís jugando.
+   *  Si te deja sin corazones, es game over. */
+  private hurtPlayer(fromX: number): void {
+    if (this.deadFrozen) return;
+    if (!this.player.hurt(fromX)) return; // invulnerable: no pasa nada
+    this.camera.shake(2.5, 0.25);
+    this.particles.burst(
+      this.player.x + this.player.w / 2,
+      this.player.y + this.player.h / 2,
+      10,
+      ['#ff5a7a', '#ffd0dc', '#ff9a5a'],
+    );
+    sfx.hurt();
+    if (this.player.health <= 0) this.gameOver();
+  }
+
+  /** Caer a un foso: cuesta un corazón y reaparece en el checkpoint
+   *  (con hit-stop). Sin corazones, game over. */
+  private loseLifeAndRespawn(): void {
+    if (this.deadFrozen) return;
+    this.player.health--;
     this.freezeTimer = 0.26;
     this.deadFrozen = true;
+    if (this.player.health <= 0) this.pendingReset = true;
+    sfx.die();
+  }
+
+  /** Sin corazones: congela un instante y reinicia el mundo. */
+  private gameOver(): void {
+    this.freezeTimer = 0.4;
+    this.deadFrozen = true;
+    this.pendingReset = true;
     sfx.die();
   }
 
@@ -304,13 +341,19 @@ export class Game {
   }
 
   private drawHud(ctx: CanvasRenderingContext2D): void {
+    // Corazones de vida (arriba a la izquierda)
+    for (let i = 0; i < this.player.maxHealth; i++) {
+      const heart = i < this.player.health ? sprites.heartFull : sprites.heartEmpty;
+      heart.draw(ctx, 6 + i * 8, 6);
+    }
+    // Contador de cristales, debajo de los corazones
     ctx.fillStyle = '#ffe25a';
     ctx.font = '8px "JetBrains Mono", ui-monospace, monospace';
     ctx.textBaseline = 'top';
-    ctx.fillText(`CRISTALES ${this.collected}/${this.totalCrystals}`, 6, 6);
+    ctx.fillText(`CRISTALES ${this.collected}/${this.totalCrystals}`, 6, 15);
     if (this.collected === this.totalCrystals && this.state === 'playing') {
       ctx.fillStyle = '#b98bff';
-      ctx.fillText('LA PUERTA ESTÁ ABIERTA', 6, 16);
+      ctx.fillText('LA PUERTA ESTÁ ABIERTA', 6, 25);
     }
     // Aviso grande al ganar una habilidad (se desvanece al final)
     if (this.announceTimer > 0) {

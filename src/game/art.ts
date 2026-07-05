@@ -24,6 +24,8 @@ const PALETTE: Palette = {
   F: '#7a4bd6', f: '#4a2e70', M: '#b98bff', I: '#1c1028', i: '#2a1a3e', R: '#e9d6ff',
   // tiles de cueva
   r: '#3d2a5c', o: '#56407e', s: '#241638', m: '#7a4bd6', t: '#ffe25a',
+  // corazones (vida): rojo con luz cálida y sombra rojiza
+  V: '#ff5a7a', v: '#b83a5a',
 };
 
 // ---- Grillas (generadas y revisadas visualmente) ----
@@ -101,6 +103,13 @@ const RELIC = [
   '...WW...', '..WHHW..', '.WHHHHW.', 'WHHWWHHW',
   '.WHbbHW.', '..WbbW..', '...bb...',
 ];
+// Corazones del HUD: lleno (con destello W) y vacío (contorno hueco).
+const HEART_FULL = [
+  '.VV.VV.', 'VWVVVVV', 'VVVVVVV', '.VVVVv.', '..VVv..', '...v...',
+];
+const HEART_EMPTY = [
+  '.vv.vv.', 'v..v..v', 'v.....v', '.v...v.', '..v.v..', '...v...',
+];
 // Puertas: el interior se aclara arriba (i) y se hunde abajo (I).
 const DOOR_LOCKED = [
   '....FiiF....', '...FiiiiF...', '..FiiiiiiF..', '.fFiiiiiiFf.',
@@ -156,6 +165,8 @@ export const sprites = {
   slime2: new Sprite(SLIME_2, PALETTE),
   crystal: new Sprite(CRYSTAL, PALETTE),
   relic: new Sprite(RELIC, PALETTE),
+  heartFull: new Sprite(HEART_FULL, PALETTE),
+  heartEmpty: new Sprite(HEART_EMPTY, PALETTE),
   doorLocked: new Sprite(DOOR_LOCKED, PALETTE),
   doorOpen: new Sprite(DOOR_OPEN, PALETTE),
   tileFill: new Sprite(TILE_FILL, PALETTE),
