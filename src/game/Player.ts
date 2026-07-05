@@ -71,6 +71,7 @@ export class Player {
   health = MAX_HEALTH;
   private invulnTimer = 0;  // >0 = invulnerable (parpadea)
   private hurtLock = 0;     // >0 = control bloqueado por retroceso
+  private stompGrace = 0;   // >0 = recién pisó: no recibe daño (sin parpadeo)
 
   /** Habilidades desbloqueables (Fase 3): son datos, no código duro.
    *  Arrancan apagadas; cada reliquia del mundo enciende la suya. */
@@ -118,6 +119,7 @@ export class Player {
     this.stretch = 1;
     this.invulnTimer = 0;
     this.hurtLock = 0;
+    this.stompGrace = 0;
   }
 
   box(): Box {
@@ -128,13 +130,15 @@ export class Player {
     return this.invulnTimer > 0;
   }
 
-  /** Rebote al pisar un enemigo: salta hacia arriba y recupera el
-   *  salto aéreo (para poder encadenar pisotones). */
+  /** Rebote al pisar un enemigo: salta hacia arriba, recupera el salto
+   *  aéreo (para encadenar) y una gracia breve para no recibir daño del
+   *  mismo enemigo mientras sigue solapado (p. ej. un jefe que sobrevive). */
   bounce(): void {
     this.vy = -STOMP_BOUNCE;
     this.onGround = false;
     this.airJumpsLeft = 1;
     this.stretch = STRETCH_JUMP;
+    this.stompGrace = 0.35;
   }
 
   /**
@@ -143,7 +147,7 @@ export class Player {
    * empuja al jugador lejos de la fuente y activa la invulnerabilidad.
    */
   hurt(fromX: number): boolean {
-    if (this.invulnTimer > 0) return false;
+    if (this.invulnTimer > 0 || this.stompGrace > 0) return false;
     this.health--;
     this.invulnTimer = HURT_INVULN;
     this.hurtLock = HURT_LOCK;
@@ -160,6 +164,7 @@ export class Player {
   update(dt: number): void {
     this.wallSliding = false;
     this.invulnTimer = Math.max(0, this.invulnTimer - dt);
+    this.stompGrace = Math.max(0, this.stompGrace - dt);
 
     // ---- Dash: ¿arranca uno? ----
     this.dashCooldown = Math.max(0, this.dashCooldown - dt);

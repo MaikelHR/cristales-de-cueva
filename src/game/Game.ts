@@ -43,6 +43,9 @@ export class Game {
   private deadFrozen = false; // hay una muerte esperando el respawn
   private pendingReset = false; // al soltar el freeze, ¿reiniciar el mundo?
   private hitStop = 0;        // micro-pausa al pisar (impacto, sin muerte)
+  private score = 0;          // puntos por monstruos eliminados
+  // Textos flotantes "+N" que suben y se desvanecen (world space).
+  private popups: { x: number; y: number; text: string; life: number }[] = [];
   // Checkpoint: la sala y el punto donde reaparecés al morir.
   private checkpoint = { roomId: '', x: 0, y: 0 };
   // Salas ya exploradas: son las que muestra el minimapa.
@@ -99,6 +102,8 @@ export class Game {
       this.player.abilities[key] = false;
     }
     this.announceTimer = 0;
+    this.score = 0;
+    this.popups = [];
     this.particles.clear();
     this.makeCamera();
     this.freezeTimer = 0;
@@ -146,8 +151,13 @@ export class Game {
 
     this.time += dt;
     this.announceTimer = Math.max(0, this.announceTimer - dt);
-    // Las chispas siguen vivas incluso en la pantalla de victoria.
+    // Las chispas y los "+N" siguen vivos incluso en la pantalla de victoria.
     this.particles.update(dt);
+    for (const p of this.popups) {
+      p.y -= 16 * dt;
+      p.life -= dt;
+    }
+    this.popups = this.popups.filter((p) => p.life > 0);
     if (this.state === 'won') return;
 
     this.player.update(dt);
@@ -200,9 +210,12 @@ export class Game {
       if (e.dead) continue;
       const eb = e.box();
       if (overlaps(pbox, eb)) {
+        // Es pisotón si venís cayendo y tus pies estaban por ENCIMA del
+        // enemigo el frame anterior (robusto para enemigos altos y que
+        // cabecean, como el jefe). Si no, es un golpe de costado.
         const feetY = pbox.y + pbox.h;
-        const stomped =
-          e.stompable && this.player.vy > 0 && feetY <= eb.y + eb.h * 0.6;
+        const prevFeetY = feetY - this.player.vy * dt;
+        const stomped = e.stompable && this.player.vy > 0 && prevFeetY <= eb.y + 4;
         if (stomped) this.stompEnemy(e, eb);
         else this.hurtPlayer(eb.x + eb.w / 2);
         break;
@@ -257,6 +270,10 @@ export class Game {
       const count = e.isBoss ? 30 : 12;
       this.particles.burst(eb.x + eb.w / 2, eb.y + eb.h / 2, count, [...e.gooColors]);
       this.camera.shake(e.isBoss ? 4 : 1.5, e.isBoss ? 0.4 : 0.15);
+      // Puntos por monstruo eliminado, con "+N" flotante.
+      const pts = e.isBoss ? 100 : 10;
+      this.score += pts;
+      this.popups.push({ x: eb.x + eb.w / 2, y: eb.y - 2, text: '+' + pts, life: 0.9 });
       if (e.isBoss) {
         this.announceText = '¡GUARDIÁN DERROTADO!';
         this.announceTimer = 2.5;
@@ -326,6 +343,7 @@ export class Game {
     }
     this.player.draw(ctx, camX, camY);
     this.particles.draw(ctx, camX, camY);
+    this.drawPopups(ctx, camX, camY);
 
     drawDust(ctx, this.viewW, this.viewH, this.time, 1 / 60);
     drawVignette(ctx, this.viewW, this.viewH);
@@ -405,24 +423,41 @@ export class Game {
     sprite.draw(ctx, drawX - camX, drawY - camY);
   }
 
+  /** Textos flotantes "+N" que suben y se desvanecen. */
+  private drawPopups(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '8px "JetBrains Mono", ui-monospace, monospace';
+    for (const p of this.popups) {
+      ctx.globalAlpha = Math.min(1, p.life * 2.5);
+      ctx.fillStyle = '#ffe25a';
+      ctx.fillText(p.text, Math.round(p.x - camX), Math.round(p.y - camY));
+    }
+    ctx.restore();
+    ctx.textAlign = 'left';
+  }
+
   private drawHud(ctx: CanvasRenderingContext2D): void {
     // Corazones de vida (arriba a la izquierda)
     for (let i = 0; i < this.player.maxHealth; i++) {
       const heart = i < this.player.health ? sprites.heartFull : sprites.heartEmpty;
       heart.draw(ctx, 6 + i * 8, 6);
     }
-    // Contador de cristales, debajo de los corazones
-    ctx.fillStyle = '#ffe25a';
+    // Contador de cristales y puntos, debajo de los corazones
     ctx.font = '8px "JetBrains Mono", ui-monospace, monospace';
     ctx.textBaseline = 'top';
+    ctx.fillStyle = '#ffe25a';
     ctx.fillText(`CRISTALES ${this.collected}/${this.totalCrystals}`, 6, 15);
+    ctx.fillStyle = '#9b86c4';
+    ctx.fillText(`PUNTOS ${this.score}`, 6, 24);
     if (this.collected === this.totalCrystals && this.state === 'playing') {
       if (this.bossAlive) {
         ctx.fillStyle = '#ff5a7a';
-        ctx.fillText('SALTA SOBRE EL GUARDIÁN', 6, 25);
+        ctx.fillText('SALTA SOBRE EL GUARDIÁN', 6, 33);
       } else {
         ctx.fillStyle = '#b98bff';
-        ctx.fillText('LA PUERTA ESTÁ ABIERTA', 6, 25);
+        ctx.fillText('LA PUERTA ESTÁ ABIERTA', 6, 33);
       }
     }
     // Aviso grande al ganar una habilidad (se desvanece al final)
@@ -444,10 +479,12 @@ export class Game {
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ffd36e';
     ctx.font = '16px "JetBrains Mono", ui-monospace, monospace';
-    ctx.fillText('¡LO LOGRASTE!', this.viewW / 2, this.viewH / 2 - 10);
-    ctx.fillStyle = '#9b86c4';
+    ctx.fillText('¡LO LOGRASTE!', this.viewW / 2, this.viewH / 2 - 16);
+    ctx.fillStyle = '#ffe25a';
     ctx.font = '8px "JetBrains Mono", ui-monospace, monospace';
-    ctx.fillText('R para jugar de nuevo', this.viewW / 2, this.viewH / 2 + 8);
+    ctx.fillText(`PUNTOS: ${this.score}`, this.viewW / 2, this.viewH / 2 + 2);
+    ctx.fillStyle = '#9b86c4';
+    ctx.fillText('R para jugar de nuevo', this.viewW / 2, this.viewH / 2 + 14);
     ctx.textAlign = 'left';
   }
 }
