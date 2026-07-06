@@ -97,6 +97,7 @@ export class Game {
   private loreShown = ''; // clave del último lore mostrado (para no repetir al toque)
   private loreText = '';  // texto de tableta/NPC en pantalla
   private loreTimer = 0;  // segundos que queda el texto de lore
+  private debugNoTransition = false; // solo el harness: congela transiciones al asentar una foto
 
   constructor(
     private viewW: number,
@@ -230,8 +231,19 @@ export class Game {
           for (const a of abis) if (a in this.player.abilities) this.player.abilities[a] = true;
           if (this.world.hasRoom(roomId)) {
             this.world.goTo(roomId);
-            this.player.setLevel(this.world.current.level);
-            this.player.respawn();
+            const level = this.world.current.level;
+            this.player.setLevel(level);
+            // Solo `entrada` tiene 'P'; el resto cae a spawn {0,0} (esquina,
+            // dentro de la pared). Para la foto, si el spawn es esa esquina, lo
+            // ponemos al centro-arriba de la sala para que caiga a un piso
+            // interior en vez de asomar por un borde con salida. La foto es de
+            // la sala en sí, no del punto de aparición real.
+            const atCorner = level.playerSpawn.x < TILE && level.playerSpawn.y < TILE;
+            if (atCorner) {
+              this.player.respawnAt(Math.floor(level.widthPx / 2), TILE * 2);
+            } else {
+              this.player.respawn();
+            }
             this.player.health = this.player.maxHealth;
             this.visited.add(roomId);
             this.checkpoint = { roomId, x: this.player.x, y: this.player.y };
@@ -240,9 +252,12 @@ export class Game {
           }
         },
         // Simula N pasos de física a 60 fps sin input: el mundo “asienta”
-        // (enemigos en pose, cámara centrada) antes de una foto.
+        // (enemigos en pose, cámara centrada) antes de una foto. Congela las
+        // transiciones de sala: una sala warpeada nunca se escapa a su vecina.
         settle: (frames = 30): void => {
+          this.debugNoTransition = true;
           for (let i = 0; i < frames; i++) this.update(1 / 60);
+          this.debugNoTransition = false;
         },
         setState: (s: State): void => {
           this.state = s;
@@ -453,8 +468,12 @@ export class Game {
 
     this.player.update(dt);
 
-    // ¿Cruzó un borde hacia otra sala?
-    if (this.world.tryTransition(this.player)) {
+    // ¿Cruzó un borde hacia otra sala? (El harness de capturas congela las
+    // transiciones mientras "asienta" una sala warpeada: si no, una sala con
+    // salida `up` y sin spawn 'P' —el jugador cae en {0,0}— se escaparía a la
+    // sala vecina y la foto saldría de OTRA sala. Ese bug real lo detectó el
+    // juez de visión: forjas se fotografiaba como santuario.)
+    if (!this.debugNoTransition && this.world.tryTransition(this.player)) {
       this.player.setLevel(this.world.current.level);
       this.makeCamera();
       // La boca por la que entraste es tu nuevo punto de reaparición.
