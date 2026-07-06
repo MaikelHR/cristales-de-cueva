@@ -12,7 +12,7 @@
 // ============================================================
 
 import type { Box } from '../engine/canvas';
-import { sprites } from './art';
+import { biomeOf, tilesFor, type TileSet, type Biome } from './art';
 
 export const TILE = 8;
 
@@ -155,7 +155,16 @@ export class Level {
     return this.solid[row][col];
   }
 
-  draw(ctx: CanvasRenderingContext2D, camX: number, camY: number, viewW: number, viewH: number): void {
+  draw(
+    ctx: CanvasRenderingContext2D,
+    camX: number,
+    camY: number,
+    viewW: number,
+    viewH: number,
+    biomeName?: string,
+  ): void {
+    const tiles = tilesFor(biomeName);
+    const biome = biomeOf(biomeName);
     // Solo dibujamos los tiles visibles (culling) para que rinda bien.
     const c0 = Math.max(0, Math.floor(camX / TILE));
     const c1 = Math.min(this.cols - 1, Math.floor((camX + viewW) / TILE));
@@ -165,9 +174,9 @@ export class Level {
     for (let row = r0; row <= r1; row++) {
       for (let col = c0; col <= c1; col++) {
         if (this.solid[row][col]) {
-          this.drawSolidTile(ctx, row, col, col * TILE - camX, row * TILE - camY);
+          this.drawSolidTile(ctx, row, col, col * TILE - camX, row * TILE - camY, tiles, biome);
         } else if (this.oneWay[row][col]) {
-          sprites.plank.draw(ctx, col * TILE - camX, row * TILE - camY);
+          tiles.plank.draw(ctx, col * TILE - camX, row * TILE - camY);
         }
       }
     }
@@ -175,13 +184,16 @@ export class Level {
 
   /** Dibuja un bloque sólido con auto-tiling: el relleno base más bordes
    *  biselados en las caras que dan al vacío. Luz desde arriba-izquierda:
-   *  tope y lado izquierdo iluminados, derecha y base en sombra. */
+   *  tope y lado izquierdo iluminados, derecha y base en sombra. Los tiles
+   *  y los rim-lights vienen del bioma (identidad visual por región). */
   private drawSolidTile(
     ctx: CanvasRenderingContext2D,
     row: number,
     col: number,
     px: number,
     py: number,
+    tiles: TileSet,
+    biome: Biome,
   ): void {
     const up = !this.solidCell(row - 1, col);
     const down = !this.solidCell(row + 1, col);
@@ -190,19 +202,19 @@ export class Level {
 
     // Base: tope tallado si mira al vacío arriba; si no, relleno con variante.
     if (up) {
-      sprites.tileTop.draw(ctx, px, py);
+      tiles.top.draw(ctx, px, py);
     } else {
       const v = (col * 7 + row * 13) % 9;
-      const fill = v === 3 ? sprites.tileFill2 : v === 7 ? sprites.tileFill3 : sprites.tileFill;
+      const fill = v === 3 ? tiles.fill2 : v === 7 ? tiles.fill3 : tiles.fill;
       fill.draw(ctx, px, py);
     }
 
     // Rim-light: las caras expuestas llevan un borde iluminado que las
     // hace resaltar contra la cueva oscura (izquierda más brillante que
     // la derecha por la luz de arriba-izquierda). La base queda en sombra.
-    const RIM_L = '#8064b0';
-    const RIM_R = '#5f4790';
-    const SHADOW = '#160b24';
+    const RIM_L = biome.rimL;
+    const RIM_R = biome.rimR;
+    const SHADOW = biome.shadow;
     if (left) {
       ctx.fillStyle = RIM_L;
       ctx.fillRect(px, py, 1, TILE);

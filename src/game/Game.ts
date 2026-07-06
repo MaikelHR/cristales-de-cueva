@@ -35,6 +35,18 @@ const ABILITY_GLOW: Record<AbilityName, string> = {
   wallJump: '#5ce06a',
 };
 
+/** Hash estable de un string a un entero chico (semilla del fondo por sala).
+ *  Con el mapa 2D, mapPos.x ya no sirve como semilla única (dos salas de
+ *  biomas distintos pueden compartir columna), así que sembramos por id. */
+function hashId(id: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < id.length; i++) {
+    h ^= id.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0) % 10000;
+}
+
 /** Formatea segundos como m:ss (p. ej. 83.4 -> "1:23"). */
 function formatTime(seconds: number): string {
   const total = Math.floor(seconds);
@@ -410,10 +422,14 @@ export class Game {
     const camX = this.camera.x;
     const camY = this.camera.y;
     const room = this.world.current;
+    const biome = room.def.biome;
 
-    drawBackground(ctx, camX, camY, this.viewW, this.viewH, room.level.widthPx, room.def.mapPos.x, this.time);
+    drawBackground(
+      ctx, camX, camY, this.viewW, this.viewH, room.level.widthPx,
+      hashId(room.def.id), this.time, biome,
+    );
 
-    room.level.draw(ctx, camX, camY, this.viewW, this.viewH);
+    room.level.draw(ctx, camX, camY, this.viewW, this.viewH, biome);
     this.drawDoor(ctx, camX, camY);
     this.drawCrystals(ctx, camX, camY);
     this.drawRelics(ctx, camX, camY);
@@ -424,7 +440,7 @@ export class Game {
     this.particles.draw(ctx, camX, camY);
     this.drawPopups(ctx, camX, camY);
 
-    drawFog(ctx, camX, this.viewW, this.viewH, this.time);
+    drawFog(ctx, camX, this.viewW, this.viewH, this.time, biome);
     drawDust(ctx, this.viewW, this.viewH, this.time, 1 / 60);
     drawVignette(ctx, this.viewW, this.viewH);
 

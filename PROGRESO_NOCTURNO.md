@@ -84,3 +84,22 @@ El Plan.md asume rutas que en el repo real están corridas. Las adapté:
 - **build**: verde. **check**: VERDE (smoke, whitelist, auto-test fixpoint,
   bundle + grafo/gaps/one-way/fixpoint-real en silencio).
 - **El harness del CORE está completo.** Sigue: P0.4 (bioma + paletas).
+
+## P0.4 — Bioma en RoomDef + tabla de paletas  ✅
+
+- `BiomeName = 'eco'|'forjas'|'aguas'|'jardin'|'corazon'` y tabla `BIOMES` en
+  art.ts: por bioma, gradiente de fondo, cristales de pared, estalactitas,
+  montículos, rayos, niebla, paleta de tiles (r/o/s/m/t) y rim-lights.
+- **Tiles horneados por bioma**: recoloreo las 5 grillas de roca por bioma en
+  carga (5 sprites × 5 biomas, 8x8, coste despreciable). `tilesFor(biome)`.
+- Threading: `drawBackground` ahora toma `(seedN, time, biomeName)` — separé la
+  SEMILLA de layout (hash del id, `hashId()` en Game) del BIOMA (colores). La
+  clave de caché del fondo incluye ancho+seed+bioma. `drawFog(...,biome)`.
+  `Level.draw(...,biome)` → `drawSolidTile` usa tiles y rim-lights del bioma.
+- Sin regresión visual: las 3 salas sin `biome` caen a `eco` (idéntico a antes).
+- Harness reforzado: el smoke ahora ENTRA a 'playing', mueve al jugador a la
+  derecha cruzando salas y llama `game.draw()` cada 200 frames (ejercita el
+  render por bioma y las transiciones en vivo, no solo el título).
+- Limpieza: saqué el import muerto de `sprites` en Level.ts.
+- **build**: verde (gzip 15.8 kB). **check**: VERDE.
+- Sigue: P0.5 (pantalla de mapa M + minimapa 2D).

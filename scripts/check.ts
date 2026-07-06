@@ -77,6 +77,7 @@ const { Game } = await import('../src/game/Game.ts');
 const { ROOMS } = await import('../src/game/rooms/index.ts');
 const { exitId, isOneWay, exitRequires } = await import('../src/game/rooms/RoomDef.ts');
 const { Level, GATE_ABILITY } = await import('../src/game/Level.ts');
+const input = await import('../src/engine/input.ts');
 
 let fallos = 0;
 const fail = (m: string) => {
@@ -91,9 +92,24 @@ const ok = (m: string) => console.log('  ✓ ' + m);
 try {
   const world = new World();
   const game = new Game(320, 176);
-  for (let i = 0; i < 20000; i++) game.update(1 / 60);
+  const ctx = fakeCtx();
+  // Confirmamos en el título para entrar a 'playing' y ejercitar el render
+  // del mundo (fondo/tiles por bioma), no solo la pantalla de inicio.
+  input.touchButton('confirm', true);
+  game.update(1 / 60);
+  input.touchButton('confirm', false);
+  input.endStep();
+  for (let i = 0; i < 20000; i++) {
+    // Mantenemos "derecha" apretada para que el jugador recorra las salas y
+    // cruce transiciones (ejercita tryTransition en las 4 ramas cuando existan).
+    if (i % 300 < 150) input.touchButton('right', true);
+    else input.touchButton('right', false);
+    game.update(1 / 60);
+    if (i % 200 === 0) game.draw(ctx);
+    input.endStep();
+  }
   void world;
-  ok('smoke: World + 20k pasos de Game sin reventar');
+  ok('smoke: World + 20k pasos de Game (playing, update+draw) sin reventar');
 } catch (e) {
   fail('el smoke reventó: ' + (e as Error).message);
 }

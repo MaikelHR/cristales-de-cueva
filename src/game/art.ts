@@ -249,6 +249,131 @@ export const sprites = {
 };
 
 // ============================================================
+//  BIOMAS — identidad visual por región
+// ------------------------------------------------------------
+//  Cada bioma pinta la MISMA geometría con otra atmósfera: gradiente
+//  de fondo, estalactitas/montículos/rayos, niebla, tiles de roca y
+//  rim-lights. Así el mundo se siente grande y variado sin arte nuevo,
+//  solo re-coloreando lo que ya existe. Luz cenital desde arriba-izq
+//  (el flip no la invierte): rim izquierdo más brillante que el derecho.
+// ============================================================
+
+export type BiomeName = 'eco' | 'forjas' | 'aguas' | 'jardin' | 'corazon';
+
+export interface Biome {
+  gradTop: string;
+  gradBottom: string;
+  wallCrystals: [string, string, string]; // cristales incrustados lejanos
+  wallTwinkle: string;                     // color del centelleo
+  stalactite: string;                      // estalactitas del techo
+  mound: string;                           // montículos de roca
+  ray: string;                             // rayos de luz (rgb, se le pone alpha)
+  fog: [string, string, string];           // bandas de niebla baja
+  // Tiles: los 5 chars de las grillas de roca (r base, o veta, s sombra,
+  // m sombra-cristal, t brillo-cristal) recoloreados por bioma.
+  tile: { r: string; o: string; s: string; m: string; t: string };
+  rimL: string;   // rim-light izquierdo (más brillante)
+  rimR: string;   // rim-light derecho
+  shadow: string; // base en sombra + chaflanes
+  ambient: 'motes' | 'embers' | 'bubbles' | 'spores' | 'heart'; // partícula de aire
+}
+
+// Paleta de tiles base (hub Cavernas de Eco): idéntica a la original para no
+// alterar el look actual del hub.
+const ECO_TILE = { r: '#3d2a5c', o: '#56407e', s: '#241638', m: '#7a4bd6', t: '#ffe25a' };
+
+export const BIOMES: Record<BiomeName, Biome> = {
+  // Hub: violeta/cian, cristales que brillan, niebla suave. El look de siempre.
+  eco: {
+    gradTop: '#170c28', gradBottom: '#2a1644',
+    wallCrystals: ['#4f3878', '#5a4188', '#6b4fa0'], wallTwinkle: '#c9b3f0',
+    stalactite: '#241638', mound: '#1f1234', ray: '202,182,236',
+    fog: ['#6a5296', '#4a3570', '#3a2a5e'],
+    tile: ECO_TILE, rimL: '#8064b0', rimR: '#5f4790', shadow: '#160b24',
+    ambient: 'motes',
+  },
+  // Forjas de escoria: naranjas/rojos, basalto negro, brasas que suben.
+  forjas: {
+    gradTop: '#1a0c0a', gradBottom: '#3a160e',
+    wallCrystals: ['#8a3a1e', '#a8481f', '#c25a22'], wallTwinkle: '#ffb066',
+    stalactite: '#1c0f0c', mound: '#160a08', ray: '255,170,90',
+    fog: ['#7a3a26', '#5a2618', '#401810'],
+    tile: { r: '#3a201a', o: '#5a2e20', s: '#1c0d0a', m: '#c2451f', t: '#ffb84a' },
+    rimL: '#c26a3a', rimR: '#8a3f22', shadow: '#160805',
+    ambient: 'embers',
+  },
+  // Aguas hundidas: azules profundos, caústicas, burbujas.
+  aguas: {
+    gradTop: '#08182e', gradBottom: '#0e2c50',
+    wallCrystals: ['#1f5a7a', '#2870a0', '#3a90c0'], wallTwinkle: '#8fe0ff',
+    stalactite: '#0a2038', mound: '#081828', ray: '120,200,255',
+    fog: ['#265a7a', '#184258', '#102e40'],
+    tile: { r: '#183a52', o: '#245a76', s: '#0a1e30', m: '#2f96c8', t: '#8fe0ff' },
+    rimL: '#3a8fc0', rimR: '#22607f', shadow: '#08161f',
+    ambient: 'bubbles',
+  },
+  // Jardín de esporas: verdes/turquesa bioluminiscentes, corrientes de viento.
+  jardin: {
+    gradTop: '#0a1e18', gradBottom: '#123828',
+    wallCrystals: ['#2a7a58', '#33a06a', '#3ac080'], wallTwinkle: '#a8ffd0',
+    stalactite: '#0e2820', mound: '#0a2018', ray: '150,255,190',
+    fog: ['#2a7a56', '#1a5840', '#12402e'],
+    tile: { r: '#1a4232', o: '#265e44', s: '#0c221a', m: '#33c884', t: '#c8ff9a' },
+    rimL: '#3ac088', rimR: '#227f56', shadow: '#0a1c14',
+    ambient: 'spores',
+  },
+  // Corazón de cristal: blanco-cian que late, el final.
+  corazon: {
+    gradTop: '#0c2030', gradBottom: '#123a4a',
+    wallCrystals: ['#3a8fb0', '#4aa8d0', '#6ad0f0'], wallTwinkle: '#f5fcff',
+    stalactite: '#102838', mound: '#0c2230', ray: '180,240,255',
+    fog: ['#3a8fb0', '#286a86', '#1c4a60'],
+    tile: { r: '#1e4a5e', o: '#2e6e82', s: '#0e2632', m: '#5ac8e0', t: '#f5fcff' },
+    rimL: '#6ad0e8', rimR: '#3a8fa8', shadow: '#0a1e28',
+    ambient: 'heart',
+  },
+};
+
+export function biomeOf(name: string | undefined): Biome {
+  return BIOMES[(name as BiomeName) in BIOMES ? (name as BiomeName) : 'eco'];
+}
+
+// ---- Tiles horneados por bioma ----
+// Para cada bioma, recoloreamos las 5 grillas de roca con su mini-paleta.
+// Son 8x8 procedurales: coste de bundle despreciable, look de roca propio.
+export interface TileSet {
+  fill: Sprite;
+  fill2: Sprite;
+  fill3: Sprite;
+  top: Sprite;
+  plank: Sprite;
+}
+
+function tilePalette(b: Biome): Palette {
+  // Los chars de las grillas de roca; el resto de la paleta no se usa en tiles.
+  return { r: b.tile.r, o: b.tile.o, s: b.tile.s, m: b.tile.m, t: b.tile.t };
+}
+
+const biomeTiles: Record<BiomeName, TileSet> = (() => {
+  const out = {} as Record<BiomeName, TileSet>;
+  for (const name of Object.keys(BIOMES) as BiomeName[]) {
+    const pal = tilePalette(BIOMES[name]);
+    out[name] = {
+      fill: new Sprite(TILE_FILL, pal),
+      fill2: new Sprite(TILE_FILL2, pal),
+      fill3: new Sprite(TILE_FILL3, pal),
+      top: new Sprite(TILE_TOP, pal),
+      plank: new Sprite(TILE_PLANK, pal),
+    };
+  }
+  return out;
+})();
+
+export function tilesFor(name: string | undefined): TileSet {
+  return biomeTiles[(name as BiomeName) in biomeTiles ? (name as BiomeName) : 'eco'];
+}
+
+// ============================================================
 //  BRILLOS (glow) — gradientes radiales cacheados
 // ============================================================
 const glowCache = new Map<string, HTMLCanvasElement>();
@@ -307,13 +432,13 @@ let stalactites: Stalactite[] = [];
 let wallCrystals: WallCrystal[] = [];
 let mounds: Mound[] = [];
 let godRays: GodRay[] = [];
-let generatedFor = ''; // clave (ancho + variante) del fondo cacheado
+let generatedFor = ''; // clave (ancho + seed + bioma) del fondo cacheado
 
-function ensureBackground(worldW: number, viewH: number, variant: number): void {
-  const key = `${worldW}:${variant}`;
+function ensureBackground(worldW: number, viewH: number, seedN: number, biome: Biome): void {
+  const key = `${worldW}:${seedN}:${biome.gradTop}`;
   if (generatedFor === key) return; // cada sala genera su propio fondo
   generatedFor = key;
-  let seed = 1337 + worldW * 31 + variant * 977;
+  let seed = 1337 + worldW * 31 + seedN * 977;
   const rng = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
 
   stalactites = [];
@@ -322,7 +447,7 @@ function ensureBackground(worldW: number, viewH: number, variant: number): void 
   }
 
   wallCrystals = [];
-  const wallColors = ['#4f3878', '#5a4188', '#6b4fa0'];
+  const wallColors = biome.wallCrystals;
   for (let i = 0; i < Math.floor(worldW / 13); i++) {
     wallCrystals.push({
       x: rng() * worldW,
@@ -358,17 +483,19 @@ export function drawBackground(
   viewW: number,
   viewH: number,
   worldW: number,
-  variant = 0,
+  seedN = 0,
   time = 0,
+  biomeName?: string,
 ): void {
-  // Degradado base
+  const biome = biomeOf(biomeName);
+  // Degradado base del bioma
   const grad = ctx.createLinearGradient(0, 0, 0, viewH);
-  grad.addColorStop(0, '#170c28');
-  grad.addColorStop(1, '#2a1644');
+  grad.addColorStop(0, biome.gradTop);
+  grad.addColorStop(1, biome.gradBottom);
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, viewW, viewH);
 
-  ensureBackground(worldW, viewH, variant);
+  ensureBackground(worldW, viewH, seedN, biome);
 
   // Capa lejanísima (0.2): cristales incrustados en la pared, que titilan
   const parWall = camX * 0.2;
@@ -376,7 +503,7 @@ export function drawBackground(
     const x = c.x - parWall;
     if (x < -4 || x > viewW + 4) continue;
     const spark = Math.sin(time * 1.6 + c.twinkle);
-    ctx.fillStyle = spark > 0.85 ? '#c9b3f0' : c.color;
+    ctx.fillStyle = spark > 0.85 ? biome.wallTwinkle : c.color;
     const s = spark > 0.85 ? 3 : 2;
     ctx.fillRect(Math.round(x), Math.round(c.y), s, s);
   }
@@ -391,8 +518,8 @@ export function drawBackground(
     const sway = Math.sin(time * 0.25 + r.phase) * 5;
     if (bx + r.skew + r.w < -20 || bx > viewW + 20) continue;
     const g = ctx.createLinearGradient(bx, 0, bx, rayH);
-    g.addColorStop(0, `rgba(202,182,236,${r.alpha})`);
-    g.addColorStop(1, 'rgba(202,182,236,0)');
+    g.addColorStop(0, `rgba(${biome.ray},${r.alpha})`);
+    g.addColorStop(1, `rgba(${biome.ray},0)`);
     ctx.fillStyle = g;
     ctx.beginPath();
     ctx.moveTo(bx + sway, 0);
@@ -406,7 +533,7 @@ export function drawBackground(
 
   // Capa lejana (0.45): estalactitas del techo
   const parStal = camX * 0.45;
-  ctx.fillStyle = '#241638';
+  ctx.fillStyle = biome.stalactite;
   for (const s of stalactites) {
     const x = s.x - parStal;
     if (x < -20 || x > viewW + 20) continue;
@@ -421,7 +548,7 @@ export function drawBackground(
   // Capa media (0.7): montículos de roca sobre la base
   const parMound = camX * 0.7;
   const baseY = viewH - 16 + camY * 0.2;
-  ctx.fillStyle = '#1f1234';
+  ctx.fillStyle = biome.mound;
   for (const m of mounds) {
     const x = m.x - parMound;
     if (x + m.w < -12 || x > viewW + 12) continue;
@@ -506,9 +633,10 @@ export function drawFog(
   viewW: number,
   viewH: number,
   time: number,
+  biomeName?: string,
 ): void {
   ctx.save();
-  const colors = ['#6a5296', '#4a3570', '#3a2a5e'];
+  const colors = biomeOf(biomeName).fog;
   for (let i = 0; i < 3; i++) {
     const drift = time * (7 + i * 4) - camX * (0.3 + i * 0.12);
     const y0 = viewH - 10 - i * 4;
