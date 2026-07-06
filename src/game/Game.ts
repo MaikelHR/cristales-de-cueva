@@ -37,6 +37,15 @@ const ABILITY_GLOW: Record<AbilityName, string> = {
   glide: '#c8ffe0',
 };
 
+/** Nombres de región que se anuncian al entrar a un bioma nuevo (§11). */
+const BIOME_NAMES: Record<string, string> = {
+  eco: 'CAVERNAS DE ECO',
+  jardin: 'JARDÍN DE ESPORAS',
+  forjas: 'FORJAS DE ESCORIA',
+  aguas: 'AGUAS HUNDIDAS',
+  corazon: 'CORAZÓN DE CRISTAL',
+};
+
 /** Hash estable de un string a un entero chico (semilla del fondo por sala).
  *  Con el mapa 2D, mapPos.x ya no sirve como semilla única (dos salas de
  *  biomas distintos pueden compartir columna), así que sembramos por id. */
@@ -81,9 +90,10 @@ export class Game {
   private checkpoint = { roomId: '', x: 0, y: 0 };
   // Salas ya exploradas: son las que muestra el minimapa.
   private visited = new Set<string>();
-  // Aviso grande en pantalla (al ganar una habilidad).
+  // Aviso grande en pantalla (al ganar una habilidad o entrar a un bioma).
   private announceText = '';
   private announceTimer = 0;
+  private lastBiome = ''; // para anunciar el cambio de región
 
   constructor(
     private viewW: number,
@@ -144,6 +154,19 @@ export class Game {
     return !!this.save.progress;
   }
 
+  /** Si entrás a un bioma distinto del anterior, muestra el banner de región
+   *  (nombre con fade). Eso solo ya hace sentir grande al mundo (§11). */
+  private announceBiomeIfNew(): void {
+    const biome = this.world.current.def.biome ?? 'eco';
+    if (biome === this.lastBiome) return;
+    this.lastBiome = biome;
+    const name = BIOME_NAMES[biome];
+    if (name) {
+      this.announceText = name;
+      this.announceTimer = 2.5;
+    }
+  }
+
   /** La cámara se ajusta al tamaño de la sala actual. */
   private makeCamera(): void {
     const level = this.world.current.level;
@@ -192,6 +215,7 @@ export class Game {
     this.freezeTimer = 0;
     this.deadFrozen = false;
     this.hitStop = 0;
+    this.lastBiome = this.world.current.def.biome ?? 'eco'; // no anuncia el bioma inicial
     this.state = 'playing';
   }
 
@@ -357,6 +381,7 @@ export class Game {
       // La boca por la que entraste es tu nuevo punto de reaparición.
       this.saveCheckpoint();
       this.visited.add(this.world.current.def.id);
+      this.announceBiomeIfNew();
       this.persistProgress(); // autoguardado al cambiar de sala
     }
 

@@ -5,7 +5,8 @@ import type { RoomDef } from './RoomDef';
  *  altar: hay que derrotarlo (3 pisotones) para que la puerta abra. */
 export const santuario: RoomDef = {
   id: 'santuario',
-  mapPos: { x: 2, y: 0 },
+  mapPos: { x: 7, y: 5 },
+  biome: 'eco',
   exits: { left: 'tunel' },
   map: [
     '########################################################',

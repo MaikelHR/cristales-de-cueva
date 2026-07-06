@@ -138,15 +138,18 @@ export class World {
     }
     if (exits?.down && centerY > this.current.level.heightPx) {
       this.goTo(exitId(exits.down));
-      player.y = 1 - player.h / 2; // asoma por el borde SUPERIOR de la nueva
+      player.y = 1; // apenas dentro del borde SUPERIOR de la nueva sala
       player.x = clamp(player.x, 0, this.current.level.widthPx - player.w);
       return true; // conserva vy: que siga cayendo
     }
     if (exits?.up && centerY < 0) {
       this.goTo(exitId(exits.up));
-      player.y = this.current.level.heightPx - 1 - player.h / 2; // asoma por el borde INFERIOR
+      // Pies APENAS dentro del borde inferior (no asomando por debajo, o el
+      // jugador quedaría fuera de la sala y caería al vacío). Conservamos el
+      // impulso ascendente para que siga entrando (con viento/planeo, sube).
+      player.y = this.current.level.heightPx - player.h - 1;
       player.x = clamp(player.x, 0, this.current.level.widthPx - player.w);
-      player.vy = 0; // cancela vy al subir
+      if (player.vy > -60) player.vy = -60; // garantiza un mínimo de subida al cruzar
       return true;
     }
     return false;

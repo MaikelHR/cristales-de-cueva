@@ -50,10 +50,9 @@ const STOMP_BOUNCE = 200;  // rebote hacia arriba tras pisar un enemigo
 
 // Planeo (glide): al mantener saltar mientras caés, la caída se frena a una
 // velocidad suave (como una hoja). En una corriente de viento, te ELEVA.
-const GLIDE_SPEED = 42;      // caída máxima mientras planeás (px/s)
-const WIND_LIFT = -70;       // velocidad al planear dentro de una corriente
-const WIND_DRIFT = 24;       // sostén máximo del viento sin planear (px/s hacia arriba)
-const WIND_LIFT_ACCEL = 220; // qué tan rápido el viento sin planear te frena/eleva
+const GLIDE_SPEED = 42;   // caída máxima mientras planeás (px/s)
+const WIND_LIFT = -104;  // velocidad al planear dentro de una corriente (sube firme)
+const WIND_DRIFT = -60;  // el viento ELEVA aún sin planear (así cualquiera sube por un tiro)
 const GLIDE_MOTES = ['#c8ffe0', '#8fe0c0', '#e0fff0']; // esporas del planeo
 
 // Squash & stretch: deformar el sprite da sensación de peso y energía.
@@ -288,19 +287,30 @@ export class Player {
       }
 
       // ---- Viento y planeo (glide) ----
-      // ¿El jugador está dentro de una corriente ascendente?
       const inWind = this.inWind();
+      const holdingUp = isDown('jump');
       this.gliding = false;
-      if (this.abilities.glide && isDown('jump') && this.vy > 0 && !this.wallSliding) {
-        // Planeo: caída suave como una hoja. Dentro del viento, ELEVA.
-        this.vy = inWind ? WIND_LIFT : GLIDE_SPEED;
+      if (inWind) {
+        // Corriente: mantené SALTAR para SUBIR (el updraft te eleva, cualquiera
+        // puede); soltá para BAJAR planeando despacio (así el mismo tiro sirve
+        // de ida y vuelta). Con glide, la subida es aún más firme.
+        if (holdingUp) {
+          this.vy = this.abilities.glide ? WIND_LIFT : WIND_DRIFT;
+          this.gliding = true;
+          if (Math.random() < 0.2) {
+            this.particles.puff(this.x + this.w / 2, this.y + this.h, 1, GLIDE_MOTES, 0);
+          }
+        } else {
+          // Soltando: el viento frena la caída (bajás suave, sin lastimarte).
+          this.vy = Math.min(this.vy, GLIDE_SPEED);
+        }
+      } else if (this.abilities.glide && holdingUp && this.vy > 0 && !this.wallSliding) {
+        // Planeo en aire libre: caída suave como una hoja (para cruzar abismos).
+        this.vy = GLIDE_SPEED;
         this.gliding = true;
         if (Math.random() < 0.25) {
           this.particles.puff(this.x + this.w / 2, this.y + this.h, 1, GLIDE_MOTES, 0);
         }
-      } else if (inWind && this.vy > -WIND_DRIFT) {
-        // Sin planear, el viento igual te sostiene un poco (frena la caída).
-        this.vy = Math.max(this.vy - WIND_LIFT_ACCEL * dt, -WIND_DRIFT);
       }
     }
 

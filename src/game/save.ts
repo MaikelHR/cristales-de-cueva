@@ -21,8 +21,9 @@
 const KEY = 'cristales-save-v1';
 
 /** Subí esto ante CUALQUIER cambio de layout de una sala (mover/agregar/
- *  quitar un cristal, reliquia o tile). Invalida el progreso guardado. */
-export const PROGRESS_VERSION = 1;
+ *  quitar un cristal, reliquia o tile). Invalida el progreso guardado.
+ *  v2: re-anclaje del mapa 2D + biomas + nuevas salas (P1.c). */
+export const PROGRESS_VERSION = 2;
 
 /** Progreso de una partida a medio camino (opcional en SaveData). */
 export interface SaveProgress {

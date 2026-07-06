@@ -6,7 +6,8 @@ import type { RoomDef } from './RoomDef';
  *  wall jump espera a la izquierda. */
 export const tunel: RoomDef = {
   id: 'tunel',
-  mapPos: { x: 1, y: 0 },
+  mapPos: { x: 6, y: 5 },
+  biome: 'eco',
   exits: { left: 'entrada', right: 'santuario' },
   map: [
     '########################################################',

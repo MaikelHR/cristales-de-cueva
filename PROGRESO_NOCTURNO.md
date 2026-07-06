@@ -224,3 +224,48 @@ El Plan.md asume rutas que en el repo real están corridas. Las adapté:
 - Todavía NO colocados en ningún mapa (eso es P1.c). El juego sigue completable.
 - **build**: verde (gzip 19.1 kB). **check**: VERDE (8 asserts).
 - Sigue: P1.c (mapa 2D re-anclado + bioma Jardín + gates -> cierra el CORE).
+
+## P1.c — Mapa 2D + bioma Jardín + gate de PLANEO  ✅ (CIERRA EL CORE)
+
+Feature más grande de la noche. Descubrí y resolví problemas físicos reales del
+cruce vertical con una SONDA FÍSICA (§4.6) antes de shippear:
+
+- **Bug del cruce "up" (§8.1 tenía la fórmula mal):** `player.y = heightPx-1-h/2`
+  dejaba los pies POR DEBAJO del borde inferior -> el jugador caía al vacío al
+  cruzar hacia arriba. Corregido a `heightPx - h - 1` (pies apenas dentro) +
+  conservar el impulso ascendente. El "down" también: `player.y = 1`.
+- **Mecánica de viento revisada:** el updraft (grilla `^` de borde a borde)
+  ahora funciona de ida y vuelta: **mantené SALTAR para SUBIR** (eleva a
+  cualquiera, pisando la gravedad), **soltá para BAJAR** planeando suave. Así un
+  mismo tiro sirve para entrar y volver (sin esto, el viento te encerraba).
+- **Gate de PLANEO = ABISMO horizontal de 13 celdas** (no un tiro de viento,
+  que eleva a todos). Verifiqué con la sonda física que el kit base (doble
+  salto + dash, 60 timings distintos) NO lo cruza y el PLANEO SÍ.
+- **Generador de salas** (`scratchpad/genrooms.mjs`): dibuja los mapas con ancho
+  fijo garantizado y bordes precisos, y ESCRIBE los `.ts` directo (cero errores
+  de transcripción a mano). El harness (alineación de huecos) atrapó un
+  desalineamiento que metí y lo arreglé.
+- **Mundo (5 salas, 2 biomas, 13 cristales, 2 jefes):**
+  - Hub *Cavernas de Eco* re-anclado a {5,5}: entrada (spawn, tiro de viento
+    arriba al jardín), tunel, santuario (puerta D + jefe guardián). Kit base
+    (j/k/w) reachable.
+  - *Jardín de Esporas* {5,4} (bioma jardin): reliquia PLANEO (probada
+    alcanzable con kit base), esporas, púas, tiro de viento de entrada, y el
+    abismo-gate a la derecha.
+  - *Jardín Alto* {6,4}: detrás del abismo (requires:'glide'), 5 cristales + el
+    **jefe El Fundidor**. La puerta no abre hasta matar a los DOS jefes.
+- **Sonda física** (temporal, borrada): confirmó (1) PLANEO alcanzable con kit
+  base y (2) el abismo real es gate genuino (glide sí, kit base no).
+- Banner de región (§11) al cambiar de bioma (`announceText` con fade).
+  `index.html` sin "5 cristales" hardcodeado.
+- `PROGRESS_VERSION` subido a 2 (cambió el layout).
+- Harness: fixpoint verde -> **el mundo es 100% completable** (grafo + gaps +
+  fixpoint) y la sonda validó el platforming interno.
+- **build**: verde (gzip 19.6 kB). **check**: VERDE (8 asserts).
+
+# ===== CORE (§12) COMPLETO =====
+Scaffolding verde + salidas verticales reales + mapa (M) + autosave/Continuar +
+1 bioma nuevo (Jardín) conectado en 2D + 1 ability que gatea contenido (PLANEO,
+backtracking real verificado por fixpoint+sonda) + 1 jefe nuevo (Fundidor) + 1
+hazard estático (púas/lava). index.html sin hardcodeo. es-AR en todo. Táctil
+intacto. 100% completable. Diario al día.
