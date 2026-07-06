@@ -13,7 +13,7 @@ import { Particles } from './Particles';
 import { World } from './World';
 import type { AbilityName } from './Level';
 import type { Enemy } from './entities/Enemy';
-import { justPressed, inputDevice } from '../engine/input';
+import { justPressed, inputDevice, isTouchMode } from '../engine/input';
 import { overlaps, clamp, type Box } from '../engine/canvas';
 import { sprites, drawGlow, drawBackground, drawDust, drawFog, drawVignette, initDust } from './art';
 import { sfx } from './sfx';
@@ -95,6 +95,12 @@ export class Game {
   private makeCamera(): void {
     const level = this.world.current.level;
     this.camera = new Camera(this.viewW, this.viewH, level.widthPx, level.heightPx);
+  }
+
+  /** Estado observable para la UI táctil: qué pantalla se muestra y si
+   *  está en pausa. Lo consume touch.ts para saber qué botones enseñar. */
+  get ui(): { state: State; paused: boolean } {
+    return { state: this.state, paused: this.paused };
   }
 
   private get collected(): number {
@@ -444,12 +450,20 @@ export class Game {
     ctx.fillStyle = '#e9d6ff';
     ctx.font = '18px "JetBrains Mono", ui-monospace, monospace';
     ctx.fillText('PAUSA', cx, this.viewH / 2 - 10);
-    const gp = inputDevice() === 'gamepad';
+    const dev = inputDevice();
+    const gp = dev === 'gamepad';
+    const touch = dev === 'touch';
     ctx.fillStyle = '#9b86c4';
     ctx.font = '8px "JetBrains Mono", ui-monospace, monospace';
-    ctx.fillText(gp ? 'START para continuar' : 'ESC o P para continuar', cx, this.viewH / 2 + 8);
-    ctx.fillStyle = '#6f5a94';
-    ctx.fillText(gp ? 'Y para reiniciar' : 'R para reiniciar', cx, this.viewH / 2 + 20);
+    ctx.fillText(
+      touch ? 'tocá continuar o reiniciar' : gp ? 'START para continuar' : 'ESC o P para continuar',
+      cx,
+      this.viewH / 2 + 8,
+    );
+    if (!touch) {
+      ctx.fillStyle = '#6f5a94';
+      ctx.fillText(gp ? 'Y para reiniciar' : 'R para reiniciar', cx, this.viewH / 2 + 20);
+    }
     ctx.textAlign = 'left';
   }
 
@@ -460,7 +474,10 @@ export class Game {
     const gap = 2;
     const rooms = this.world.allRooms;
     const maxX = Math.max(...rooms.map((r) => r.def.mapPos.x));
-    const baseX = this.viewW - 6 - ((maxX + 1) * cellW + maxX * gap);
+    // En táctil dejamos libre la esquina superior derecha (ahí va el botón
+    // de pausa en pantalla), así que corremos el minimapa más a la izquierda.
+    const inset = isTouchMode() ? 44 : 6;
+    const baseX = this.viewW - inset - ((maxX + 1) * cellW + maxX * gap);
     const baseY = 6;
 
     for (const room of rooms) {
@@ -622,9 +639,11 @@ export class Game {
     ctx.textAlign = 'left';
   }
 
-  /** El texto para volver al menú, según teclado o gamepad. */
+  /** El texto para volver al menú, según teclado, gamepad o táctil. */
   private backToMenuText(): string {
-    return inputDevice() === 'gamepad' ? 'botón A para volver al menú' : 'ENTER para volver al menú';
+    const dev = inputDevice();
+    if (dev === 'touch') return 'tocá para volver al menú';
+    return dev === 'gamepad' ? 'botón A para volver al menú' : 'ENTER para volver al menú';
   }
 
   /** Línea de récord bajo el puntaje: si batiste tu marca, un "¡NUEVO
@@ -686,15 +705,25 @@ export class Game {
 
     // Aviso pulsante para empezar (parpadeo suave con seno). Los textos
     // se adaptan al último dispositivo usado (teclado o gamepad).
-    const gp = inputDevice() === 'gamepad';
+    const dev = inputDevice();
+    const gp = dev === 'gamepad';
+    const touch = dev === 'touch';
     const blink = 0.55 + Math.sin(this.time * 4) * 0.45;
     ctx.globalAlpha = blink;
     ctx.fillStyle = '#ffe25a';
-    ctx.fillText(gp ? 'botón A o START para empezar' : 'ENTER o ↑ para empezar', cx, this.viewH / 2 + 54);
+    ctx.fillText(
+      touch ? 'TOCA PARA EMPEZAR' : gp ? 'botón A o START para empezar' : 'ENTER o ↑ para empezar',
+      cx,
+      this.viewH / 2 + 54,
+    );
     ctx.globalAlpha = 1;
 
     ctx.fillStyle = '#6f5a94';
-    ctx.fillText(gp ? 'D-pad mover · A saltar · X dash' : '← → mover · ↑ saltar · X dash', cx, this.viewH - 12);
+    ctx.fillText(
+      touch ? 'usá los botones en pantalla' : gp ? 'D-pad mover · A saltar · X dash' : '← → mover · ↑ saltar · X dash',
+      cx,
+      this.viewH - 12,
+    );
     ctx.textAlign = 'left';
   }
 
@@ -715,7 +744,7 @@ export class Game {
     const blink = 0.55 + Math.sin(this.time * 4) * 0.45;
     ctx.globalAlpha = blink;
     ctx.fillStyle = '#9b86c4';
-    ctx.fillText('ENTER para volver al menú', cx, this.viewH / 2 + 22);
+    ctx.fillText(this.backToMenuText(), cx, this.viewH / 2 + 22);
     ctx.globalAlpha = 1;
     ctx.textAlign = 'left';
   }
