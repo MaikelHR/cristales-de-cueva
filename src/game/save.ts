@@ -25,8 +25,10 @@ const KEY = 'cristales-save-v1';
  *  v2: re-anclaje del mapa 2D + biomas + nuevas salas (P1.c).
  *  v3: bioma Forjas + pozo en el santuario (P2.a).
  *  v4: spawn de entrada reubicado (fix del nicho encerrado) + lore (P2.b).
- *  v5: rediseño del abismo del jardín + gate de glide aplicado en runtime. */
-export const PROGRESS_VERSION = 8;
+ *  v5: rediseño del abismo del jardín + gate de glide aplicado en runtime.
+ *  v9: rediseño de santuario como ascenso al altar (piso de entrada firme,
+ *      jefe con arena, puerta sobre pedestal, dash en la cima; 10→5 cristales). */
+export const PROGRESS_VERSION = 9;
 
 /** Progreso de una partida a medio camino (opcional en SaveData). */
 export interface SaveProgress {
