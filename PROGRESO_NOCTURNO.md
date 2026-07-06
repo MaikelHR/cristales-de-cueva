@@ -132,3 +132,33 @@ El Plan.md asume rutas que en el repo real están corridas. Las adapté:
   de rects puros, todo acotado con clamp/min/max).
 - **build**: verde (gzip 16.5 kB). **check**: VERDE.
 - Sigue: P0.6 (autoguardado + Continuar).
+
+## P0.6 — Autoguardado de progreso + Continuar  ✅
+
+- `save.ts`: bloque `progress` opcional en `SaveData` (version, abilities,
+  crystalsTaken[], relicsTaken[], checkpoint, visited). `loadSave` lo parsea y
+  valida campo por campo; `parseProgress` descarta progreso corrupto o de otra
+  versión (=> partida nueva sin romper). `PROGRESS_VERSION` exportado.
+- **Clave estable** de cristal/reliquia anónimo: `${roomId}:${x},${y}`.
+- `Game.persistProgress()`: compone el bloque y lo persiste SIN pisar
+  bestScore/bestTime/victories; **solo mientras se juega** (nunca en el título,
+  pisaría el guardado). Se llama en transición de sala + al recoger
+  cristal/reliquia.
+- Flujo título: `startNewGame()` (resetea y BORRA progreso) vs `continueGame()`
+  (resetea y APLICA progreso: habilidades, tomados por clave, visited,
+  checkpoint, coloca al jugador). `hasProgress` getter público. Confirmar =
+  continuar si hay progreso, si no nueva; R = siempre nueva. `endRun` (win o
+  game over) borra el progreso. `World.hasRoom()` para validar el checkpoint.
+- `drawTitle`: prompt "CONTINUAR" + "R para empezar de nuevo" cuando hay
+  progreso; "EMPEZAR" si no.
+- **DISCIPLINA CRÍTICA:** cualquier cambio de layout de sala (mover/agregar/
+  quitar cristal/reliquia/tile) obliga a subir `PROGRESS_VERSION`. En P1, al
+  re-anclar el mapa 2D, la subo.
+- Limitación menor (táctil): en el título, tocar = continuar-o-nueva; para
+  forzar partida nueva sobre un progreso existente el jugador táctil termina o
+  muere la corrida actual (no hay botón de reinicio en el título). Conservador.
+- Harness: (1) round-trip de save + descarte de versión vieja + conservación de
+  récords; (2) **integración**: jugar -> progreso en store -> Game recargado ve
+  `hasProgress` -> Continuar aplica sin reventar.
+- **build**: verde (gzip 17.2 kB). **check**: VERDE (6 asserts).
+- **CORE casi cerrado.** Sigue: P0.7 (hazards estáticos: púas + lava).

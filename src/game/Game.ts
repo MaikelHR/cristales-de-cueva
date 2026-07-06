@@ -17,7 +17,7 @@ import { justPressed, inputDevice, isTouchMode } from '../engine/input';
 import { overlaps, clamp, type Box } from '../engine/canvas';
 import { sprites, drawGlow, drawBackground, drawDust, drawFog, drawVignette, initDust, biomeOf } from './art';
 import { sfx } from './sfx';
-import { loadSave, writeSave, type SaveData } from './save';
+import { loadSave, writeSave, PROGRESS_VERSION, type SaveData } from './save';
 
 // Los estados del juego. 'title' = menú de inicio; 'playing' = jugando;
 // 'won' = pantalla de victoria; 'gameover' = te quedaste sin corazones.
@@ -104,6 +104,44 @@ export class Game {
     };
   }
 
+  /** Clave estable de un cristal/reliquia anónimo dentro de una sala. Ver la
+   *  nota de fragilidad en save.ts: el layout cambia -> sube PROGRESS_VERSION. */
+  private itemKey(roomId: string, x: number, y: number): string {
+    return `${roomId}:${x},${y}`;
+  }
+
+  /** Vuelca el progreso actual a `this.save` (SIN pisar los récords) y lo
+   *  persiste. Se llama en checkpoint y al recoger cristal/reliquia, y SOLO
+   *  mientras se juega (nunca en el título: pisaría el progreso guardado). */
+  private persistProgress(): void {
+    if (this.state !== 'playing') return;
+    const abilities = (Object.keys(this.player.abilities) as AbilityName[]).filter(
+      (a) => this.player.abilities[a],
+    );
+    const crystalsTaken: string[] = [];
+    const relicsTaken: string[] = [];
+    for (const rm of this.world.allRooms) {
+      for (const c of rm.crystals)
+        if (c.taken) crystalsTaken.push(this.itemKey(rm.def.id, c.x, c.y));
+      for (const r of rm.relics)
+        if (r.taken) relicsTaken.push(this.itemKey(rm.def.id, r.x, r.y));
+    }
+    this.save.progress = {
+      version: PROGRESS_VERSION,
+      abilities,
+      crystalsTaken,
+      relicsTaken,
+      checkpoint: { ...this.checkpoint },
+      visited: [...this.visited],
+    };
+    writeSave(this.save); // this.save conserva bestScore/bestTime/victories
+  }
+
+  /** ¿Hay una partida guardada a medio camino para continuar? */
+  get hasProgress(): boolean {
+    return !!this.save.progress;
+  }
+
   /** La cámara se ajusta al tamaño de la sala actual. */
   private makeCamera(): void {
     const level = this.world.current.level;
@@ -124,6 +162,9 @@ export class Game {
     return this.world.allCrystals.length;
   }
 
+  /** Estado fresco de partida: mundo nuevo, habilidades apagadas, contadores
+   *  en cero, a 'playing'. NO toca `this.save.progress` (eso lo deciden
+   *  startNewGame/continueGame). */
   private reset(): void {
     this.world = new World(); // mundo nuevo: enemigos y cristales de cero
     this.player.setLevel(this.world.current.level);
@@ -152,6 +193,54 @@ export class Game {
     this.state = 'playing';
   }
 
+  /** NUEVA PARTIDA: estado fresco y BORRA el progreso guardado (empezás de
+   *  cero). La distinción con "Continuar" es la clave de §8.4: la tecla R y el
+   *  arranque sin progreso hacen esto. */
+  private startNewGame(): void {
+    this.reset();
+    this.save.progress = undefined;
+    writeSave(this.save);
+    this.persistProgress(); // graba el progreso fresco (spawn, sin nada tomado)
+  }
+
+  /** CONTINUAR: estado fresco y luego APLICA el progreso guardado. Si el
+   *  progreso está corrupto o de otra versión, `loadSave` ya lo habrá
+   *  descartado (=> hasProgress false, esta rama no se llama). */
+  private continueGame(): void {
+    const prog = this.save.progress;
+    if (!prog) {
+      this.startNewGame();
+      return;
+    }
+    this.reset();
+    // Habilidades conseguidas.
+    for (const a of prog.abilities) {
+      if (a in this.player.abilities) this.player.abilities[a as AbilityName] = true;
+    }
+    // Cristales y reliquias tomados (por clave estable).
+    const crystals = new Set(prog.crystalsTaken);
+    const relics = new Set(prog.relicsTaken);
+    for (const rm of this.world.allRooms) {
+      for (const c of rm.crystals)
+        if (crystals.has(this.itemKey(rm.def.id, c.x, c.y))) c.taken = true;
+      for (const r of rm.relics)
+        if (relics.has(this.itemKey(rm.def.id, r.x, r.y))) r.taken = true;
+    }
+    // Salas visitadas (para el mapa). Siempre incluye la del checkpoint.
+    this.visited = new Set(prog.visited);
+    // Checkpoint: sala + punto. Validamos que la sala exista (por robustez).
+    const roomId = this.world.hasRoom(prog.checkpoint.roomId)
+      ? prog.checkpoint.roomId
+      : this.world.current.def.id;
+    this.checkpoint = { roomId, x: prog.checkpoint.x, y: prog.checkpoint.y };
+    this.visited.add(roomId);
+    // Colocamos al jugador en el checkpoint.
+    this.world.goTo(roomId);
+    this.player.setLevel(this.world.current.level);
+    this.player.respawnAt(this.checkpoint.x, this.checkpoint.y);
+    this.makeCamera();
+  }
+
   /** Volver al último checkpoint tras morir. */
   private respawnPlayer(): void {
     this.world.goTo(this.checkpoint.roomId);
@@ -166,8 +255,15 @@ export class Game {
     if (this.state === 'title') {
       this.time += dt;
       this.particles.update(dt);
-      if (justPressed('confirm') || justPressed('jump')) {
-        this.reset(); // mundo fresco -> a jugar (reset deja el estado en 'playing')
+      // Confirmar/saltar: CONTINUAR si hay progreso guardado, si no partida
+      // nueva. La tecla R (restart) fuerza siempre una partida NUEVA (borra el
+      // progreso): así se distingue "continuar" de "empezar de cero" (§8.4).
+      if (justPressed('restart')) {
+        this.startNewGame();
+        sfx.relic();
+      } else if (justPressed('confirm') || justPressed('jump')) {
+        if (this.hasProgress) this.continueGame();
+        else this.startNewGame();
         sfx.relic();
       }
       return;
@@ -189,9 +285,10 @@ export class Game {
       return;
     }
 
-    // Reinicio rápido durante la partida (tecla R): mundo nuevo, a jugar.
+    // Reinicio rápido durante la partida (tecla R): partida NUEVA (borra el
+    // progreso guardado, no una "continuación").
     if (justPressed('restart')) {
-      this.reset();
+      this.startNewGame();
       return;
     }
 
@@ -258,6 +355,7 @@ export class Game {
       // La boca por la que entraste es tu nuevo punto de reaparición.
       this.saveCheckpoint();
       this.visited.add(this.world.current.def.id);
+      this.persistProgress(); // autoguardado al cambiar de sala
     }
 
     const room = this.world.current;
@@ -276,6 +374,7 @@ export class Game {
         // Chispas doradas desde el centro del cristal
         this.particles.burst(c.x + 3, c.y + 4, 14, ['#ffd23a', '#fff7c9', '#ffe25a']);
         sfx.pickup();
+        this.persistProgress(); // autoguardado al recoger un cristal
       }
     }
 
@@ -290,6 +389,7 @@ export class Game {
         this.announceText = ABILITY_LABEL[r.ability];
         this.announceTimer = 2.5;
         sfx.relic();
+        this.persistProgress(); // autoguardado al recoger una reliquia
       }
     }
 
@@ -418,7 +518,9 @@ export class Game {
   }
 
   /** Cierre de una corrida (ganaste o game over): actualiza los récords
-   *  persistidos y marca si batiste el mejor puntaje. */
+   *  persistidos y marca si batiste el mejor puntaje. Una corrida terminada
+   *  (victoria o game over) BORRA el progreso en curso: el título no debe
+   *  ofrecer "Continuar" hacia una partida completada o muerta. */
   private endRun(won: boolean): void {
     this.newRecord = this.score > this.save.bestScore;
     if (this.newRecord) this.save.bestScore = this.score;
@@ -429,6 +531,7 @@ export class Game {
       this.newBestTime = this.save.bestTime === 0 || this.runTime < this.save.bestTime;
       if (this.newBestTime) this.save.bestTime = this.runTime;
     }
+    this.save.progress = undefined;
     writeSave(this.save);
   }
 
@@ -847,19 +950,36 @@ export class Game {
     }
 
     // Aviso pulsante para empezar (parpadeo suave con seno). Los textos
-    // se adaptan al último dispositivo usado (teclado o gamepad).
+    // se adaptan al último dispositivo usado (teclado o gamepad). Si hay una
+    // partida guardada, el prompt principal es CONTINUAR y abajo se ofrece
+    // empezar de nuevo (R o el botón de reinicio).
     const dev = inputDevice();
     const gp = dev === 'gamepad';
     const touch = dev === 'touch';
     const blink = 0.55 + Math.sin(this.time * 4) * 0.45;
     ctx.globalAlpha = blink;
     ctx.fillStyle = '#ffe25a';
-    ctx.fillText(
-      touch ? 'TOCA PARA EMPEZAR' : gp ? 'botón A o START para empezar' : 'ENTER o ↑ para empezar',
-      cx,
-      this.viewH / 2 + 54,
-    );
-    ctx.globalAlpha = 1;
+    if (this.hasProgress) {
+      ctx.fillText(
+        touch ? 'TOCA PARA CONTINUAR' : gp ? 'botón A para continuar' : 'ENTER o ↑ para continuar',
+        cx,
+        this.viewH / 2 + 54,
+      );
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#9b86c4';
+      ctx.fillText(
+        touch ? 'reiniciar: botón ⟲ · partida nueva' : gp ? 'Y para empezar de nuevo' : 'R para empezar de nuevo',
+        cx,
+        this.viewH / 2 + 66,
+      );
+    } else {
+      ctx.fillText(
+        touch ? 'TOCA PARA EMPEZAR' : gp ? 'botón A o START para empezar' : 'ENTER o ↑ para empezar',
+        cx,
+        this.viewH / 2 + 54,
+      );
+      ctx.globalAlpha = 1;
+    }
 
     ctx.fillStyle = '#6f5a94';
     ctx.fillText(

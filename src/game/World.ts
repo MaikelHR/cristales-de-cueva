@@ -80,6 +80,11 @@ export class World {
     return room;
   }
 
+  /** ¿Existe una sala con este id? (para validar checkpoints guardados). */
+  hasRoom(id: string): boolean {
+    return this.rooms.has(id);
+  }
+
   goTo(id: string): void {
     this.current = this.get(id);
   }

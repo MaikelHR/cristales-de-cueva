@@ -78,6 +78,7 @@ const { ROOMS } = await import('../src/game/rooms/index.ts');
 const { exitId, isOneWay, exitRequires } = await import('../src/game/rooms/RoomDef.ts');
 const { Level, GATE_ABILITY } = await import('../src/game/Level.ts');
 const input = await import('../src/engine/input.ts');
+const { loadSave, writeSave, PROGRESS_VERSION } = await import('../src/game/save.ts');
 
 let fallos = 0;
 const fail = (m: string) => {
@@ -115,6 +116,29 @@ try {
   }
   void world;
   ok('smoke: World + 20k pasos de Game (playing, update+draw) sin reventar');
+
+  // Integración de "Continuar": tras jugar, el store tiene progreso. Un Game
+  // NUEVO (simula recargar) debe verlo (hasProgress) y continuar sin reventar.
+  const saved = g.localStorage.getItem('cristales-save-v1');
+  if (!saved || !JSON.parse(saved).progress) {
+    fail('autoguardado: tras jugar no quedó progreso en el store');
+  } else {
+    const reloaded = new Game(320, 176);
+    if (!reloaded.hasProgress) fail('autoguardado: el Game recargado no ve el progreso guardado');
+    // Continuar: confirmar en el título aplica el progreso (no debe reventar).
+    input.touchButton('confirm', true);
+    reloaded.update(1 / 60);
+    input.touchButton('confirm', false);
+    input.endStep();
+    for (let i = 0; i < 200; i++) {
+      reloaded.update(1 / 60);
+      if (i % 50 === 0) reloaded.draw(ctx);
+      input.endStep();
+    }
+    ok('autoguardado: reload -> hasProgress -> Continuar sin reventar');
+  }
+  // Limpiamos el store para no arrastrar progreso al test de save.ts de abajo.
+  g.localStorage.removeItem('cristales-save-v1');
 } catch (e) {
   fail('el smoke reventó: ' + (e as Error).message);
 }
@@ -126,6 +150,46 @@ try {
   fail('Level aceptó un char desconocido (la whitelist no tiró)');
 } catch {
   ok('whitelist: un char de mapa desconocido tira Error');
+}
+
+// --- Autoguardado (§8.4): round-trip de save + descarte de versión vieja +
+//     conservación de récords al escribir progreso.
+{
+  // 1) Round-trip: el progreso vuelve intacto.
+  writeSave({
+    bestScore: 42,
+    victories: 3,
+    bestTime: 88,
+    progress: {
+      version: PROGRESS_VERSION,
+      abilities: ['glide'],
+      crystalsTaken: ['sala:10,20'],
+      relicsTaken: [],
+      checkpoint: { roomId: 'sala', x: 5, y: 6 },
+      visited: ['sala', 'otra'],
+    },
+  });
+  const back = loadSave();
+  if (back.bestScore !== 42 || back.victories !== 3 || back.bestTime !== 88)
+    fail('autoguardado: los récords no sobrevivieron al round-trip');
+  if (!back.progress || back.progress.crystalsTaken[0] !== 'sala:10,20')
+    fail('autoguardado: el progreso no volvió intacto del round-trip');
+
+  // 2) Versión vieja del progreso => se descarta (partida nueva sin romper).
+  writeSave({
+    bestScore: 1, victories: 0, bestTime: 0,
+    progress: {
+      version: PROGRESS_VERSION + 999, abilities: [], crystalsTaken: [],
+      relicsTaken: [], checkpoint: { roomId: 'x', x: 0, y: 0 }, visited: [],
+    },
+  });
+  const stale = loadSave();
+  if (stale.progress) fail('autoguardado: un progreso de versión vieja NO se descartó');
+  if (stale.bestScore !== 1) fail('autoguardado: se perdió un récord al descartar progreso viejo');
+
+  if (back.progress && !stale.progress) ok('autoguardado: round-trip ok + versión vieja descartada');
+  // Limpiamos el store para no contaminar el smoke.
+  g.localStorage.removeItem('cristales-save-v1');
 }
 
 // --- Grafo de salidas ---
