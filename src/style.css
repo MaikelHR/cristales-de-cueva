@@ -235,13 +235,16 @@ body.touch canvas {
   border-radius: 14px;
 }
 
-/* --- Boton de mapa (arriba-izquierda) ---------------------------------- */
+/* --- Boton de mapa (abajo-centro) -------------------------------------- */
+/* Entre la cruceta (abajo-izq) y las acciones (abajo-der), una zona libre que
+   NO tapa el HUD del lienzo (corazones/contador arriba-izq, pausa arriba-der). */
 .tc-map {
   position: absolute;
-  top: calc(14px + env(safe-area-inset-top, 0px));
-  left: calc(14px + env(safe-area-inset-left, 0px));
-  width: 56px;
-  height: 44px;
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  width: 52px;
+  height: 38px;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 1px;
@@ -340,10 +343,9 @@ body.touch canvas {
     height: 78px;
   }
   .tc-map {
-    width: 50px;
-    height: 40px;
-    font-size: 11px;
-    top: calc(12px + env(safe-area-inset-top, 0px));
-    left: calc(12px + env(safe-area-inset-left, 0px));
+    width: 46px;
+    height: 34px;
+    font-size: 10px;
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
   }
 }
