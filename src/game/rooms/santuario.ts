@@ -1,13 +1,14 @@
 import type { RoomDef } from './RoomDef';
 
-/** La sala final: el altar con la puerta, y la reliquia del dash en
- *  un nicho alto a la derecha. Un guardián de cristal flota sobre el
- *  altar: hay que derrotarlo (3 pisotones) para que la puerta abra. */
+/** El santuario del hub: el altar con la puerta D y la reliquia del dash 'k'
+ *  en un nicho alto a la derecha. Un guardián de cristal flota sobre el altar.
+ *  La puerta abre solo con TODOS los cristales y TODOS los jefes derrotados.
+ *  Salida a la izquierda (túnel) y ABAJO por un pozo a las Forjas de Escoria. */
 export const santuario: RoomDef = {
   id: 'santuario',
   mapPos: { x: 7, y: 5 },
   biome: 'eco',
-  exits: { left: 'tunel' },
+  exits: { left: 'tunel', down: 'forjas' },
   map: [
     '########################################################',
     '#......................................................#',
@@ -28,8 +29,8 @@ export const santuario: RoomDef = {
     '#................####................####..............#',
     '#......................................................#',
     '#..........####............................####........#',
-    '.......................................................#',
-    '.......................................................#',
-    '########################################################',
+    '......#................................................#',
+    '......#................................................#',
+    '####..##################################################',
   ],
 };

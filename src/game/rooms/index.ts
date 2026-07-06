@@ -4,6 +4,7 @@ import { tunel } from './tunel';
 import { santuario } from './santuario';
 import { jardin } from './jardin';
 import { jardin_alto } from './jardin_alto';
+import { forjas } from './forjas';
 
 /** Todas las salas del mundo. La primera es donde arranca el jugador. */
-export const ROOMS: RoomDef[] = [entrada, tunel, santuario, jardin, jardin_alto];
+export const ROOMS: RoomDef[] = [entrada, tunel, santuario, jardin, jardin_alto, forjas];

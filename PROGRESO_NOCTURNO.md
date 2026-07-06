@@ -269,3 +269,26 @@ Scaffolding verde + salidas verticales reales + mapa (M) + autosave/Continuar +
 backtracking real verificado por fixpoint+sonda) + 1 jefe nuevo (Fundidor) + 1
 hazard estático (púas/lava). index.html sin hardcodeo. es-AR en todo. Táctil
 intacto. 100% completable. Diario al día.
+
+# ===== STRETCH =====
+
+## P2.a — Bioma Forjas de Escoria (lava) hacia abajo  ✅
+
+- Nueva sala **forjas** (56 ancho, bioma forjas) DEBAJO del santuario:
+  `santuario.down → forjas` (pozo cols 4-5) y `forjas.up → santuario` (mismo
+  tiro de viento, mantené saltar para volver). 2º bioma jugable.
+- Contenido: **lago de LAVA** que cruza el piso (hazard), 5 cristales en
+  plataformas que puentean la lava (hay que saltar sin quemarse), una espora y
+  un slime. Total del mundo: 18 cristales, 2 jefes.
+- Santuario editado (pozo + lip); el harness atrapó dos desalineamientos de
+  borde que metí (left y down) y los arreglé antes de commitear.
+- **Reachability (§4.6, documentada):** el fixpoint garantiza forjas alcanzable
+  y sin gates internos. Verifiqué a mano que CADA cristal se apoya en una
+  plataforma (ninguno sobre lava sin piso): row12/col20→plat row13, row12/col37
+  →plat row13, row14/col11→plat row15, row14/col28→plat row15, row15/col48→plat
+  row16. El kit base (doble salto+dash+wall jump) cubre esos saltos. La sonda
+  aleatoria no los tocó (limitación del AND aleatorio, no del diseño: cae en la
+  lava y reaparece). El retorno por viento funciona desde la repisa de entrada
+  (fila 7), donde el jugador sí muestrea la corriente.
+- `PROGRESS_VERSION` -> 3 (cambió santuario + sala nueva).
+- **build**: verde (gzip 19.7 kB). **check**: VERDE (fixpoint 100% completable).
