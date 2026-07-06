@@ -423,6 +423,14 @@ export class Game {
       }
     }
 
+    // Hazards estáticos del terreno (púas, lava): dañan al tocarlos.
+    for (const hz of room.level.hazardTilesIn(pbox)) {
+      if (overlaps(pbox, hz)) {
+        this.hurtPlayer(hz.x + hz.w / 2);
+        break;
+      }
+    }
+
     // Caer fuera del mundo -> perder un corazón y reaparecer
     if (this.player.y > room.level.heightPx + 24) {
       this.loseLifeAndRespawn();
@@ -546,7 +554,7 @@ export class Game {
       hashId(room.def.id), this.time, biome,
     );
 
-    room.level.draw(ctx, camX, camY, this.viewW, this.viewH, biome);
+    room.level.draw(ctx, camX, camY, this.viewW, this.viewH, biome, this.time);
     this.drawDoor(ctx, camX, camY);
     this.drawCrystals(ctx, camX, camY);
     this.drawRelics(ctx, camX, camY);

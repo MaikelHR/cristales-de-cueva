@@ -152,6 +152,24 @@ try {
   ok('whitelist: un char de mapa desconocido tira Error');
 }
 
+// --- Hazards estáticos (§8.5): 'x' púas y 'L' lava parsean y hazardTilesIn
+//     devuelve una caja peligrosa donde hay hazard (y ninguna donde no).
+{
+  const lvl: any = new Level([
+    '########',
+    '#.x..L.#',
+    '########',
+  ]);
+  const overCells = (col: number) => lvl.hazardTilesIn({ x: col * 8, y: 8, w: 8, h: 8 });
+  const spike = overCells(2); // 'x' en fila 1 col 2
+  const lava = overCells(5);  // 'L' en fila 1 col 5
+  const air = overCells(3);   // '.' en fila 1 col 3
+  if (spike.length === 0) fail('hazards: púas no reportadas por hazardTilesIn');
+  if (lava.length === 0) fail('hazards: lava no reportada por hazardTilesIn');
+  if (air.length !== 0) fail('hazards: aire reportado como hazard (falso positivo)');
+  if (spike.length && lava.length && !air.length) ok('hazards: púas y lava detectadas, aire no');
+}
+
 // --- Autoguardado (§8.4): round-trip de save + descarte de versión vieja +
 //     conservación de récords al escribir progreso.
 {

@@ -26,6 +26,10 @@ const PALETTE: Palette = {
   r: '#3d2a5c', o: '#56407e', s: '#241638', m: '#7a4bd6', t: '#ffe25a',
   // corazones (vida): rojo con luz cálida y sombra rojiza
   V: '#ff5a7a', v: '#b83a5a',
+  // púas de roca: gris-violáceo con punta clara y base oscura
+  Q: '#b3a0d0', q: '#4a3a68', N: '#241638',
+  // lava: naranja incandescente con brillo y costra oscura
+  A: '#ff8a2a', a: '#c24812', Z: '#ffd23a', z: '#7a2408',
 };
 
 // ---- Jugador (ser de cristal) — 14x16 ----
@@ -212,6 +216,40 @@ const TILE_PLANK = [
   'orrrrrro',
   '.s....s.',
 ];
+// Púas: tres dientes de roca que apuntan hacia arriba, punta clara (luz
+// cenital), base en sombra. Ocupan la mitad inferior del tile.
+const SPIKE = [
+  '........',
+  '.Q..Q...',
+  '.Q.QQ.Q.',
+  'QQqQQqQQ',
+  'QqqqqqqQ',
+  'qqNqqNqq',
+  'qNNqqNNq',
+  'NNNNNNNN',
+];
+// Lava: costra oscura arriba, superficie incandescente con burbujas. Dos
+// frames para que "hierva" suave. La celda entera es peligrosa.
+const LAVA_1 = [
+  'zAzzAzzz',
+  'AAZAAAZA',
+  'AAAAAAAA',
+  'aAAaAAAa',
+  'aaAaaaAa',
+  'aaaaaaaa',
+  'zaaazaaz',
+  'zzaazzaz',
+];
+const LAVA_2 = [
+  'zzAzzAzz',
+  'AZAAAZAA',
+  'AAAAAAAA',
+  'aAaAAaAA',
+  'aaaAaaaA',
+  'aaaaaaaa',
+  'zaazzaaz',
+  'zzazzzaz',
+];
 
 export const sprites = {
   playerIdle: new Sprite(PLAYER_IDLE, PALETTE),
@@ -246,6 +284,9 @@ export const sprites = {
   tileFill3: new Sprite(TILE_FILL3, PALETTE),
   tileTop: new Sprite(TILE_TOP, PALETTE),
   plank: new Sprite(TILE_PLANK, PALETTE),
+  spike: new Sprite(SPIKE, PALETTE),
+  lava1: new Sprite(LAVA_1, PALETTE),
+  lava2: new Sprite(LAVA_2, PALETTE),
 };
 
 // ============================================================

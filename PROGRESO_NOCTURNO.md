@@ -162,3 +162,26 @@ El Plan.md asume rutas que en el repo real están corridas. Las adapté:
   `hasProgress` -> Continuar aplica sin reventar.
 - **build**: verde (gzip 17.2 kB). **check**: VERDE (6 asserts).
 - **CORE casi cerrado.** Sigue: P0.7 (hazards estáticos: púas + lava).
+
+## P0.7 — Grilla de hazards estáticos (púas + lava)  ✅
+
+- `Level`: grilla `hazard: number[][]` (0 nada, 1 púas, 2 lava). Chars `x`/`L`
+  en `HAZARD_CHARS`, sumados a KNOWN_CHARS. **NO se marcan sólidos** (no se
+  colisiona, solo lastiman).
+- `hazardTilesIn(box)`: cajas peligrosas por celda. Las púas se achican (zona
+  letal = mitad inferior, donde están las puntas) para no matar al rozar el
+  borde; la lava ocupa casi todo el tile.
+- Sprites nuevos (arte en código): `spike` (3 dientes de roca, punta clara por
+  luz cenital) y `lava1/lava2` (dos frames que "hierven"). Letras de paleta
+  nuevas (Q/q/N púas, A/a/Z/z lava) — agregadas, no recicladas (§6).
+- `Level.draw` dibuja púas y lava (lava con desfase de hervor por columna).
+  `Level.draw` ahora toma `time`; `Game.draw` se lo pasa.
+- `Game.update`: tras el loop de enemigos, `hazardTilesIn(pbox)` -> `hurtPlayer`.
+- **Decisión (conservadora):** no ensucio los 3 cuartos actuales con un hazard
+  de prueba; la colocación real va en P1 (lava en las Forjas, pozos de púas). El
+  sistema queda probado por el harness (parse + hazardTilesIn: púas y lava
+  detectadas, aire no) y el render en el smoke.
+- **build**: verde (gzip 17.6 kB). **check**: VERDE (7 asserts).
+- **===== CORE (P0) COMPLETO =====** Toda la infraestructura del scaffolding
+  está verde y probada. Sigue P1: el mundo 2D + PLANEO + bioma + boss (cierra
+  el CORE del §12).

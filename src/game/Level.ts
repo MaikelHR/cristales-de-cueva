@@ -12,7 +12,7 @@
 // ============================================================
 
 import type { Box } from '../engine/canvas';
-import { biomeOf, tilesFor, type TileSet, type Biome } from './art';
+import { sprites, biomeOf, tilesFor, type TileSet, type Biome } from './art';
 
 export const TILE = 8;
 
@@ -45,6 +45,11 @@ const ENEMY_CHARS: Record<string, EnemyKind> = {
 //   'o' cristal  'P' inicio 'D' puerta (meta)
 const STRUCTURAL_CHARS = ['#', '.', '-', 'o', 'P', 'D'] as const;
 
+/** Hazards estáticos: tiles que dañan al tocarlos (NO son sólidos: no se
+ *  colisiona contra ellos, solo lastiman). 'x' púas, 'L' lava. */
+export const HAZARD = { NONE: 0, SPIKE: 1, LAVA: 2 } as const;
+const HAZARD_CHARS: Record<string, number> = { x: HAZARD.SPIKE, L: HAZARD.LAVA };
+
 /** GATES: chars-tile que bloquean el paso hasta tener la habilidad que los
  *  abre (pared rajada -> breakDash, agua profunda -> gill, viento -> glide).
  *  Lo lee el fixpoint del harness (§4.5) para verificar completitud: un char
@@ -62,6 +67,7 @@ const KNOWN_CHARS: ReadonlySet<string> = new Set<string>([
   ...Object.keys(ENEMY_CHARS),
   ...Object.keys(RELIC_CHARS),
   ...Object.keys(GATE_ABILITY),
+  ...Object.keys(HAZARD_CHARS),
 ]);
 
 export class Level {
@@ -72,6 +78,7 @@ export class Level {
 
   private solid: boolean[][] = [];
   private oneWay: boolean[][] = [];
+  private hazard: number[][] = []; // 0 nada, 1 púas, 2 lava (ver HAZARD)
   readonly crystalCells: Spawn[] = [];
   readonly enemyCells: (Spawn & { kind: EnemyKind })[] = [];
   readonly relicCells: (Spawn & { ability: AbilityName })[] = [];
@@ -97,6 +104,7 @@ export class Level {
     for (let row = 0; row < this.rows; row++) {
       this.solid[row] = [];
       this.oneWay[row] = [];
+      this.hazard[row] = [];
       for (let col = 0; col < this.cols; col++) {
         const ch = this.map[row][col];
         if (!KNOWN_CHARS.has(ch)) {
@@ -104,6 +112,7 @@ export class Level {
         }
         this.solid[row][col] = ch === '#';
         this.oneWay[row][col] = ch === '-';
+        this.hazard[row][col] = HAZARD_CHARS[ch] ?? HAZARD.NONE;
         const px = col * TILE;
         const py = row * TILE;
         if (ch === 'o') this.crystalCells.push({ x: px, y: py });
@@ -131,6 +140,30 @@ export class Level {
   /** Ídem, pero con las plataformas de un solo sentido. */
   oneWayTilesIn(box: Box): Box[] {
     return this.tilesIn(box, this.oneWay);
+  }
+
+  /** Cajas de los tiles-hazard que tocan una caja dada. Las púas se achican un
+   *  poco (dañan cerca de la punta, no al rozar el borde del tile) para no
+   *  matar de forma injusta; la lava ocupa el tile entero. */
+  hazardTilesIn(box: Box): Box[] {
+    const result: Box[] = [];
+    const c0 = Math.max(0, Math.floor(box.x / TILE));
+    const c1 = Math.min(this.cols - 1, Math.floor((box.x + box.w) / TILE));
+    const r0 = Math.max(0, Math.floor(box.y / TILE));
+    const r1 = Math.min(this.rows - 1, Math.floor((box.y + box.h) / TILE));
+    for (let row = r0; row <= r1; row++) {
+      for (let col = c0; col <= c1; col++) {
+        const kind = this.hazard[row][col];
+        if (kind === HAZARD.NONE) continue;
+        if (kind === HAZARD.SPIKE) {
+          // Zona letal: la mitad inferior del tile (donde están las puntas).
+          result.push({ x: col * TILE + 1, y: row * TILE + 3, w: TILE - 2, h: TILE - 3 });
+        } else {
+          result.push({ x: col * TILE, y: row * TILE + 1, w: TILE, h: TILE - 1 });
+        }
+      }
+    }
+    return result;
   }
 
   private tilesIn(box: Box, grid: boolean[][]): Box[] {
@@ -162,6 +195,7 @@ export class Level {
     viewW: number,
     viewH: number,
     biomeName?: string,
+    time = 0,
   ): void {
     const tiles = tilesFor(biomeName);
     const biome = biomeOf(biomeName);
@@ -173,10 +207,18 @@ export class Level {
 
     for (let row = r0; row <= r1; row++) {
       for (let col = c0; col <= c1; col++) {
+        const px = col * TILE - camX;
+        const py = row * TILE - camY;
         if (this.solid[row][col]) {
-          this.drawSolidTile(ctx, row, col, col * TILE - camX, row * TILE - camY, tiles, biome);
+          this.drawSolidTile(ctx, row, col, px, py, tiles, biome);
         } else if (this.oneWay[row][col]) {
-          tiles.plank.draw(ctx, col * TILE - camX, row * TILE - camY);
+          tiles.plank.draw(ctx, px, py);
+        } else if (this.hazard[row][col] === HAZARD.SPIKE) {
+          sprites.spike.draw(ctx, px, py);
+        } else if (this.hazard[row][col] === HAZARD.LAVA) {
+          // Lava: dos frames que "hierven" con un desfase por columna.
+          const boil = Math.floor(time * 4 + col * 0.7) % 2 === 0;
+          (boil ? sprites.lava1 : sprites.lava2).draw(ctx, px, py);
         }
       }
     }
