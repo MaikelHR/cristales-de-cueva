@@ -9,6 +9,9 @@ export const jardin_alto: RoomDef = {
   mapPos: { x: 6, y: 4 },
   biome: 'jardin',
   exits: { left: 'jardin' },
+  lore: [
+    { x: 3, y: 10, text: 'El guardián de este eco se durmió hace mucho. Lo que queda solo imita su furia.' },
+  ],
   map: [
     '################################################################',
     '#..............................................................#',
