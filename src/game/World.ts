@@ -13,6 +13,8 @@ import { Slime } from './entities/Slime';
 import { Flyer } from './entities/Flyer';
 import { Chaser } from './entities/Chaser';
 import { Boss } from './entities/Boss';
+import { Spore } from './entities/Spore';
+import { Fundidor } from './entities/Fundidor';
 import { Player } from './Player';
 import { ROOMS } from './rooms';
 import { exitId, type RoomDef } from './rooms/RoomDef';
@@ -47,6 +49,10 @@ export class Room {
           return new Chaser(c.x, c.y, this.level);
         case 'boss':
           return new Boss(c.x, c.y, this.level);
+        case 'spore':
+          return new Spore(c.x, c.y, this.level);
+        case 'fundidor':
+          return new Fundidor(c.x, c.y, this.level);
         default:
           return new Slime(c.x, c.y, this.level);
       }

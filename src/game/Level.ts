@@ -32,13 +32,15 @@ const RELIC_CHARS: Record<string, AbilityName> = {
 };
 
 /** Los tipos de enemigo, según el carácter del mapa. */
-export type EnemyKind = 'slime' | 'flyer' | 'chaser' | 'boss';
+export type EnemyKind = 'slime' | 'flyer' | 'chaser' | 'boss' | 'spore' | 'fundidor';
 
 const ENEMY_CHARS: Record<string, EnemyKind> = {
   s: 'slime',
   b: 'flyer',
   c: 'chaser',
   B: 'boss',
+  e: 'spore', // espora que se hincha y explota
+  F: 'fundidor', // jefe: cargador de las Forjas
 };
 
 // Chars con significado estructural fijo (no son enemigos ni reliquias).

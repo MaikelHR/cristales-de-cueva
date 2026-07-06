@@ -79,6 +79,8 @@ const { exitId, isOneWay, exitRequires } = await import('../src/game/rooms/RoomD
 const { Level, GATE_ABILITY } = await import('../src/game/Level.ts');
 const input = await import('../src/engine/input.ts');
 const { loadSave, writeSave, PROGRESS_VERSION } = await import('../src/game/save.ts');
+const { Spore } = await import('../src/game/entities/Spore.ts');
+const { Fundidor } = await import('../src/game/entities/Fundidor.ts');
 
 let fallos = 0;
 const fail = (m: string) => {
@@ -150,6 +152,33 @@ try {
   fail('Level aceptó un char desconocido (la whitelist no tiró)');
 } catch {
   ok('whitelist: un char de mapa desconocido tira Error');
+}
+
+// --- Enemigos nuevos (§10): Spore y Fundidor no revientan en su ciclo de
+//     vida (update+draw+hazards+onStomp) con un nivel mínimo y un objetivo.
+{
+  const ctx2 = fakeCtx();
+  const lvl: any = new Level(['########', '#......#', '########']);
+  const target = { x: 20, y: 12 };
+  try {
+    const sp = new Spore(8, 8, lvl);
+    for (let i = 0; i < 400; i++) {
+      sp.update(1 / 60, target);
+      sp.draw(ctx2, 0, 0);
+      sp.hazards?.();
+    }
+    sp.onStomp?.();
+    const fu = new Fundidor(8, 8, lvl);
+    for (let i = 0; i < 800; i++) {
+      fu.update(1 / 60, target);
+      fu.draw(ctx2, 0, 0);
+      fu.hazards?.();
+      if (i === 400) fu.onStomp?.();
+    }
+    ok('enemigos: Spore y Fundidor completan su ciclo sin reventar');
+  } catch (e) {
+    fail('enemigos: reventó ' + (e as Error).message);
+  }
 }
 
 // --- Hazards estáticos (§8.5): 'x' púas y 'L' lava parsean y hazardTilesIn

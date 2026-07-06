@@ -203,3 +203,24 @@ El Plan.md asume rutas que en el repo real están corridas. Las adapté:
   ascenso de viento — lo cablea P1.c y el fixpoint lo verifica.
 - **build**: verde (gzip 17.9 kB). **check**: VERDE.
 - Sigue: P1.b (enemigo espora + boss El Fundidor).
+
+## P1.b — Enemigo Espora + Boss El Fundidor  ✅
+
+- **Espora** (`entities/Spore.ts`, char `e`): flota latiendo; si el jugador se
+  acerca se HINCHA (telegrafía con temblor + destello) y ESTALLA en una nube
+  breve que daña (`hazards()` mientras dura). Pisable: el pisotón la revienta
+  ANTES de la nube (recompensa verla venir). Arte por primitivas.
+- **El Fundidor** (`entities/Fundidor.ts`, char `F`, jefe de las Forjas): ciclo
+  telegrafiado acecha -> telegrafía (plantado, tiembla, destella) -> EMBISTE en
+  horizontal -> al chocar la pared queda ATURDIDO (ventana de pisotón) y suelta
+  una ONDA EXPANSIVA a ras del piso (dos `hazards()`, una por lado). 3 pisotones
+  con i-frames. `stompable` es un getter dinámico: solo pisable aturdido.
+  `isBoss=true` -> bloquea la puerta.
+- World factory: `case 'spore'` y `case 'fundidor'` + imports (el `default`
+  cae a Slime, así que un case olvidado degradaría sin error de tsc — los agregué
+  explícitos y el harness los instancia).
+- Harness: test de ciclo de vida (update+draw+hazards+onStomp) de ambos con un
+  nivel mínimo — no revientan.
+- Todavía NO colocados en ningún mapa (eso es P1.c). El juego sigue completable.
+- **build**: verde (gzip 19.1 kB). **check**: VERDE (8 asserts).
+- Sigue: P1.c (mapa 2D re-anclado + bioma Jardín + gates -> cierra el CORE).
