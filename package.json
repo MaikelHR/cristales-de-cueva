@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "check": "esbuild scripts/check.ts --bundle --platform=node --format=esm --outfile=scripts/.check.mjs --log-level=warning && node scripts/.check.mjs",
     "viz": "esbuild scripts/visualize.ts --bundle --platform=node --format=esm --outfile=scripts/.visualize.mjs --log-level=warning && node scripts/.visualize.mjs",
-    "shots": "node scripts/shots.mjs"
+    "shots": "node scripts/shots.mjs",
+    "rooms": "node scripts/rooms.mjs"
   },
   "devDependencies": {
     "playwright": "^1.61.1",
