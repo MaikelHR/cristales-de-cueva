@@ -642,6 +642,14 @@ if (existsSync('dist/assets')) {
   await runMetrics(fail, ok);
 }
 
+// --- ALCANZABILIDAD DE PLATAFORMAS (scripts/reach.ts): el fixpoint ve el grafo
+//     de SALAS; esto ve DENTRO de una sala. Un cristal sobre una plataforma-isla
+//     a la que no se puede saltar ("no se puede pasar") lo atrapa acá. Bloquea.
+{
+  const { runReach } = await import('./reach.ts');
+  await runReach(fail, ok);
+}
+
 if (fallos) {
   console.error(`\nCHECK ROJO: ${fallos} fallo(s).`);
   process.exit(1);

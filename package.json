@@ -11,7 +11,8 @@
     "check": "esbuild scripts/check.ts --bundle --platform=node --format=esm --outfile=scripts/.check.mjs --log-level=warning && node scripts/.check.mjs",
     "viz": "esbuild scripts/visualize.ts --bundle --platform=node --format=esm --outfile=scripts/.visualize.mjs --log-level=warning && node scripts/.visualize.mjs",
     "shots": "node scripts/shots.mjs",
-    "rooms": "node scripts/rooms.mjs"
+    "rooms": "node scripts/rooms.mjs",
+    "reach": "esbuild scripts/reach-cli.ts --bundle --platform=node --format=esm --outfile=scripts/.reach.mjs --log-level=warning && node scripts/.reach.mjs"
   },
   "devDependencies": {
     "playwright": "^1.61.1",

@@ -1,24 +1,15 @@
 # CLAUDE.md — Cristales de la Cueva
 
-Metroidvania-platformer pixel-art en **TypeScript + Vite + Canvas**. Todo el arte
-es dibujado por código (cero assets). Este archivo se carga solo al inicio de
-cada sesión: leelo antes de tocar nada.
+Metroidvania-plataformero pixel-art en **TypeScript + Vite + Canvas**. Todo el
+arte es dibujado por código (cero assets externos). Rama de trabajo: `slop`.
 
-## 🔒 La regla que importa (por qué existe este archivo)
+## Regla de calidad
 
-Una noche un agente expandió el juego, mantuvo `build`+`check` en verde por 22
-commits y escribió un diario glorioso — pero el diseño de nivel, el feel, las
-ideas y el arte salieron **malos**. Se calificó con una rúbrica ciega a esos
-defectos y declaró la victoria.
-
-**El contenido NO está "hecho" hasta que se lo MIRÓ corriendo de verdad y pasó la
-revisión de calidad. `check` verde es necesario pero NO suficiente. Correcto ≠
-bueno** (un pasillo vacío es transitable, completable y feo).
-
-Si vas a crear/cambiar una sala, un sprite, una habilidad o un enemigo: pasá por
-`npm run shots` (mirá las capturas del juego REAL) y `/revisar-calidad` (juez de
-visión, PASS/FAIL) **antes** de darlo por bueno. No te fíes del checkmark verde.
-Detalle completo en **`HARNESS.md`**.
+`check` verde prueba corrección, no calidad. **El contenido (sala / sprite /
+habilidad / enemigo) no está terminado hasta que se lo miró corriendo de verdad
+(`npm run shots`) y pasó revisión (`/revisar-calidad` o los agentes `level-critic`
+/ `art-director`).** Correcto ≠ bueno: un pasillo vacío o unos bloques spammeados
+son transitables y feos. Detalle completo en `HARNESS.md`.
 
 ## Comandos
 
@@ -26,59 +17,61 @@ Detalle completo en **`HARNESS.md`**.
 |---|---|---|
 | `npm run dev` | Vite dev server (juego jugable) | — |
 | `npm run build` | `tsc` estricto + bundle a `dist/` | — |
-| `npm run check` | Red de seguridad headless: corrección + **feel** (física real medida) + **métricas** de diseño (cajas vacías) | ✅ sí (hook pre-commit) |
-| `npm run shots` | **Arranca el juego REAL en Chromium y fotografía el canvas** (sprites/luz/HUD/menús/móvil) → `.shots/` | — (on-demand) |
-| `npm run viz` | Vistazo estático de geometría por char → `.viz/` (NO muestra el arte real) | — |
-| `/revisar-calidad` | Juez de visión multi-agente sobre las capturas → PASS/FAIL | ⚠️ obligatoria al crear contenido |
-| `/crear-contenido` | Pipeline diseñar→generar→mirar→revisar→iterar para contenido nuevo | — |
+| `npm run check` | Red de seguridad headless: corrección + **feel** (física real) + **métricas** + **alcanzabilidad de plataformas** | ✅ sí (hook pre-commit) |
+| `npm run reach` | Grafo de alcanzabilidad: ¿llega el jugador a toda plataforma/cristal/salida por saltos reales? | (incluido en check) |
+| `npm run rooms` | Linter de forma de salas (dims, filas de ancho erróneo, bordes, conteo) | — |
+| `npm run shots` | Arranca el juego REAL en Chromium y fotografía el canvas (sprites/luz/HUD/menús/móvil) → `.shots/` | — |
+| `npm run viz` | Vistazo estático de geometría por char → `.viz/` | — |
+| `/revisar-calidad` | Juez de visión sobre las capturas → PASS/FAIL | — |
+| `/crear-contenido` | Pipeline diseñar→generar→mirar→revisar→iterar | — |
 
-El hook `.git/hooks/pre-commit` corre `build && check`: si algo está rojo, el
-commit se aborta. Ese hook es local (no se commitea).
+El hook `.git/hooks/pre-commit` corre `build && check` (local, no se commitea).
 
-## Invariantes (ninguna pieza los viola)
+## Agentes del proyecto (`.claude/agents/`)
 
-- **Arte 100% en código** — cada sprite es una grilla de píxeles con paleta en
-  `src/game/art.ts`; atmósfera (rayos, brasas, niebla, parallax) en runtime. Cero
-  assets externos.
-- **Cero deps de RUNTIME** — solo `vite` + `typescript` + `playwright` como
-  devDeps. Playwright es solo del harness de capturas; **nunca** entra al bundle.
-- **es-AR voseo en TODO** el texto visible ("TE APAGASTE", no "GAME OVER").
-  `check` escanea los `fillText` de Game.ts por inglés.
-- **Teclado + gamepad + touch** siempre soportados.
-- **Cada commit** buildea verde, `check` verde, es jugable y 100% completable.
-- **Techo de bundle**: 30 kB gzip (hoy ~21 kB).
+- **`game-designer`** — diseña/rediseña salas como niveles pensados (camino
+  legible, plataformas alcanzables, ritmo). Edita.
+- **`level-critic`** — crítico adversarial de diseño de nivel (read-only): ¿nivel
+  pensado o bloques spammeados?, ¿todo transitable?
+- **`art-director`** — crítico de arte/legibilidad (read-only): ¿se distinguen
+  jugador y enemigos de su fondo?
+- **`harness-engineer`** — construye y endurece el harness de calidad.
+
+## Invariantes
+
+- **Arte 100% en código** — sprites como grillas de píxeles + paleta en
+  `src/game/art.ts`; atmósfera (rayos, brasas, niebla, parallax) en runtime.
+- **Cero deps de runtime** — `vite` + `typescript` + `playwright` son devDeps;
+  Playwright es solo del harness de capturas y nunca entra al bundle.
+- **es-AR voseo** en todo el texto visible ("TE APAGASTE", no "GAME OVER").
+- **Teclado + gamepad + touch** siempre. En móvil, apaisado (retrato pide girar).
+- Cada commit buildea verde, `check` verde, jugable y 100% completable.
+- Techo de bundle: 30 kB gzip.
 - Cualquier cambio de layout de sala (mover/agregar/quitar cristal/reliquia/tile)
   obliga a subir `PROGRESS_VERSION` en `src/game/save.ts`.
-- Rama de trabajo: `slop`. **Nunca** toques `main` sin pedirlo.
+- Cristales: ~28-34 en todo el juego (ganar exige TODOS). Llená con estructura,
+  no con cristales.
 
 ## Estructura
 
 - `src/engine/` — motor reutilizable (bucle de paso fijo, input teclado+gamepad,
-  canvas/colisiones, `Sprite`, audio). No sabe nada de "cristales".
-- `src/game/` — este juego: `Game.ts` (reglas/estados), `World.ts` (salas +
-  transiciones), `Level.ts` (mapa ASCII → colisiones; ahí está el significado de
-  cada char), `Player.ts` (física + constantes de feel), `art.ts` (sprites +
-  atmósfera), `entities/` (enemigos), `rooms/` (una sala ASCII por archivo,
-  cableadas en `rooms/index.ts`).
-- `scripts/` — el harness: `check.ts`, `feel.ts`, `metrics.ts`, `shots.mjs`,
-  `visualize.ts`. Viven fuera de `src/` (tsc no los tipa, vite no los empaqueta);
-  usan import dinámico con stubs de DOM y se corren con esbuild+node.
+  canvas/colisiones, `Sprite`, audio). No sabe de "cristales".
+- `src/game/` — el juego: `Game.ts` (reglas/estados), `World.ts` (salas +
+  transiciones), `Level.ts` (mapa ASCII → colisiones; significado de cada char),
+  `Player.ts` (física + constantes de feel), `art.ts` (sprites + atmósfera),
+  `entities/` (enemigos), `rooms/` (una sala ASCII por archivo, en `index.ts`).
+- `scripts/` — el harness: `check.ts`, `feel.ts`, `metrics.ts`, `reach.ts`,
+  `shots.mjs`, `rooms.mjs`, `visualize.ts`. Fuera de `src/`; corren con
+  esbuild+node.
 
-## Para un agente que trabaja solo (p. ej. de noche)
+## Diseñar una sala (el orden importa)
 
-1. Trabajá en `slop` (o una `feat/*`), nunca en `main`.
-2. Para cada pieza de contenido seguí `/crear-contenido`. **No saltees** `shots`
-   (mirar) ni `/revisar-calidad` (revisar). Ese salto ES el error a evitar.
-3. `check` verde te deja commitear, pero NO autoriza a llamar "buena" a la pieza.
-4. En `PROGRESO_NOCTURNO.md` anotá el **veredicto de calidad** de cada pieza, no
-   solo "check verde". Lo que quedó en FAIL o sin revisar, escribilo como
-   pendiente EXPLÍCITO — no lo maquilles.
-5. Si dudás entre shippear y no por calidad: no shippees. Dejalo con el reporte
-   de qué falta para que lo mire una persona.
-
-## Estado conocido (2026-07-06)
-
-El harness ya corrió y **marcó** salas flojas heredadas del run nocturno
-(`entrada` 40% aire muerto, `santuario` densidad 0.38, `jardin_alto`) y un layout
-móvil con la cancha en una franja fina. **El harness las detecta pero todavía NO
-las arregló** — eso es trabajo pendiente vía `/revisar-calidad` + `/crear-contenido`.
+1. Camino crítico primero: dónde entra el jugador, por dónde sube/cruza, dónde
+   está el objetivo. La ruta es una secuencia de apoyos ALCANZABLES entre sí.
+2. Alcance real: salto ~5 celdas de alto, doble ~7, dash ~37px, planeo cruza ~17
+   celdas. Dos plataformas conectan solo si el salto entra en esos números.
+3. Escribí el ASCII con ancho/alto exactos y constantes. Corré `npm run rooms`
+   tras cada edición (atrapa filas de ancho erróneo al instante).
+4. `npm run reach` — toda plataforma/cristal/salida alcanzable desde el spawn.
+5. `npm run build && npm run check` — corrección + feel + métricas.
+6. `npm run shots` y MIRÁ la sala. Iterá hasta que se vea diseñada, no rellenada.
