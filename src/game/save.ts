@@ -26,7 +26,7 @@ const KEY = 'cristales-save-v1';
  *  v3: bioma Forjas + pozo en el santuario (P2.a).
  *  v4: spawn de entrada reubicado (fix del nicho encerrado) + lore (P2.b).
  *  v5: rediseño del abismo del jardín + gate de glide aplicado en runtime. */
-export const PROGRESS_VERSION = 5;
+export const PROGRESS_VERSION = 6;
 
 /** Progreso de una partida a medio camino (opcional en SaveData). */
 export interface SaveProgress {
