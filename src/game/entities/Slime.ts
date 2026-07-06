@@ -55,6 +55,8 @@ export class Slime implements Enemy {
     const sprite = blink ? sprites.slime2 : sprites.slime1;
     const drawX = this.x + this.w / 2 - sprite.w / 2;
     const drawY = this.y + this.h - sprite.h;
-    sprite.draw(ctx, drawX - camX, drawY - camY, this.dir === 1);
+    // Contorno oscuro: el slime verde se camuflaría contra el piso del bioma
+    // jardín (verde) sin él. Lo despega de cualquier fondo.
+    sprite.drawOutlined(ctx, drawX - camX, drawY - camY, this.dir === 1);
   }
 }

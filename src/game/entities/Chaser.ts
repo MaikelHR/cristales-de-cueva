@@ -65,6 +65,6 @@ export class Chaser implements Enemy {
     const sprite = step ? sprites.chaser1 : sprites.chaser2;
     const drawX = this.x + this.w / 2 - sprite.w / 2;
     const drawY = this.y + this.h - sprite.h;
-    sprite.draw(ctx, drawX - camX, drawY - camY, this.dir === 1);
+    sprite.drawOutlined(ctx, drawX - camX, drawY - camY, this.dir === 1);
   }
 }

@@ -72,4 +72,52 @@ export class Sprite {
       ctx.drawImage(this.canvas, px, py);
     }
   }
+
+  /** Como draw(), pero con un CONTORNO oscuro de 1px alrededor (silueta del
+   *  sprite desplazada en las 4 direcciones, teñida de `outline`). Despega al
+   *  sprite del fondo cuando comparten color/valor (p. ej. enemigos verdes en
+   *  el bioma jardín). Se hornea la silueta una vez y se cachea. */
+  drawOutlined(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    flip = false,
+    outline = '#140a1e',
+  ): void {
+    const sil = this.silhouette(outline);
+    const px = Math.round(x);
+    const py = Math.round(y);
+    ctx.save();
+    if (flip) {
+      ctx.translate(px + this.w, py);
+      ctx.scale(-1, 1);
+    } else {
+      ctx.translate(px, py);
+    }
+    // Silueta en las 4 direcciones cardinales (contorno de 1px).
+    ctx.drawImage(sil, -1, 0);
+    ctx.drawImage(sil, 1, 0);
+    ctx.drawImage(sil, 0, -1);
+    ctx.drawImage(sil, 0, 1);
+    // Sprite real encima.
+    ctx.drawImage(this.canvas, 0, 0);
+    ctx.restore();
+  }
+
+  private silCache = new Map<string, HTMLCanvasElement>();
+  /** Silueta del sprite (todos los píxeles opacos) teñida de un color. */
+  private silhouette(color: string): HTMLCanvasElement {
+    const cached = this.silCache.get(color);
+    if (cached) return cached;
+    const c = document.createElement('canvas');
+    c.width = this.w;
+    c.height = this.h;
+    const cx = c.getContext('2d')!;
+    cx.drawImage(this.canvas, 0, 0);
+    cx.globalCompositeOperation = 'source-in'; // pinta solo donde hay sprite
+    cx.fillStyle = color;
+    cx.fillRect(0, 0, this.w, this.h);
+    this.silCache.set(color, c);
+    return c;
+  }
 }

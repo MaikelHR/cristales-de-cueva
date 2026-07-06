@@ -58,6 +58,6 @@ export class Flyer implements Enemy {
     const sprite = flap ? sprites.flyer1 : sprites.flyer2;
     const drawX = this.x + this.w / 2 - sprite.w / 2;
     const drawY = this.y + this.h / 2 - sprite.h / 2;
-    sprite.draw(ctx, drawX - camX, drawY - camY, this.dir === 1);
+    sprite.drawOutlined(ctx, drawX - camX, drawY - camY, this.dir === 1);
   }
 }
