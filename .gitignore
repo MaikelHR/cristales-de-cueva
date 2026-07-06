@@ -7,3 +7,5 @@ dist
 !.vscode/extensions.json
 .idea
 scripts/.check.mjs
+scripts/.visualize.mjs
+.viz
