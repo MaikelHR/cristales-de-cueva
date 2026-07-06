@@ -50,6 +50,14 @@
       <kbd>shift</kbd> / <kbd>X</kbd> para dash &nbsp;·&nbsp;
       <kbd>R</kbd> para reiniciar
     </div>
+    <!-- Aviso de rotar: la cueva es apaisada. En retrato el juego quedaría en
+         una franja fina; este overlay (solo táctil + retrato, por CSS) pide
+         girar el teléfono para jugar a pantalla completa. -->
+    <div class="rotate-hint" id="rotate-hint" aria-hidden="true">
+      <div class="rotate-phone">📱</div>
+      <p class="rotate-title">GIRÁ EL TELÉFONO</p>
+      <p class="rotate-sub">La cueva se juega apaisada</p>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

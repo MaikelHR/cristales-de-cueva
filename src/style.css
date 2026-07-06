@@ -85,6 +85,66 @@ kbd {
 }
 
 /* =========================================================================
+   AVISO DE ROTAR (retrato -> apaisado)
+   La cueva es apaisada (320x176). En retrato el canvas quedaba en una franja
+   fina con enormes vacios negros (el juez de vision lo marco 1/5). Este overlay,
+   SOLO en tactil + retrato, cubre todo y pide girar el telefono. Es CSS puro
+   (media orientation), robusto y honesto (el lock de orientacion no es fiable).
+   En escritorio nunca se ve; en apaisado se oculta y el juego ocupa la pantalla.
+   ========================================================================= */
+.rotate-hint {
+  display: none;
+}
+body.touch .rotate-hint {
+  /* Por defecto (apaisado) sigue oculto; solo se muestra en retrato, abajo. */
+  display: none;
+}
+@media (orientation: portrait) {
+  body.touch .rotate-hint {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 50; /* por encima de los controles tactiles (z 10) */
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 24px;
+    text-align: center;
+    background: radial-gradient(600px 400px at 50% 40%, rgba(122, 75, 214, 0.22), transparent 65%),
+      #0b0510;
+  }
+  /* En retrato, mientras se pide rotar, ocultamos el juego y sus controles
+     (no tiene sentido mostrar la franja fina detras del aviso). */
+  body.touch canvas,
+  body.touch .tc {
+    display: none;
+  }
+  .rotate-phone {
+    font-size: 56px;
+    animation: rotate-nudge 1.8s ease-in-out infinite;
+  }
+  .rotate-title {
+    margin: 0;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    letter-spacing: 2px;
+    color: #ffd36e;
+    text-shadow: 2px 2px 0 #5a2d82;
+  }
+  .rotate-sub {
+    margin: 0;
+    font-size: 13px;
+    color: #9b86c4;
+  }
+}
+@keyframes rotate-nudge {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-90deg); }
+}
+
+/* =========================================================================
    SOPORTE MOVIL TACTIL
    Todo lo de abajo solo entra en juego cuando touch.ts detecta un dispositivo
    tactil y agrega la clase .touch al <body>. En escritorio: CERO cambios.

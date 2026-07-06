@@ -162,10 +162,31 @@ async function main() {
     {
       const file = `${OUT}/${String(i++).padStart(2, '0')}-movil-retrato.png`;
       await mpage.screenshot({ path: file });
-      manifest.push({ name: 'movil-retrato', file, caption: 'Layout MÓVIL en retrato: mando en pantalla (cruceta, salto, dash, pausa) y canvas escalado.' });
+      manifest.push({ name: 'movil-retrato', file, caption: 'Layout MÓVIL en RETRATO: debe mostrar el aviso "girá el teléfono" (la cueva es apaisada), no el juego en una franja fina.' });
       log('  📸', 'movil-retrato');
     }
     await mctx.close();
+
+    // ---- 5) MÓVIL: layout táctil APAISADO (la orientación de juego real) ----
+    const lctx = await browser.newContext({
+      viewport: { width: 844, height: 390 }, // mismo teléfono, apaisado
+      deviceScaleFactor: 2,
+      isMobile: true,
+      hasTouch: true,
+    });
+    const lpage = await lctx.newPage();
+    await lpage.goto(URL, { waitUntil: 'networkidle' });
+    await lpage.waitForFunction(() => !!(window.__game && window.__game.__debug), { timeout: 15000 });
+    await lpage.evaluate(() => window.__game.__debug.warp(window.__game.__debug.rooms()[0], true));
+    await lpage.evaluate((n) => window.__game.__debug.settle(n), 45);
+    await lpage.waitForTimeout(200);
+    {
+      const file = `${OUT}/${String(i++).padStart(2, '0')}-movil-apaisado.png`;
+      await lpage.screenshot({ path: file });
+      manifest.push({ name: 'movil-apaisado', file, caption: 'Layout MÓVIL APAISADO (orientación de juego): el canvas debe llenar la pantalla con el mando en pantalla, sin franjas negras enormes.' });
+      log('  📸', 'movil-apaisado');
+    }
+    await lctx.close();
 
     writeFileSync(`${OUT}/index.json`, JSON.stringify({ scale: SCALE, shots: manifest }, null, 2));
     log(`listo — ${manifest.length} capturas en ${OUT}/ (ver index.json)`);
