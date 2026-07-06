@@ -340,3 +340,59 @@ verificación). 7 hallazgos, 1 confirmado real tras verificación adversarial:
   ojo que las 6 salas son coherentes (lava puenteada, gate, boss, spawn).
 - Lore ahora lo emite el generador (no se pierde al regenerar).
 - `PROGRESS_VERSION` -> 5. **build**: verde. **check**: VERDE (11 asserts).
+
+---
+
+# RESUMEN DE LA NOCHE (para leer a la mañana)
+
+Rama `feat/metroidvania-nocturno`, 22 commits, TODOS verdes (build + check por el
+hook). Bundle 20.8 kB gzip (arrancó en 15; techo 30). Cero deps nuevas, cero
+assets, todo arte en código, es-AR voseo en todo.
+
+## Qué es ahora el juego
+De 3 cuartos en fila a un **metroidvania 2D interconectado**: 6 salas, 3 biomas,
+18 cristales, 2 jefes, backtracking real con una habilidad-gate.
+
+- **Cavernas de Eco (hub):** entrada (spawn, guía NPC), túnel, santuario (puerta
+  D + jefe guardián). Kit base (doble salto / dash / wall jump).
+- **Jardín de Esporas** (arriba, por tiro de viento): reliquia **PLANEO**,
+  esporas que estallan, púas, y el **abismo-gate de planeo**.
+- **Jardín Alto** (tras el abismo): 5 cristales + **jefe El Fundidor**.
+- **Forjas de Escoria** (abajo del santuario): lago de **lava**, cristales sobre
+  plataformas, se vuelve por viento.
+
+Ganás con TODOS los cristales + los 2 jefes + tocar la puerta.
+
+## Sistemas nuevos
+Salidas verticales reales (arreglé el bug del cruce que tiraba al jugador fuera);
+viento bidireccional (mantené saltar = subís, soltá = bajás); PLANEO con gate
+aplicado EN RUNTIME (no solo geometría); biomas con paleta/tiles/niebla/
+partículas propias; **pantalla de mapa (M)** + minimapa 2D (teclado/gamepad/
+touch); **autoguardado + Continuar** versionado (v5); hazards estáticos (púas +
+lava); lore (NPC + 3 tabletas + banners de región); sfx nuevos.
+
+## La red de seguridad (lo más importante para dormir tranquilo)
+`npm run check` (hook pre-commit) corre 11 chequeos headless: smoke (update+draw
+20k pasos), whitelist de chars, existencia/simetría/BFS del grafo, **alineación
+de huecos**, retorno desde one-way, **alcanzabilidad desde el spawn**, **gate en
+runtime**, **fixpoint de completitud** (garantiza 100% obtenible), hazards,
+round-trip del guardado, idioma (es-AR), techo de bundle. Además una **sonda
+física** (temporal) validó el platforming interno (PLANEO alcanzable con kit
+base; el abismo es gate real). Encontró y arregló DOS soft-locks que ni el grafo
+veía: spawn encerrado y gate decorativo.
+
+## Herramientas dejadas
+- `npm run check` — la red de seguridad.
+- `npm run viz` — renderiza las salas, el mapa del mundo y los sprites a PNG
+  (en `.viz/`) para inspeccionar la geometría/arte sin el navegador.
+
+## Qué quedó para más adelante (STRETCH no hecho)
+Aguas Hundidas (agua como zona física) + BRANQUIA + Boss 2; ROMPEVETAS + paredes
+rajadas; Corazón de Cristal + Boss final de 2 fases; plataformas móviles
+(invasivo); más salas para agrandar el mapa. La base está lista para sumarlos:
+el generador de salas, el sistema de gates (Exit.requires + GATE_ABILITY) y el
+fixpoint ya soportan todo eso.
+
+## Playtest pendiente (no bloqueante)
+El overlay del mapa (M) y el layout táctil los validé headless + por lógica;
+faltaría un playtest visual en navegador/celular a la mañana. Riesgo bajo.
