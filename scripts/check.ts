@@ -103,10 +103,14 @@ try {
   input.touchButton('confirm', false);
   input.endStep();
   for (let i = 0; i < 20000; i++) {
-    // Mantenemos "derecha" apretada para que el jugador recorra las salas y
-    // cruce transiciones (ejercita tryTransition en las 4 ramas cuando existan).
-    if (i % 300 < 150) input.touchButton('right', true);
-    else input.touchButton('right', false);
+    // Patrón de movimiento variado: alterna direcciones y MANTIENE saltar en
+    // tramos (para trepar tiros de viento y cruzar salas verticales). Así el
+    // smoke ejercita tryTransition en las 4 ramas en el loop real del Game.
+    const phase = Math.floor(i / 220) % 4;
+    input.touchButton('right', phase === 0 || phase === 3);
+    input.touchButton('left', phase === 2);
+    input.touchButton('jump', i % 220 < 140); // mantiene saltar (viento) por tramos
+    input.touchButton('dash', i % 90 === 0);
     // Abrimos y cerramos el mapa periódicamente para ejercitar drawMap().
     if (i % 500 === 250) {
       input.touchButton('map', true);
