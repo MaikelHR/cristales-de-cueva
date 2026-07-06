@@ -48,6 +48,14 @@ const KNOCKBACK_Y = 150;   // empujón hacia arriba al recibir daño
 
 const STOMP_BOUNCE = 200;  // rebote hacia arriba tras pisar un enemigo
 
+// Planeo (glide): al mantener saltar mientras caés, la caída se frena a una
+// velocidad suave (como una hoja). En una corriente de viento, te ELEVA.
+const GLIDE_SPEED = 42;      // caída máxima mientras planeás (px/s)
+const WIND_LIFT = -70;       // velocidad al planear dentro de una corriente
+const WIND_DRIFT = 24;       // sostén máximo del viento sin planear (px/s hacia arriba)
+const WIND_LIFT_ACCEL = 220; // qué tan rápido el viento sin planear te frena/eleva
+const GLIDE_MOTES = ['#c8ffe0', '#8fe0c0', '#e0fff0']; // esporas del planeo
+
 // Squash & stretch: deformar el sprite da sensación de peso y energía.
 const STRETCH_JUMP = 1.28;    // estirado al despegar (alto y flaco)
 const SQUASH_MAX = 0.38;      // aplastado máximo al aterrizar (bajo y ancho)
@@ -79,7 +87,9 @@ export class Player {
     doubleJump: false,
     dash: false,
     wallJump: false,
+    glide: false,
   };
+  private gliding = false; // para el sprite/feedback del planeo
   private airJumpsLeft = 0;
   private dashTimer = 0;    // >0 = dash en curso
   private dashCooldown = 0;
@@ -276,6 +286,22 @@ export class Player {
           this.particles.puff(px, this.y + 3, 1, DUST_COLORS, -dir * 0.3);
         }
       }
+
+      // ---- Viento y planeo (glide) ----
+      // ¿El jugador está dentro de una corriente ascendente?
+      const inWind = this.inWind();
+      this.gliding = false;
+      if (this.abilities.glide && isDown('jump') && this.vy > 0 && !this.wallSliding) {
+        // Planeo: caída suave como una hoja. Dentro del viento, ELEVA.
+        this.vy = inWind ? WIND_LIFT : GLIDE_SPEED;
+        this.gliding = true;
+        if (Math.random() < 0.25) {
+          this.particles.puff(this.x + this.w / 2, this.y + this.h, 1, GLIDE_MOTES, 0);
+        }
+      } else if (inWind && this.vy > -WIND_DRIFT) {
+        // Sin planear, el viento igual te sostiene un poco (frena la caída).
+        this.vy = Math.max(this.vy - WIND_LIFT_ACCEL * dt, -WIND_DRIFT);
+      }
     }
 
     // ---- Mover y resolver colisiones, un eje a la vez ----
@@ -314,6 +340,16 @@ export class Player {
     if (Math.abs(this.stretch - 1) < 0.01) this.stretch = 1;
 
     this.animTime += dt;
+  }
+
+  /** ¿El jugador está dentro de una corriente de viento? Muestrea el centro
+   *  y un punto bajo el cuerpo (el viento entra por los pies primero). */
+  private inWind(): boolean {
+    const cx = this.x + this.w / 2;
+    return (
+      this.level.isWindAt(cx, this.y + this.h / 2) ||
+      this.level.isWindAt(cx, this.y + this.h - 1)
+    );
   }
 
   /** ¿Hay pared sólida pegada a un costado? -1 izquierda, 1 derecha, 0 nada. */
@@ -392,6 +428,7 @@ export class Player {
   private currentSprite() {
     if (!this.onGround) {
       if (this.wallSliding) return sprites.playerWall;
+      if (this.gliding) return sprites.playerJump; // pose abierta al planear
       return this.vy < 0 ? sprites.playerJump : sprites.playerFall;
     }
     if (this.vx !== 0) {

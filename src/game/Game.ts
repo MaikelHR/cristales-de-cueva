@@ -27,12 +27,14 @@ const ABILITY_LABEL: Record<AbilityName, string> = {
   doubleJump: '¡DOBLE SALTO!',
   dash: '¡DASH!',
   wallJump: '¡SALTO DE PARED!',
+  glide: '¡PLANEO!',
 };
 
 const ABILITY_GLOW: Record<AbilityName, string> = {
   doubleJump: '#7ce0ff',
   dash: '#ff9a5a',
   wallJump: '#5ce06a',
+  glide: '#c8ffe0',
 };
 
 /** Hash estable de un string a un entero chico (semilla del fondo por sala).

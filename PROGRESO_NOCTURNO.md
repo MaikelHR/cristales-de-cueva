@@ -185,3 +185,21 @@ El Plan.md asume rutas que en el repo real están corridas. Las adapté:
 - **===== CORE (P0) COMPLETO =====** Toda la infraestructura del scaffolding
   está verde y probada. Sigue P1: el mundo 2D + PLANEO + bioma + boss (cierra
   el CORE del §12).
+
+# ===== FASE B — CONTENIDO =====
+
+## P1.a — Habilidad PLANEO (glide) + corrientes de viento  ✅
+
+- `AbilityName += 'glide'` (tsc me obligó a los 3 lugares: RELIC_CHARS char 'g',
+  Player.abilities, ABILITY_LABEL/ABILITY_GLOW en Game — buen guardarraíl).
+- Física en Player (vive casi toda ahí, §9): al mantener saltar cayendo con
+  `abilities.glide`, `vy` se clampea a `GLIDE_SPEED` (hoja que baja suave);
+  dentro de una corriente, `WIND_LIFT` te ELEVA. Esporitas de planeo.
+- Viento: grilla nueva en Level (char `^`), `isWindAt(px,py)`, consultada por
+  `Player.inWind()`. Sin planear, el viento igual te sostiene un poco
+  (`WIND_DRIFT`). Se dibuja con rayitas ascendentes ('lighter').
+- Sprite de planeo: pose abierta (reusa `playerJump`). Sin sprite nuevo (§9.4).
+- El gate de glide será a nivel de salida (`Exit.requires:'glide'`) sobre el
+  ascenso de viento — lo cablea P1.c y el fixpoint lo verifica.
+- **build**: verde (gzip 17.9 kB). **check**: VERDE.
+- Sigue: P1.b (enemigo espora + boss El Fundidor).

@@ -22,12 +22,13 @@ export interface Spawn {
 }
 
 /** Las habilidades que existen en el juego (banderas del jugador). */
-export type AbilityName = 'doubleJump' | 'dash' | 'wallJump';
+export type AbilityName = 'doubleJump' | 'dash' | 'wallJump' | 'glide';
 
 const RELIC_CHARS: Record<string, AbilityName> = {
   j: 'doubleJump',
   k: 'dash',
   w: 'wallJump',
+  g: 'glide',
 };
 
 /** Los tipos de enemigo, según el carácter del mapa. */
@@ -50,6 +51,11 @@ const STRUCTURAL_CHARS = ['#', '.', '-', 'o', 'P', 'D'] as const;
 export const HAZARD = { NONE: 0, SPIKE: 1, LAVA: 2 } as const;
 const HAZARD_CHARS: Record<string, number> = { x: HAZARD.SPIKE, L: HAZARD.LAVA };
 
+/** Corrientes de viento: zonas que empujan al jugador (no sólidas, no dañan).
+ *  '^' corriente ascendente. Con PLANEO, te elevan; sin él, solo frenan la
+ *  caída un poco. Las lee el Player. */
+const WIND_CHARS: Record<string, boolean> = { '^': true };
+
 /** GATES: chars-tile que bloquean el paso hasta tener la habilidad que los
  *  abre (pared rajada -> breakDash, agua profunda -> gill, viento -> glide).
  *  Lo lee el fixpoint del harness (§4.5) para verificar completitud: un char
@@ -68,6 +74,7 @@ const KNOWN_CHARS: ReadonlySet<string> = new Set<string>([
   ...Object.keys(RELIC_CHARS),
   ...Object.keys(GATE_ABILITY),
   ...Object.keys(HAZARD_CHARS),
+  ...Object.keys(WIND_CHARS),
 ]);
 
 export class Level {
@@ -79,6 +86,7 @@ export class Level {
   private solid: boolean[][] = [];
   private oneWay: boolean[][] = [];
   private hazard: number[][] = []; // 0 nada, 1 púas, 2 lava (ver HAZARD)
+  private wind: boolean[][] = [];  // corriente ascendente ('^')
   readonly crystalCells: Spawn[] = [];
   readonly enemyCells: (Spawn & { kind: EnemyKind })[] = [];
   readonly relicCells: (Spawn & { ability: AbilityName })[] = [];
@@ -105,6 +113,7 @@ export class Level {
       this.solid[row] = [];
       this.oneWay[row] = [];
       this.hazard[row] = [];
+      this.wind[row] = [];
       for (let col = 0; col < this.cols; col++) {
         const ch = this.map[row][col];
         if (!KNOWN_CHARS.has(ch)) {
@@ -113,6 +122,7 @@ export class Level {
         this.solid[row][col] = ch === '#';
         this.oneWay[row][col] = ch === '-';
         this.hazard[row][col] = HAZARD_CHARS[ch] ?? HAZARD.NONE;
+        this.wind[row][col] = !!WIND_CHARS[ch];
         const px = col * TILE;
         const py = row * TILE;
         if (ch === 'o') this.crystalCells.push({ x: px, y: py });
@@ -130,6 +140,14 @@ export class Level {
     const row = Math.floor(py / TILE);
     if (row < 0 || row >= this.rows || col < 0 || col >= this.cols) return true;
     return this.solid[row][col];
+  }
+
+  /** ¿Hay corriente de viento ascendente en este píxel? (fuera del mapa: no). */
+  isWindAt(px: number, py: number): boolean {
+    const col = Math.floor(px / TILE);
+    const row = Math.floor(py / TILE);
+    if (row < 0 || row >= this.rows || col < 0 || col >= this.cols) return false;
+    return this.wind[row][col];
   }
 
   /** Devuelve las cajas de los tiles sólidos que tocan una caja dada. */
@@ -219,9 +237,35 @@ export class Level {
           // Lava: dos frames que "hierven" con un desfase por columna.
           const boil = Math.floor(time * 4 + col * 0.7) % 2 === 0;
           (boil ? sprites.lava1 : sprites.lava2).draw(ctx, px, py);
+        } else if (this.wind[row][col]) {
+          this.drawWindCell(ctx, px, py, col, row, time);
         }
       }
     }
+  }
+
+  /** Corriente de viento: rayitas verticales claras que suben, con desfase por
+   *  celda para dar sensación de flujo ascendente. Sumadas con 'lighter'. */
+  private drawWindCell(
+    ctx: CanvasRenderingContext2D,
+    px: number,
+    py: number,
+    col: number,
+    row: number,
+    time: number,
+  ): void {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.16;
+    ctx.fillStyle = '#c8ffe0';
+    for (let k = 0; k < 2; k++) {
+      const seed = col * 3 + row * 7 + k * 11;
+      const sx = px + 2 + ((seed * 5) % (TILE - 3));
+      // La raya sube y da la vuelta dentro del tile (mod).
+      const sy = py + (TILE - ((time * 26 + seed * 4) % TILE));
+      ctx.fillRect(Math.round(sx), Math.round(sy), 1, 3);
+    }
+    ctx.restore();
   }
 
   /** Dibuja un bloque sólido con auto-tiling: el relleno base más bordes
