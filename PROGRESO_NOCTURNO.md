@@ -311,3 +311,32 @@ intacto. 100% completable. Diario al día.
   - Tabletas (losa grabada con runas) en Jardín y Forjas, tono contemplativo.
 - `PROGRESS_VERSION` -> 4 (spawn reubicado + lore).
 - **build**: verde (gzip 20.4 kB). **check**: VERDE (spawn + fixpoint + todo).
+
+## P2.c — Review multi-agente + FIX del gate decorativo + visualizador  ✅
+
+Corrí una **review adversarial multi-agente** (workflow: 3 dimensiones ×
+verificación). 7 hallazgos, 1 confirmado real tras verificación adversarial:
+
+- **BUG CONFIRMADO (el gate era decorativo):** `World.tryTransition` cruzaba
+  cualquier salida SOLO por geometría; nunca leía `exitRequires`. Un jugador con
+  kit base cruzaba jardin->jardin_alto SIN planeo. Y descubrí (con la SONDA
+  física + el VISUALIZADOR) que el abismo geométrico tampoco alcanzaba: el
+  jugador caía al piso y escalaba la pared del borde con WALL-JUMP.
+  **FIX doble:**
+  1. **Gate aplicado en runtime:** `tryTransition` ahora chequea
+     `exitRequires(e)` contra `player.abilities`; sin la habilidad no cruza y se
+     frena en el borde. Garantía dura, independiente de la geometría.
+  2. Rediseñé el abismo del jardín (pasarelas finas flotantes) como refuerzo
+     visual.
+  - **Guardia nueva en el harness:** test que coloca un Player sobre el borde
+    con/sin la habilidad y afirma que el gate bloquea sin y cruza con. Verde.
+- **Violación de idioma (§1.5):** 'GAME OVER' era inglés (preexistente en main).
+  Cambiado a 'TE APAGASTE' (voseo, tema del ser de cristal). **Guardia nueva:**
+  el harness ahora escanea los `fillText` de Game.ts por palabras en inglés.
+- Los otros 5 hallazgos fueron refutados por la verificación (falsos positivos).
+- **VISUALIZADOR (`scripts/visualize.ts`):** renderiza cada sala a PNG
+  (codificador PNG propio con zlib, sin deps) coloreando tiles/hazards/viento/
+  entidades por bioma. Me dejó VER la geometría y depurar el gate. Confirmé a
+  ojo que las 6 salas son coherentes (lava puenteada, gate, boss, spawn).
+- Lore ahora lo emite el generador (no se pierde al regenerar).
+- `PROGRESS_VERSION` -> 5. **build**: verde. **check**: VERDE (11 asserts).

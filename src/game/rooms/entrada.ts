@@ -9,7 +9,6 @@ export const entrada: RoomDef = {
   mapPos: { x: 5, y: 5 },
   biome: 'eco',
   exits: { right: 'tunel', up: 'jardin' },
-  // El guía cerca del spawn: la premisa, contada en dos toques suaves.
   lore: [
     { x: 16, y: 20, npc: true, text: 'El Corazón se apagó. Sin su resonancia, todo se desborda...' },
     { x: 40, y: 20, text: 'Juntá los fragmentos. Cada eco duerme en un guardián que ya no está.' },

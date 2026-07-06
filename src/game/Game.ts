@@ -1124,7 +1124,7 @@ export class Game {
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ff5a7a';
     ctx.font = '18px "JetBrains Mono", ui-monospace, monospace';
-    ctx.fillText('GAME OVER', cx, this.viewH / 2 - 20);
+    ctx.fillText('TE APAGASTE', cx, this.viewH / 2 - 20);
     ctx.fillStyle = '#ffd0dc';
     ctx.font = '8px "JetBrains Mono", ui-monospace, monospace';
     ctx.fillText(`PUNTOS: ${this.score}`, cx, this.viewH / 2 - 4);

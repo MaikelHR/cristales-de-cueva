@@ -440,6 +440,44 @@ for (const r of ROOMS)
     ok(`spawn: se alcanzan las ${targets.length} salidas desde el punto de aparición`);
 }
 
+// --- Gate de habilidad aplicado en RUNTIME (§9.6): un Exit con requires no se
+//     cruza sin la habilidad, aunque el jugador esté sobre el borde. Blinda que
+//     el gate no sea solo decorativo (bug real encontrado en la review).
+{
+  for (const r of ROOMS) {
+    for (const d of DIRS) {
+      const e = r.exits?.[d];
+      if (!e || typeof e === 'string' || !e.requires) continue;
+      const req = e.requires;
+      const w = new World();
+      w.goTo(r.id);
+      const level = w.current.level;
+      // Jugador de prueba (usamos el Player real vía un objeto mínimo compatible
+      // con tryTransition: necesita x,y,w,h,vy,abilities).
+      const mkPlayer = (hasAbility: boolean): any => ({
+        x: 0, y: 0, w: 6, h: 11, vy: 0,
+        abilities: { doubleJump: true, dash: true, wallJump: true, glide: false, [req]: hasAbility },
+      });
+      // Colocamos el centro JUSTO cruzando el borde de esa dirección.
+      const place = (p: any) => {
+        if (d === 'right') { p.x = level.widthPx + 1; p.y = 80; }
+        else if (d === 'left') { p.x = -3; p.y = 80; }
+        else if (d === 'up') { p.x = level.widthPx / 2; p.y = -3; }
+        else { p.x = level.widthPx / 2; p.y = level.heightPx + 1; }
+      };
+      const sinHab = mkPlayer(false); place(sinHab);
+      w.goTo(r.id);
+      const cruzoSin = w.tryTransition(sinHab);
+      const conHab = mkPlayer(true); place(conHab);
+      w.goTo(r.id);
+      const cruzoCon = w.tryTransition(conHab);
+      if (cruzoSin) fail(`gate ${r.id}.${d} (requires ${req}) se cruzó SIN la habilidad (gate roto)`);
+      if (!cruzoCon) fail(`gate ${r.id}.${d} (requires ${req}) NO se cruzó CON la habilidad`);
+      if (!cruzoSin && cruzoCon) ok(`gate ${r.id}.${d} exige "${req}" en runtime (bloquea sin / cruza con)`);
+    }
+  }
+}
+
 // --- §4.5 fixpoint de completitud: la ÚNICA garantía real de que el juego
 //     se puede terminar al 100% (la victoria exige TODOS los cristales).
 //
@@ -555,6 +593,22 @@ function runFixpoint(nodes: Record<string, FixNode>, start: string): Set<string>
 }
 
 void Level;
+
+// --- Guardia de idioma (§1.5): busca palabras en inglés dentro de strings de
+//     UI visibles (fillText) en Game.ts. Heurística simple pero atrapa cosas
+//     como "GAME OVER" que ni el build ni el fakeCtx ven. Si un texto legítimo
+//     dispara un falso positivo, se saca del blocklist.
+{
+  const src = readFileSync('src/game/Game.ts', 'utf8');
+  const fillTexts = [...src.matchAll(/fillText\(\s*(['"`])((?:[^'"`\\]|\\.)*)\1/g)].map((m) => m[2]);
+  const BLOCK = /\b(game over|you win|score|time|press|start|continue|new game|level|health|lives)\b/i;
+  for (const t of fillTexts) {
+    // Ignoramos plantillas con ${...} (interpolan variables, no texto fijo).
+    if (t.includes('${')) continue;
+    if (BLOCK.test(t)) fail(`idioma: texto de UI en inglés -> "${t}" (§1.5 es-AR)`);
+  }
+  ok('idioma: sin palabras en inglés en los textos de UI de Game.ts');
+}
 
 // --- Techo de bundle (§4.6): mide el gzip de dist/assets/*.js y falla si
 //     supera ~30 kB (hoy ~15). Detecta el crecimiento del arte-en-código

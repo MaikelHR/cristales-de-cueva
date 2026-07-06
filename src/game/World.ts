@@ -17,7 +17,7 @@ import { Spore } from './entities/Spore';
 import { Fundidor } from './entities/Fundidor';
 import { Player } from './Player';
 import { ROOMS } from './rooms';
-import { exitId, type RoomDef } from './rooms/RoomDef';
+import { exitId, exitRequires, type Exit, type RoomDef } from './rooms/RoomDef';
 import { clamp } from '../engine/canvas';
 
 export interface Crystal {
@@ -124,25 +124,35 @@ export class World {
     const centerX = player.x + player.w / 2;
     const centerY = player.y + player.h / 2;
 
-    if (exits?.right && centerX > this.current.level.widthPx) {
+    // Un gate de habilidad (Exit.requires) se APLICA en runtime: sin la
+    // habilidad no se cruza (además del abismo/viento que lo refuerza
+    // geométricamente). Esto garantiza el gate aunque la geometría tenga un
+    // atajo (p. ej. escalar la pared del borde con wall-jump). El fixpoint del
+    // harness modela exactamente esta regla.
+    const canCross = (e: Exit): boolean => {
+      const req = exitRequires(e);
+      return !req || player.abilities[req];
+    };
+
+    if (exits?.right && centerX > this.current.level.widthPx && canCross(exits.right)) {
       this.goTo(exitId(exits.right));
       player.x = 1 - player.w / 2;
       player.y = clamp(player.y, 0, this.current.level.heightPx - player.h);
       return true;
     }
-    if (exits?.left && centerX < 0) {
+    if (exits?.left && centerX < 0 && canCross(exits.left)) {
       this.goTo(exitId(exits.left));
       player.x = this.current.level.widthPx - 1 - player.w / 2;
       player.y = clamp(player.y, 0, this.current.level.heightPx - player.h);
       return true;
     }
-    if (exits?.down && centerY > this.current.level.heightPx) {
+    if (exits?.down && centerY > this.current.level.heightPx && canCross(exits.down)) {
       this.goTo(exitId(exits.down));
       player.y = 1; // apenas dentro del borde SUPERIOR de la nueva sala
       player.x = clamp(player.x, 0, this.current.level.widthPx - player.w);
       return true; // conserva vy: que siga cayendo
     }
-    if (exits?.up && centerY < 0) {
+    if (exits?.up && centerY < 0 && canCross(exits.up)) {
       this.goTo(exitId(exits.up));
       // Pies APENAS dentro del borde inferior (no asomando por debajo, o el
       // jugador quedaría fuera de la sala y caería al vacío). Conservamos el
@@ -152,6 +162,16 @@ export class World {
       if (player.vy > -60) player.vy = -60; // garantiza un mínimo de subida al cruzar
       return true;
     }
+
+    // Gate CERRADO: si el jugador cruzó un borde pero la salida pide una
+    // habilidad que no tiene, lo frenamos en el borde (como si fuera pared) para
+    // que no se vaya fuera de la sala por el hueco abierto de la salida.
+    if (exits?.right && centerX > this.current.level.widthPx && !canCross(exits.right))
+      player.x = this.current.level.widthPx - player.w;
+    if (exits?.left && centerX < 0 && !canCross(exits.left)) player.x = 0;
+    if (exits?.down && centerY > this.current.level.heightPx && !canCross(exits.down))
+      player.y = this.current.level.heightPx - player.h;
+    if (exits?.up && centerY < 0 && !canCross(exits.up)) player.y = 0;
     return false;
   }
 }
