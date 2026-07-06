@@ -709,7 +709,10 @@ export class Game {
     drawVignette(ctx, this.viewW, this.viewH);
 
     // El HUD (corazones, contador, minimapa) solo mientras se juega o al ganar.
-    if (this.state !== 'title') {
+    // Con el mapa abierto NO se dibuja: el overlay tiene su propia leyenda de
+    // cristales (si no, se ve "CRISTALES x/y" duplicado y el HUD compite por
+    // detrás del mapa).
+    if (this.state !== 'title' && !this.mapOpen) {
       this.drawHud(ctx);
       this.drawMinimap(ctx);
       this.drawLoreText(ctx);
@@ -814,14 +817,12 @@ export class Game {
     ctx.fillRect(0, 0, this.viewW, this.viewH);
     const cx = this.viewW / 2;
 
-    // Título con subrayado, arriba y con margen seguro (el subrayado bien
-    // debajo de la línea de base para no cruzar las letras).
+    // Título arriba, con margen seguro. Sin subrayado (cruzaba las letras en
+    // el lienzo chico); el título solo alcanza para anclar el overlay.
     ctx.textAlign = 'center';
     ctx.fillStyle = '#e9d6ff';
-    ctx.font = '11px "JetBrains Mono", ui-monospace, monospace';
-    ctx.fillText('MAPA', cx, 12);
-    ctx.fillStyle = '#4a2e70';
-    ctx.fillRect(cx - 22, 17, 44, 1);
+    ctx.font = '10px "JetBrains Mono", ui-monospace, monospace';
+    ctx.fillText('· MAPA ·', cx, 11);
 
     const rooms = this.world.allRooms;
     // Caja envolvente de TODAS las salas (mostramos el mundo entero como marco;
@@ -916,24 +917,26 @@ export class Game {
       }
     }
 
-    // 3) LEYENDA (barra inferior, alturas fijas para no clipear).
+    // 3) LEYENDA (barra inferior). textBaseline 'alphabetic' con márgenes
+    //    holgados: nada se clipea contra el borde inferior del lienzo.
     ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
     ctx.font = '8px "JetBrains Mono", ui-monospace, monospace';
     ctx.fillStyle = '#ffe25a';
-    ctx.fillText(`CRISTALES ${this.collected}/${this.totalCrystals}`, cx, this.viewH - 17);
+    ctx.fillText(`CRISTALES ${this.collected}/${this.totalCrystals}`, cx, this.viewH - 22);
     const abis = Object.keys(this.player.abilities) as AbilityName[];
     const owned = abis.filter((a) => this.player.abilities[a]);
     const startX = cx - (owned.length * 8) / 2;
     for (let i = 0; i < owned.length; i++) {
       ctx.fillStyle = ABILITY_GLOW[owned[i]];
-      ctx.fillRect(Math.round(startX + i * 8), this.viewH - 12, 5, 5);
+      ctx.fillRect(Math.round(startX + i * 8), this.viewH - 17, 5, 5);
     }
     const dev = inputDevice();
     ctx.fillStyle = '#8a76b4';
     ctx.fillText(
       dev === 'touch' ? 'MAPA cierra' : dev === 'gamepad' ? 'B cierra' : 'M cierra',
       cx,
-      this.viewH - 5,
+      this.viewH - 8,
     );
     ctx.textAlign = 'left';
   }
