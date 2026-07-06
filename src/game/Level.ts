@@ -40,6 +40,22 @@ const ENEMY_CHARS: Record<string, EnemyKind> = {
   B: 'boss',
 };
 
+// Chars con significado estructural fijo (no son enemigos ni reliquias).
+//   '#' sólido   '.' aire   '-' plataforma un-sentido
+//   'o' cristal  'P' inicio 'D' puerta (meta)
+const STRUCTURAL_CHARS = ['#', '.', '-', 'o', 'P', 'D'] as const;
+
+/** Namespace ÚNICO de chars de mapa: cualquier char fuera de este set hace
+ *  tirar Error en parse() (§8.6). Así un typo en un mapa dibujado a mano lo
+ *  atrapa new World() (el smoke del harness), no el jugador con un piso que
+ *  desaparece. Al sumar un char nuevo (hazard/agua/reliquia) hay que
+ *  registrarlo en su tabla y quedará incluido acá automáticamente. */
+const KNOWN_CHARS: ReadonlySet<string> = new Set<string>([
+  ...STRUCTURAL_CHARS,
+  ...Object.keys(ENEMY_CHARS),
+  ...Object.keys(RELIC_CHARS),
+]);
+
 export class Level {
   readonly cols: number;
   readonly rows: number;
@@ -75,6 +91,9 @@ export class Level {
       this.oneWay[row] = [];
       for (let col = 0; col < this.cols; col++) {
         const ch = this.map[row][col];
+        if (!KNOWN_CHARS.has(ch)) {
+          throw new Error(`Char de mapa desconocido '${ch}' en fila ${row} col ${col}`);
+        }
         this.solid[row][col] = ch === '#';
         this.oneWay[row][col] = ch === '-';
         const px = col * TILE;

@@ -95,6 +95,15 @@ try {
   fail('el smoke reventó: ' + (e as Error).message);
 }
 
+// --- Whitelist dura (§8.6): un char de mapa desconocido DEBE tirar Error.
+//     Sin esto, un typo en un mapa dibujado a mano se vuelve aire silencioso.
+try {
+  new Level(['###', '#Z#', '###']); // 'Z' no está en KNOWN_CHARS
+  fail('Level aceptó un char desconocido (la whitelist no tiró)');
+} catch {
+  ok('whitelist: un char de mapa desconocido tira Error');
+}
+
 // --- Grafo de salidas ---
 const DIRS = ['left', 'right', 'up', 'down'] as const;
 const OPP: Record<string, (typeof DIRS)[number]> = {

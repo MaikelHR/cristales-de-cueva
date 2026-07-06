@@ -46,3 +46,21 @@ El Plan.md asume rutas que en el repo real están corridas. Las adapté:
 - Hard gate superado: puedo generar contenido.
 - Sigue: P0.2 (endurecer `Level.parse` con whitelist) y una sala vertical de
   prueba para ejercitar las salidas up/down.
+
+## P0.2 — Endurecer Level.parse + salidas verticales  ✅
+
+- `KNOWN_CHARS`: set único derivado de `STRUCTURAL_CHARS` + `ENEMY_CHARS` +
+  `RELIC_CHARS`. `parse()` tira `Error("Char de mapa desconocido ...")` ante
+  cualquier char fuera del set. Un char nuevo se registra en su tabla y queda
+  incluido solo.
+- Harness: test negativo `new Level([...,'#Z#',...])` DEBE tirar (prueba que la
+  whitelist realmente dispara). Verde.
+- Las salidas verticales (RoomDef up/down + one-way, `tryTransition` 4 ramas con
+  clamp) ya entraron en P0.1 por ser dependencia del harness.
+- **Decisión (conservadora):** NO agrego una "sala vertical de prueba"
+  desechable al mundo shippeado (sería clutter). El mecanismo está implementado
+  y el harness lo valida geométricamente (alineación de huecos en los 4 bordes).
+  La primera conexión vertical REAL entra en P1 al re-anclar el mapa 2D, y ahí
+  el smoke de 20k pasos ejercita el code path en vivo.
+- **build**: verde (gzip 15.29 kB). **check**: VERDE (2 asserts).
+- Sigue: P0.3 (fixpoint de completitud + techo de bundle en el harness).
