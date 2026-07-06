@@ -235,6 +235,19 @@ body.touch canvas {
   border-radius: 14px;
 }
 
+/* --- Boton de mapa (arriba-izquierda) ---------------------------------- */
+.tc-map {
+  position: absolute;
+  top: calc(14px + env(safe-area-inset-top, 0px));
+  left: calc(14px + env(safe-area-inset-left, 0px));
+  width: 56px;
+  height: 44px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  border-radius: 14px;
+}
+
 /* --- Menu de pausa (centro) -------------------------------------------- */
 .tc-menu {
   position: absolute;
@@ -270,14 +283,16 @@ body.touch canvas {
 }
 .tc[data-mode='play'] .tc-pad,
 .tc[data-mode='play'] .tc-actions,
-.tc[data-mode='play'] .tc-pause {
+.tc[data-mode='play'] .tc-pause,
+.tc[data-mode='play'] .tc-map {
   display: flex;
 }
 
 /* En pausa: solo el menu. */
 .tc[data-mode='paused'] .tc-pad,
 .tc[data-mode='paused'] .tc-actions,
-.tc[data-mode='paused'] .tc-pause {
+.tc[data-mode='paused'] .tc-pause,
+.tc[data-mode='paused'] .tc-map {
   display: none;
 }
 .tc[data-mode='paused'] .tc-menu {
@@ -288,6 +303,7 @@ body.touch canvas {
 .tc[data-mode='menu'] .tc-pad,
 .tc[data-mode='menu'] .tc-actions,
 .tc[data-mode='menu'] .tc-pause,
+.tc[data-mode='menu'] .tc-map,
 .tc[data-mode='menu'] .tc-menu {
   display: none;
 }
@@ -322,5 +338,12 @@ body.touch canvas {
   .tc-jump {
     width: 78px;
     height: 78px;
+  }
+  .tc-map {
+    width: 50px;
+    height: 40px;
+    font-size: 11px;
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    left: calc(12px + env(safe-area-inset-left, 0px));
   }
 }

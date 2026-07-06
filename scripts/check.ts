@@ -104,6 +104,11 @@ try {
     // cruce transiciones (ejercita tryTransition en las 4 ramas cuando existan).
     if (i % 300 < 150) input.touchButton('right', true);
     else input.touchButton('right', false);
+    // Abrimos y cerramos el mapa periódicamente para ejercitar drawMap().
+    if (i % 500 === 250) {
+      input.touchButton('map', true);
+      input.touchButton('map', false);
+    }
     game.update(1 / 60);
     if (i % 200 === 0) game.draw(ctx);
     input.endStep();

@@ -47,11 +47,11 @@ const CONTROLS_HTML: Record<InputDevice, string> = {
   keyboard:
     '<kbd>←</kbd> <kbd>→</kbd> o <kbd>A</kbd> <kbd>D</kbd> para moverte &nbsp;·&nbsp; ' +
     '<kbd>espacio</kbd> / <kbd>↑</kbd> / <kbd>W</kbd> para saltar (¡doble!) &nbsp;·&nbsp; ' +
-    '<kbd>shift</kbd> / <kbd>X</kbd> para dash &nbsp;·&nbsp; <kbd>R</kbd> para reiniciar',
+    '<kbd>shift</kbd> / <kbd>X</kbd> para dash &nbsp;·&nbsp; <kbd>M</kbd> mapa &nbsp;·&nbsp; <kbd>R</kbd> para reiniciar',
   gamepad:
     '<kbd>D-pad</kbd> / <kbd>stick</kbd> para moverte &nbsp;·&nbsp; ' +
     '<kbd>A</kbd> para saltar (¡doble!) &nbsp;·&nbsp; ' +
-    '<kbd>X</kbd> para dash &nbsp;·&nbsp; <kbd>Y</kbd> reiniciar &nbsp;·&nbsp; <kbd>START</kbd> pausa',
+    '<kbd>X</kbd> para dash &nbsp;·&nbsp; <kbd>B</kbd> mapa &nbsp;·&nbsp; <kbd>Y</kbd> reiniciar &nbsp;·&nbsp; <kbd>START</kbd> pausa',
   // En móvil el footer queda oculto (se juega con los botones en pantalla),
   // pero el tipo Record<InputDevice, string> exige la clave igualmente.
   touch: 'usá los botones en pantalla para jugar',

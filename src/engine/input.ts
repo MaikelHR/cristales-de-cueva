@@ -12,7 +12,7 @@
 //  muestre los controles correctos (teclas o botones) al instante.
 // ============================================================
 
-type Action = 'left' | 'right' | 'jump' | 'dash' | 'restart' | 'confirm' | 'pause';
+type Action = 'left' | 'right' | 'jump' | 'dash' | 'restart' | 'confirm' | 'pause' | 'map';
 
 /** Qué estuvo usando el jugador de último: define qué controles mostrar. */
 export type InputDevice = 'keyboard' | 'gamepad' | 'touch';
@@ -37,6 +37,8 @@ const KEY_TO_ACTION: Record<string, Action> = {
   Escape: 'pause',
   p: 'pause',
   P: 'pause',
+  m: 'map',
+  M: 'map',
 };
 
 // Estado del TECLADO (por eventos).
@@ -110,6 +112,7 @@ export function pollGamepad(): void {
   if (on(0) || on(9)) next.add('confirm'); // A o Start (para menús)
   if (on(9)) next.add('pause'); // Start
   if (on(3)) next.add('restart'); // Y
+  if (on(1)) next.add('map'); // B abre/cierra el mapa
 
   for (const a of next) {
     gpDown.add(a);

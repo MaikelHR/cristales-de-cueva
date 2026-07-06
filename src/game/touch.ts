@@ -39,7 +39,7 @@ let currentMode: TouchMode | null = null;
 const holdResetters: Array<() => void> = [];
 
 /** Acciones que el módulo táctil sabe emitir. */
-type TouchAction = 'left' | 'right' | 'jump' | 'dash' | 'confirm' | 'pause' | 'restart';
+type TouchAction = 'left' | 'right' | 'jump' | 'dash' | 'confirm' | 'pause' | 'restart' | 'map';
 
 /**
  * Construye el mando táctil y cablea sus eventos. Es idempotente en
@@ -92,6 +92,8 @@ function buildTouchControls(canvas: HTMLCanvasElement): void {
   // aria-label (lo que anuncia un lector de pantalla).
   // Botón de pausa (arriba-derecha).
   const btnPause = makeButton('tc-btn tc-pause', 'Pausa', '‖');
+  // Botón de mapa (arriba-izquierda).
+  const btnMap = makeButton('tc-btn tc-map', 'Mapa', 'MAPA');
   // Cruceta de movimiento (abajo-izquierda).
   const pad = document.createElement('div');
   pad.className = 'tc-pad';
@@ -112,7 +114,7 @@ function buildTouchControls(canvas: HTMLCanvasElement): void {
   const btnRestart = makeButton('tc-btn tc-mbtn tc-restart', 'Reiniciar', 'Reiniciar');
   menu.append(btnResume, btnFs, btnRestart);
 
-  tc.append(btnPause, pad, actions, menu);
+  tc.append(btnPause, btnMap, pad, actions, menu);
   document.body.appendChild(tc);
   container = tc;
 
@@ -125,6 +127,7 @@ function buildTouchControls(canvas: HTMLCanvasElement): void {
 
   // TAP: valen un instante (un flanco de "recién presionado").
   bindTap(btnPause, 'pause');
+  bindTap(btnMap, 'map'); // abre/cierra el mapa completo
   bindTap(btnResume, 'pause'); // "Continuar" alterna la misma pausa.
   bindTap(btnRestart, 'restart');
 

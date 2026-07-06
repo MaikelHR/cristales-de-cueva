@@ -103,3 +103,32 @@ El Plan.md asume rutas que en el repo real están corridas. Las adapté:
 - Limpieza: saqué el import muerto de `sprites` en Level.ts.
 - **build**: verde (gzip 15.8 kB). **check**: VERDE.
 - Sigue: P0.5 (pantalla de mapa M + minimapa 2D).
+
+## P0.5 — Pantalla de mapa (M) + minimapa 2D  ✅
+
+- **Overlay dentro de 'playing'** (no un State nuevo): flag `mapOpen`, toggle con
+  `justPressed('map')`, **early-return antes de que avance `runTime`** (el
+  cronómetro no corre mirando el mapa). Pausa también lo cierra. `reset()` lo
+  apaga.
+- `drawMap()`: itera `world.allRooms`, una celda por sala en su `mapPos.{x,y}`,
+  **revela solo las visitadas**, colorea el marco por bioma (`rimL`), resalta la
+  sala actual (dorado) y el jugador (punto cian por posición relativa 2D),
+  marca salas con cristal sin recoger. Escala/centra para 320×176. Leyenda:
+  cristales X/Y + un puntito por habilidad conseguida (con su color).
+- **Minimapa de esquina reescrito para 2D**: antes asumía tira horizontal
+  (`maxX` solo, `baseX` podía ir negativo). Ahora calcula caja envolvente de lo
+  VISITADO en ambos ejes, escala celdas acotadas (máx ~72×48 px), se ancla a la
+  derecha sin desbordar, colorea por bioma y ubica al jugador en 2D.
+- Entradas en los 3 medios:
+  - Teclado: `m`/`M` -> 'map'.
+  - Gamepad: botón B (1) -> 'map'.
+  - Táctil: botón `tc-map` (arriba-izquierda), `bindTap(...,'map')`, visible en
+    `data-mode='play'`, con CSS propio + regla `<400px`.
+- Footers de `main.ts`: "M mapa" (teclado) y "B mapa" (gamepad).
+- Harness: el smoke abre/cierra el mapa periódicamente para ejercitar `drawMap`.
+- **Pendiente para la mañana (no bloqueante):** playtest visual real del overlay
+  en navegador. Sin Playwright (evito dep nueva) me apoyo en el render headless
+  (100+ frames de drawMap sin throw) + coords clampeadas. Riesgo bajo (dibujo
+  de rects puros, todo acotado con clamp/min/max).
+- **build**: verde (gzip 16.5 kB). **check**: VERDE.
+- Sigue: P0.6 (autoguardado + Continuar).

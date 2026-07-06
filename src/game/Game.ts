@@ -15,7 +15,7 @@ import type { AbilityName } from './Level';
 import type { Enemy } from './entities/Enemy';
 import { justPressed, inputDevice, isTouchMode } from '../engine/input';
 import { overlaps, clamp, type Box } from '../engine/canvas';
-import { sprites, drawGlow, drawBackground, drawDust, drawFog, drawVignette, initDust } from './art';
+import { sprites, drawGlow, drawBackground, drawDust, drawFog, drawVignette, initDust, biomeOf } from './art';
 import { sfx } from './sfx';
 import { loadSave, writeSave, type SaveData } from './save';
 
@@ -71,6 +71,7 @@ export class Game {
   private newRecord = false;  // ¿la última corrida batió el mejor puntaje?
   private newBestTime = false;// ¿la última victoria batió el mejor tiempo?
   private paused = false;     // pausa (congela la partida sin salir de ella)
+  private mapOpen = false;    // overlay del mapa completo (M): congela el tiempo
   private runTime = 0;        // cronómetro de la partida actual (segundos)
   // Textos flotantes "+N" que suben y se desvanecen (world space).
   private popups: { x: number; y: number; text: string; life: number }[] = [];
@@ -141,6 +142,7 @@ export class Game {
     this.newBestTime = false;
     this.runTime = 0;
     this.paused = false;
+    this.mapOpen = false;
     this.popups = [];
     this.particles.clear();
     this.makeCamera();
@@ -199,6 +201,18 @@ export class Game {
       this.paused = !this.paused;
     }
     if (this.paused) return;
+
+    // Mapa (M): overlay del mapa completo. Como la pausa, congela el tiempo
+    // (early-return ANTES de que avance runTime), así el cronómetro no corre
+    // mientras mirás el mapa. Volver a pulsar M —o pausa— lo cierra.
+    if (justPressed('map')) {
+      this.mapOpen = !this.mapOpen;
+    }
+    if (this.mapOpen) {
+      if (justPressed('pause')) this.mapOpen = false; // pausa también lo cierra
+      this.time += dt; // la animación del overlay sigue viva
+      return;
+    }
 
     // Hit-stop: tras un golpe mortal, el mundo entero queda clavado
     // un instante. Al soltarse llegan el respawn y la sacudida.
@@ -453,6 +467,7 @@ export class Game {
     if (this.state === 'title') this.drawTitle(ctx);
     if (this.state === 'gameover') this.drawGameOver(ctx);
     if (this.state === 'playing' && this.paused) this.drawPause(ctx);
+    if (this.state === 'playing' && this.mapOpen) this.drawMap(ctx);
   }
 
   /** Overlay de pausa: la partida queda congelada detrás. Texto a opacidad
@@ -483,34 +498,146 @@ export class Game {
     ctx.textAlign = 'left';
   }
 
-  /** Minimapa (arriba a la derecha): las salas se revelan al visitarlas. */
-  private drawMinimap(ctx: CanvasRenderingContext2D): void {
-    const cellW = 12;
-    const cellH = 8;
-    const gap = 2;
+  /** Mapa completo (tecla M): overlay que revela las salas visitadas en su
+   *  posición 2D (mapPos), coloreadas por bioma, con la sala actual y el
+   *  jugador resaltados, más una leyenda de cristales y habilidades. El
+   *  tiempo está congelado detrás (early-return en update). */
+  private drawMap(ctx: CanvasRenderingContext2D): void {
+    ctx.fillStyle = 'rgba(11,6,20,0.88)';
+    ctx.fillRect(0, 0, this.viewW, this.viewH);
+    const cx = this.viewW / 2;
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#e9d6ff';
+    ctx.font = '12px "JetBrains Mono", ui-monospace, monospace';
+    ctx.fillText('MAPA', cx, 16);
+
     const rooms = this.world.allRooms;
-    const maxX = Math.max(...rooms.map((r) => r.def.mapPos.x));
-    // En táctil dejamos libre la esquina superior derecha (ahí va el botón
-    // de pausa en pantalla), así que corremos el minimapa más a la izquierda.
-    const inset = isTouchMode() ? 44 : 6;
-    const baseX = this.viewW - inset - ((maxX + 1) * cellW + maxX * gap);
-    const baseY = 6;
+    // Caja envolvente de las posiciones en grilla.
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const r of rooms) {
+      minX = Math.min(minX, r.def.mapPos.x);
+      minY = Math.min(minY, r.def.mapPos.y);
+      maxX = Math.max(maxX, r.def.mapPos.x);
+      maxY = Math.max(maxY, r.def.mapPos.y);
+    }
+    const gw = maxX - minX + 1;
+    const gh = maxY - minY + 1;
+
+    // Escala para que la grilla entre en el panel central (con márgenes).
+    const areaW = this.viewW - 40;
+    const areaH = this.viewH - 58;
+    const gap = 2;
+    const cellW = Math.max(6, Math.min(24, Math.floor((areaW - (gw - 1) * gap) / gw)));
+    const cellH = Math.max(5, Math.min(16, Math.floor((areaH - (gh - 1) * gap) / gh)));
+    const totalW = gw * cellW + (gw - 1) * gap;
+    const totalH = gh * cellH + (gh - 1) * gap;
+    const baseX = Math.round(cx - totalW / 2);
+    const baseY = Math.round(26 + (areaH - totalH) / 2);
 
     for (const room of rooms) {
       if (!this.visited.has(room.def.id)) continue;
-      const x = baseX + room.def.mapPos.x * (cellW + gap);
-      const y = baseY + room.def.mapPos.y * (cellH + gap);
+      const gx = room.def.mapPos.x - minX;
+      const gy = room.def.mapPos.y - minY;
+      const x = baseX + gx * (cellW + gap);
+      const y = baseY + gy * (cellH + gap);
       const isCurrent = room === this.world.current;
-      // Marco y fondo de la celda
-      ctx.fillStyle = isCurrent ? '#ffe25a' : '#4a2e70';
+      const accent = biomeOf(room.def.biome).rimL;
+      // Marco por bioma; relleno oscuro; la sala actual pulsa en dorado.
+      ctx.fillStyle = isCurrent ? '#ffe25a' : accent;
       ctx.fillRect(x, y, cellW, cellH);
-      ctx.fillStyle = isCurrent ? '#3a2456' : '#241638';
+      ctx.fillStyle = '#1a0f2a';
       ctx.fillRect(x + 1, y + 1, cellW - 2, cellH - 2);
-      // Puntito del jugador dentro de la sala actual
+      // Punto de cristal sin recoger en la sala (naranja tenue).
+      const anyCrystal = room.crystals.some((c) => !c.taken);
+      if (anyCrystal) {
+        ctx.fillStyle = '#ffd23a';
+        ctx.fillRect(x + cellW - 3, y + 1, 2, 2);
+      }
       if (isCurrent) {
-        const rel = clamp(this.player.x / room.level.widthPx, 0, 1);
+        // Punto del jugador según su posición relativa dentro de la sala.
+        const relX = clamp(this.player.x / room.level.widthPx, 0, 1);
+        const relY = clamp(this.player.y / room.level.heightPx, 0, 1);
         ctx.fillStyle = '#7ce0ff';
-        ctx.fillRect(x + 1 + Math.round(rel * (cellW - 4)), y + cellH / 2 - 1, 2, 2);
+        ctx.fillRect(
+          x + 1 + Math.round(relX * (cellW - 4)),
+          y + 1 + Math.round(relY * (cellH - 4)),
+          2,
+          2,
+        );
+      }
+    }
+
+    // Leyenda: cristales y habilidades conseguidas.
+    ctx.textAlign = 'center';
+    ctx.font = '8px "JetBrains Mono", ui-monospace, monospace';
+    ctx.fillStyle = '#ffe25a';
+    ctx.fillText(`CRISTALES ${this.collected}/${this.totalCrystals}`, cx, this.viewH - 20);
+    // Habilidades: un puntito por cada una conseguida, con su color.
+    const abis = Object.keys(this.player.abilities) as AbilityName[];
+    const owned = abis.filter((a) => this.player.abilities[a]);
+    const startX = cx - (owned.length * 8) / 2;
+    for (let i = 0; i < owned.length; i++) {
+      ctx.fillStyle = ABILITY_GLOW[owned[i]];
+      ctx.fillRect(Math.round(startX + i * 8), this.viewH - 14, 5, 5);
+    }
+    const dev = inputDevice();
+    ctx.fillStyle = '#6f5a94';
+    ctx.fillText(
+      dev === 'touch' ? 'tocá MAPA para cerrar' : dev === 'gamepad' ? 'B para cerrar' : 'M para cerrar',
+      cx,
+      this.viewH - 4,
+    );
+    ctx.textAlign = 'left';
+  }
+
+  /** Minimapa compacto (arriba a la derecha): grilla 2D de salas visitadas.
+   *  Se ancla a la esquina superior derecha y se escala para no desbordar con
+   *  un mapa 2D grande (el detalle completo está en la tecla M). */
+  private drawMinimap(ctx: CanvasRenderingContext2D): void {
+    const rooms = this.world.allRooms.filter((r) => this.visited.has(r.def.id));
+    if (rooms.length === 0) return;
+    // Caja envolvente de lo visitado (no de todo el mundo: no spoileamos).
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const r of rooms) {
+      minX = Math.min(minX, r.def.mapPos.x);
+      minY = Math.min(minY, r.def.mapPos.y);
+      maxX = Math.max(maxX, r.def.mapPos.x);
+      maxY = Math.max(maxY, r.def.mapPos.y);
+    }
+    const gw = maxX - minX + 1;
+    const gh = maxY - minY + 1;
+    const gap = 1;
+    // Celdas chicas y acotadas: el minimapa no debe comer más de ~72x48 px.
+    const cellW = clamp(Math.floor((72 - (gw - 1) * gap) / gw), 3, 10);
+    const cellH = clamp(Math.floor((48 - (gh - 1) * gap) / gh), 3, 8);
+    const totalW = gw * cellW + (gw - 1) * gap;
+    // En táctil dejamos libre la esquina superior derecha (botón de pausa).
+    const inset = isTouchMode() ? 44 : 6;
+    const baseX = this.viewW - inset - totalW;
+    const baseY = 6;
+
+    for (const room of rooms) {
+      const gx = room.def.mapPos.x - minX;
+      const gy = room.def.mapPos.y - minY;
+      const x = baseX + gx * (cellW + gap);
+      const y = baseY + gy * (cellH + gap);
+      const isCurrent = room === this.world.current;
+      const accent = biomeOf(room.def.biome).rimL;
+      ctx.fillStyle = isCurrent ? '#ffe25a' : accent;
+      ctx.fillRect(x, y, cellW, cellH);
+      ctx.fillStyle = isCurrent ? '#3a2456' : '#1a0f2a';
+      ctx.fillRect(x + 1, y + 1, cellW - 2, cellH - 2);
+      if (isCurrent && cellW >= 4 && cellH >= 4) {
+        const relX = clamp(this.player.x / room.level.widthPx, 0, 1);
+        const relY = clamp(this.player.y / room.level.heightPx, 0, 1);
+        ctx.fillStyle = '#7ce0ff';
+        ctx.fillRect(
+          x + 1 + Math.round(relX * (cellW - 4)),
+          y + 1 + Math.round(relY * (cellH - 4)),
+          2,
+          2,
+        );
       }
     }
   }
