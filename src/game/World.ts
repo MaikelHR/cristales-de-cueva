@@ -15,7 +15,8 @@ import { Chaser } from './entities/Chaser';
 import { Boss } from './entities/Boss';
 import { Player } from './Player';
 import { ROOMS } from './rooms';
-import type { RoomDef } from './rooms/RoomDef';
+import { exitId, type RoomDef } from './rooms/RoomDef';
+import { clamp } from '../engine/canvas';
 
 export interface Crystal {
   x: number;
@@ -101,19 +102,40 @@ export class World {
   /**
    * Si el centro del jugador cruzó un borde con salida, cambia de
    * sala y lo recoloca asomando por el borde opuesto de la nueva.
+   * goTo() reasigna this.current ANTES de recolocar, así widthPx/heightPx
+   * ya son los del destino. En cada rama clampeamos el EJE QUE SE
+   * CONSERVA (salas de distinto alto/ancho): sin clamp el jugador queda
+   * incrustado en una pared o cae al vacío al cruzar.
    * Devuelve true si hubo transición.
    */
   tryTransition(player: Player): boolean {
     const exits = this.current.def.exits;
     const centerX = player.x + player.w / 2;
+    const centerY = player.y + player.h / 2;
+
     if (exits?.right && centerX > this.current.level.widthPx) {
-      this.goTo(exits.right);
+      this.goTo(exitId(exits.right));
       player.x = 1 - player.w / 2;
+      player.y = clamp(player.y, 0, this.current.level.heightPx - player.h);
       return true;
     }
     if (exits?.left && centerX < 0) {
-      this.goTo(exits.left);
+      this.goTo(exitId(exits.left));
       player.x = this.current.level.widthPx - 1 - player.w / 2;
+      player.y = clamp(player.y, 0, this.current.level.heightPx - player.h);
+      return true;
+    }
+    if (exits?.down && centerY > this.current.level.heightPx) {
+      this.goTo(exitId(exits.down));
+      player.y = 1 - player.h / 2; // asoma por el borde SUPERIOR de la nueva
+      player.x = clamp(player.x, 0, this.current.level.widthPx - player.w);
+      return true; // conserva vy: que siga cayendo
+    }
+    if (exits?.up && centerY < 0) {
+      this.goTo(exitId(exits.up));
+      player.y = this.current.level.heightPx - 1 - player.h / 2; // asoma por el borde INFERIOR
+      player.x = clamp(player.x, 0, this.current.level.widthPx - player.w);
+      player.vy = 0; // cancela vy al subir
       return true;
     }
     return false;
