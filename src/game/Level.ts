@@ -45,15 +45,23 @@ const ENEMY_CHARS: Record<string, EnemyKind> = {
 //   'o' cristal  'P' inicio 'D' puerta (meta)
 const STRUCTURAL_CHARS = ['#', '.', '-', 'o', 'P', 'D'] as const;
 
+/** GATES: chars-tile que bloquean el paso hasta tener la habilidad que los
+ *  abre (pared rajada -> breakDash, agua profunda -> gill, viento -> glide).
+ *  Lo lee el fixpoint del harness (§4.5) para verificar completitud: un char
+ *  de gate en un mapa exige que su habilidad se haya conseguido antes de
+ *  cruzarlo. Vacío por ahora; se llena al crear cada gate en P2. */
+export const GATE_ABILITY: Record<string, AbilityName> = {};
+
 /** Namespace ÚNICO de chars de mapa: cualquier char fuera de este set hace
  *  tirar Error en parse() (§8.6). Así un typo en un mapa dibujado a mano lo
  *  atrapa new World() (el smoke del harness), no el jugador con un piso que
- *  desaparece. Al sumar un char nuevo (hazard/agua/reliquia) hay que
+ *  desaparece. Al sumar un char nuevo (hazard/agua/reliquia/gate) hay que
  *  registrarlo en su tabla y quedará incluido acá automáticamente. */
 const KNOWN_CHARS: ReadonlySet<string> = new Set<string>([
   ...STRUCTURAL_CHARS,
   ...Object.keys(ENEMY_CHARS),
   ...Object.keys(RELIC_CHARS),
+  ...Object.keys(GATE_ABILITY),
 ]);
 
 export class Level {

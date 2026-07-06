@@ -6,11 +6,15 @@
 //  archivo nuevo y sumarlo a la lista de index.ts.
 // ============================================================
 
+import type { AbilityName } from '../Level';
+
 /** Una salida por un borde: apunta a otra sala. Puede ser un id pelado
- *  ('tunel') o, si es de un solo sentido, un objeto { to, oneway:true }
- *  (p. ej. una caída sin retorno directo). Ver §4.4: todo one-way debe
- *  tener una ruta de vuelta alternativa, y el harness lo verifica. */
-export type Exit = string | { to: string; oneway?: boolean };
+ *  ('tunel') o un objeto con matices:
+ *    { to, oneway:true }        -> un solo sentido (caída sin retorno directo).
+ *    { to, requires:'glide' }   -> cruzar exige tener esa habilidad (gate de
+ *                                  región). El fixpoint (§4.5) lo verifica.
+ *  Ver §4.4: todo one-way debe tener una ruta de vuelta alternativa. */
+export type Exit = string | { to: string; oneway?: boolean; requires?: AbilityName };
 
 /** Las cuatro direcciones posibles de salida de una sala. */
 export interface Exits {
@@ -28,6 +32,11 @@ export function exitId(e: Exit): string {
 /** ¿La salida es de un solo sentido? (no exige salida inversa). */
 export function isOneWay(e: Exit): boolean {
   return typeof e === 'object' && !!e.oneway;
+}
+
+/** Qué habilidad exige cruzar esta salida (o null si es libre). */
+export function exitRequires(e: Exit): AbilityName | null {
+  return typeof e === 'object' && e.requires ? e.requires : null;
 }
 
 export interface RoomDef {

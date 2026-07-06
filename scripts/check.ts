@@ -6,6 +6,9 @@
 // a loadSave() -> localStorage. Sin esto el import revienta con
 // "document is not defined".
 
+import { gzipSync } from 'node:zlib';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
+
 function fakeGradient() {
   return { addColorStop() {} };
 }
@@ -72,8 +75,8 @@ g.AudioContext ??= class {
 const { World } = await import('../src/game/World.ts');
 const { Game } = await import('../src/game/Game.ts');
 const { ROOMS } = await import('../src/game/rooms/index.ts');
-const { exitId, isOneWay } = await import('../src/game/rooms/RoomDef.ts');
-const { Level } = await import('../src/game/Level.ts');
+const { exitId, isOneWay, exitRequires } = await import('../src/game/rooms/RoomDef.ts');
+const { Level, GATE_ABILITY } = await import('../src/game/Level.ts');
 
 let fallos = 0;
 const fail = (m: string) => {
@@ -238,10 +241,135 @@ for (const r of ROOMS)
   if (!w.allRooms.some((rm: any) => rm.level.doorBox)) fail('no hay puerta D');
 }
 
-// --- §4.5 fixpoint de habilidades: se implementa acá cuando existan las
-//     tablas GATE_ABILITY / REGION_ENTRY (P0.3 completo). Por ahora, sin
-//     gates, la conectividad del grafo ya garantiza el 100%.
+// --- §4.5 fixpoint de completitud: la ÚNICA garantía real de que el juego
+//     se puede terminar al 100% (la victoria exige TODOS los cristales).
+//
+//   kit = {}
+//   repetir hasta punto fijo:
+//     alcanzables = BFS desde ROOMS[0] cruzando SOLO salidas cuya
+//       habilidad-requerida (por Exit.requires o por un char-gate en el
+//       borde, según GATE_ABILITY) esté en kit.
+//     por cada reliquia en salas alcanzables: kit += esa habilidad.
+//   afirmar: con el kit final, TODA sala con cristal es alcanzable.
+//   afirmar: ningún gate bloquea el ÚNICO camino a la habilidad que lo abre
+//            (se desprende: si el fixpoint no llega a una reliquia, el
+//             assert de arriba falla).
+// Un grafo mínimo para el fixpoint: salas con salidas anotadas (id destino +
+// habilidades requeridas para cruzar) y las reliquias que da cada sala.
+interface FixNode {
+  id: string;
+  exits: { to: string; reqs: string[] }[];
+  relics: string[];
+}
+
+/** BFS desde `start` cruzando SOLO salidas cuyos reqs estén todos en `kit`. */
+function reachableWith(nodes: Record<string, FixNode>, start: string, kit: Set<string>): Set<string> {
+  const seen = new Set([start]);
+  const cola = [start];
+  while (cola.length) {
+    const cur = nodes[cola.shift()!];
+    if (!cur) continue;
+    for (const ex of cur.exits) {
+      if (!ex.reqs.every((a) => kit.has(a))) continue; // gate cerrado
+      if (!seen.has(ex.to)) {
+        seen.add(ex.to);
+        cola.push(ex.to);
+      }
+    }
+  }
+  return seen;
+}
+
+/** Corre el fixpoint: acumula reliquias de lo alcanzable hasta punto fijo y
+ *  devuelve el conjunto final de salas alcanzables con el kit completo. */
+function runFixpoint(nodes: Record<string, FixNode>, start: string): Set<string> {
+  const kit = new Set<string>();
+  const ids = Object.keys(nodes);
+  let reachable = reachableWith(nodes, start, kit);
+  for (let iter = 0; iter <= ids.length + 2; iter++) {
+    const before = kit.size;
+    for (const id of reachable) for (const ab of nodes[id]?.relics ?? []) kit.add(ab);
+    reachable = reachableWith(nodes, start, kit);
+    if (kit.size === before) break; // punto fijo
+  }
+  return reachable;
+}
+
+// --- Auto-test del fixpoint (datos sintéticos): confirma que detecta un
+//     cristal detrás de un gate que abre una reliquia (alcanzable) y que
+//     marca inalcanzable un cristal detrás de un gate SIN reliquia que lo abra.
+{
+  const nodes: Record<string, FixNode> = {
+    a: { id: 'a', exits: [{ to: 'b', reqs: [] }], relics: [] },
+    b: { id: 'b', exits: [{ to: 'c', reqs: ['glide'] }], relics: ['glide'] }, // b da glide
+    c: { id: 'c', exits: [], relics: [] }, // cristal detrás del gate glide
+    z: { id: 'z', exits: [], relics: [] }, // solo alcanzable tras 'gill' (nadie la da)
+  };
+  nodes.b.exits.push({ to: 'z', reqs: ['gill'] });
+  const reach = runFixpoint(nodes, 'a');
+  if (!reach.has('c')) fail('auto-test fixpoint: no alcanzó "c" tras conseguir glide (falso negativo)');
+  if (reach.has('z')) fail('auto-test fixpoint: alcanzó "z" sin la habilidad "gill" (falso positivo)');
+  if (reach.has('c') && !reach.has('z')) ok('auto-test del fixpoint (gate abre / gate imposible)');
+}
+
+// --- §4.5 fixpoint sobre el mundo real ---
+{
+  const world = new World();
+  const borderCells = (map: string[], dir: string): string[] => {
+    if (dir === 'up') return map[0].split('');
+    if (dir === 'down') return map[map.length - 1].split('');
+    const col = dir === 'right' ? map[0].length - 1 : 0;
+    return map.map((row) => row[col]);
+  };
+  // Construimos el grafo del fixpoint desde ROOMS + el mundo vivo.
+  const relicsByRoom: Record<string, string[]> = {};
+  const crystalsByRoom: Record<string, number> = {};
+  for (const rm of world.allRooms) {
+    relicsByRoom[rm.def.id] = rm.level.relicCells.map((c: any) => c.ability);
+    crystalsByRoom[rm.def.id] = rm.level.crystalCells.length;
+  }
+  const nodes: Record<string, FixNode> = {};
+  for (const r of ROOMS) {
+    const exits: { to: string; reqs: string[] }[] = [];
+    for (const d of DIRS) {
+      const e = r.exits?.[d];
+      if (!e) continue;
+      const reqs: string[] = [];
+      const direct = exitRequires(e);
+      if (direct) reqs.push(direct);
+      for (const ch of borderCells(r.map, d)) {
+        const gate = (GATE_ABILITY as Record<string, string>)[ch];
+        if (gate) reqs.push(gate);
+      }
+      exits.push({ to: exitId(e), reqs });
+    }
+    nodes[r.id] = { id: r.id, exits, relics: relicsByRoom[r.id] ?? [] };
+  }
+
+  const reachable = runFixpoint(nodes, ROOMS[0].id);
+  for (const r of ROOMS)
+    if ((crystalsByRoom[r.id] ?? 0) > 0 && !reachable.has(r.id))
+      fail(`fixpoint: la sala ${r.id} tiene cristal pero es inalcanzable con el kit completo`);
+  for (const rm of world.allRooms)
+    if (rm.level.doorBox && !reachable.has(rm.def.id))
+      fail(`fixpoint: la puerta (sala ${rm.def.id}) es inalcanzable con el kit completo`);
+}
+
 void Level;
+
+// --- Techo de bundle (§4.6): mide el gzip de dist/assets/*.js y falla si
+//     supera ~30 kB (hoy ~15). Detecta el crecimiento del arte-en-código
+//     dentro del loop, no a la mañana. Requiere que `npm run build` haya
+//     corrido antes (el hook lo hace; el pre-commit corre build && check).
+if (existsSync('dist/assets')) {
+  let tot = 0;
+  for (const f of readdirSync('dist/assets'))
+    if (f.endsWith('.js')) tot += gzipSync(readFileSync(`dist/assets/${f}`)).length;
+  if (tot > 30 * 1024) fail(`bundle gzip ${(tot / 1024).toFixed(1)}kB supera el techo de 30kB`);
+  else ok(`bundle gzip ${(tot / 1024).toFixed(1)}kB (techo 30kB)`);
+} else {
+  console.log('  · dist/assets ausente: corré "npm run build" para medir el bundle');
+}
 
 if (fallos) {
   console.error(`\nCHECK ROJO: ${fallos} fallo(s).`);

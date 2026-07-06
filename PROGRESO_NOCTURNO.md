@@ -64,3 +64,23 @@ El Plan.md asume rutas que en el repo real están corridas. Las adapté:
   el smoke de 20k pasos ejercita el code path en vivo.
 - **build**: verde (gzip 15.29 kB). **check**: VERDE (2 asserts).
 - Sigue: P0.3 (fixpoint de completitud + techo de bundle en el harness).
+
+## P0.3 — Fixpoint de completitud + techo de bundle  ✅
+
+- Metadatos de gate:
+  - `Exit.requires?: AbilityName` en RoomDef (gate de región a nivel de salida)
+    + helper `exitRequires()`.
+  - `GATE_ABILITY: Record<char, AbilityName>` exportado desde Level (gate a
+    nivel de char-tile; vacío por ahora, se llena en P2). Sumado a KNOWN_CHARS.
+- Harness — fixpoint (§4.5): `runFixpoint(nodes, start)` acumula reliquias de
+  lo alcanzable hasta punto fijo; una salida se cruza solo si TODOS sus reqs
+  (por `requires` o por char-gate en el borde) están en el kit. Afirma: toda
+  sala con cristal alcanzable con el kit completo, y la puerta también.
+- **Auto-test del fixpoint** con datos sintéticos: prueba el caso positivo
+  (cristal detrás de un gate que abre una reliquia -> alcanzable) y el negativo
+  (cristal detrás de un gate imposible -> detectado). Blinda la lógica.
+- Techo de bundle (§4.6): gzip de `dist/assets/*.js`, falla si > 30 kB. Hoy
+  reporta **14.9 kB**.
+- **build**: verde. **check**: VERDE (smoke, whitelist, auto-test fixpoint,
+  bundle + grafo/gaps/one-way/fixpoint-real en silencio).
+- **El harness del CORE está completo.** Sigue: P0.4 (bioma + paletas).
