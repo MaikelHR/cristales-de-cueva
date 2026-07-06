@@ -289,6 +289,18 @@ export const sprites = {
   lava2: new Sprite(LAVA_2, PALETTE),
 };
 
+/** Grillas crudas + paleta, SOLO para herramientas de depuración (el
+ *  visualizador `npm run viz` las re-hornea a PNG). No lo usa el juego. */
+export const SPRITE_GRIDS: Record<string, string[]> = {
+  playerIdle: PLAYER_IDLE, playerRun1: PLAYER_RUN1, playerJump: PLAYER_JUMP, playerFall: PLAYER_FALL,
+  slime1: SLIME_1, flyer1: FLYER_1, chaser1: CHASER_1,
+  crystal: CRYSTAL_1, relic: RELIC_1, heartFull: HEART_FULL,
+  doorLocked: DOOR_LOCKED, doorOpen: DOOR_OPEN,
+  spike: SPIKE, lava1: LAVA_1,
+  tileFill: TILE_FILL, tileTop: TILE_TOP, plank: TILE_PLANK,
+};
+export const SPRITE_PALETTE = PALETTE;
+
 // ============================================================
 //  BIOMAS — identidad visual por región
 // ------------------------------------------------------------

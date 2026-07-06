@@ -19,7 +19,7 @@ gg.localStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {}
 gg.window = gg; gg.performance ??= { now: () => 0 }; gg.requestAnimationFrame ??= () => 0;
 
 const { ROOMS } = await import('../src/game/rooms/index.ts');
-const { BIOMES } = await import('../src/game/art.ts');
+const { BIOMES, SPRITE_GRIDS, SPRITE_PALETTE } = await import('../src/game/art.ts');
 
 // --- Codificador PNG mínimo (RGBA, sin filtros) ---
 function crc32(buf: Uint8Array): number {
@@ -154,5 +154,34 @@ for (const room of ROOMS) {
   writeFileSync(`${OUT}/_mundo.png`, encodePNG(W, H, rgba));
   console.log(`  -> ${OUT}/_mundo.png (montaje del mundo ${W}x${H})`);
   void CELLW;
+}
+
+// --- Hoja de SPRITES: re-horneamos cada grilla con la paleta y las montamos en
+//     una grilla para verlas grandes (escala 6, fondo violeta oscuro).
+{
+  const names = Object.keys(SPRITE_GRIDS);
+  const SC = 6, PAD = 6, COLS = 6, CELL = 18 * SC + PAD; // 18 = alto máx de sprite
+  const rowsN = Math.ceil(names.length / COLS);
+  const W = COLS * CELL, H = rowsN * CELL;
+  const rgba = new Uint8Array(W * H * 4);
+  for (let i = 0; i < W * H; i++) { rgba[i * 4] = 22; rgba[i * 4 + 1] = 12; rgba[i * 4 + 2] = 40; rgba[i * 4 + 3] = 255; }
+  const pal = SPRITE_PALETTE as Record<string, string>;
+  names.forEach((name, idx) => {
+    const grid = SPRITE_GRIDS[name];
+    const gx = (idx % COLS) * CELL + PAD / 2, gy = Math.floor(idx / COLS) * CELL + PAD / 2;
+    for (let r = 0; r < grid.length; r++) for (let c = 0; c < grid[r].length; c++) {
+      const col = pal[grid[r][c]];
+      if (!col) continue; // '.' transparente
+      const [rr, gg2, bb] = hex(col);
+      for (let dy = 0; dy < SC; dy++) for (let dx = 0; dx < SC; dx++) {
+        const x = gx + c * SC + dx, y = gy + r * SC + dy;
+        if (x >= W || y >= H) continue;
+        const i = (Math.floor(y) * W + Math.floor(x)) * 4;
+        rgba[i] = rr; rgba[i + 1] = gg2; rgba[i + 2] = bb; rgba[i + 3] = 255;
+      }
+    }
+  });
+  writeFileSync(`${OUT}/_sprites.png`, encodePNG(W, H, rgba));
+  console.log(`  -> ${OUT}/_sprites.png (${names.length} sprites)`);
 }
 console.log('listo');
