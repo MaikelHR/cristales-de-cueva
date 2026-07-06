@@ -65,4 +65,16 @@ export const sfx = {
       playTone({ freq, duration: 0.16, type: 'triangle', volume: 0.14, delay: i * 0.12 });
     });
   },
+
+  /** Quemarse/pincharse con un hazard: siseo áspero y grave. */
+  hazard(): void {
+    playTone({ freq: 180, freqEnd: 60, duration: 0.2, type: 'sawtooth', volume: 0.14 });
+    playTone({ freq: 90, duration: 0.12, type: 'square', volume: 0.1, delay: 0.02 });
+  },
+
+  /** Entrar al mapa: dos toques suaves y cristalinos. */
+  map(): void {
+    playTone({ freq: 660, duration: 0.06, type: 'triangle', volume: 0.1 });
+    playTone({ freq: 990, duration: 0.08, type: 'triangle', volume: 0.08, delay: 0.05 });
+  },
 };

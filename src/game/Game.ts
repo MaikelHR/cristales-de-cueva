@@ -356,6 +356,7 @@ export class Game {
     // mientras mirás el mapa. Volver a pulsar M —o pausa— lo cierra.
     if (justPressed('map')) {
       this.mapOpen = !this.mapOpen;
+      sfx.map();
     }
     if (this.mapOpen) {
       if (justPressed('pause')) this.mapOpen = false; // pausa también lo cierra
@@ -484,7 +485,9 @@ export class Game {
     // Hazards estáticos del terreno (púas, lava): dañan al tocarlos.
     for (const hz of room.level.hazardTilesIn(pbox)) {
       if (overlaps(pbox, hz)) {
+        const before = this.player.health;
         this.hurtPlayer(hz.x + hz.w / 2);
+        if (this.player.health < before) sfx.hazard(); // sonó el golpe: siseo extra
         break;
       }
     }
