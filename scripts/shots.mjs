@@ -134,9 +134,11 @@ async function main() {
       i++;
     }
 
-    // ---- 3) Overlay del mapa (M) ----
+    // ---- 3) Overlay del mapa (M) — con TODAS las salas visitadas, para
+    //     fotografiar el mapa como lo ve un jugador que ya exploró (no 1 celda).
     await page.evaluate(() => {
       window.__game.__debug.warp(window.__game.__debug.rooms()[0], true);
+      window.__game.__debug.visitAll();
       window.__game.__debug.setMapOpen(true);
     });
     await settle(20);

