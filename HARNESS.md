@@ -27,12 +27,20 @@ Correcto ≠ bueno. Un pasillo vacío es transitable, completable y feo.
 | **Corrección** | crashes, grafo roto, gates decorativos, incompletable, idioma | `npm run check` | ✅ sí (hook pre-commit) |
 | **Física / feel** | saltos que se sienten mal, abismos imposibles, soft-locks | `npm run check` (incluye `feel.ts`) | ✅ sí |
 | **Métricas de diseño** | "cajas vacías": densidad baja, aire muerto, sin estructura | `npm run check` (incluye `metrics.ts`) | ✅ sí (solo lo roto de verdad; el resto avisa) |
-| **Visión (arte + diseño + gusto)** | arte pobre, salas mal compuestas, HUD que estorba, móvil roto | `npm run shots` + `/revisar-calidad` | ⚠️ on-demand, **obligatoria** en el flujo de creación |
+| **Alcanzabilidad** | plataforma-isla con cristal ("no se puede pasar") | `npm run check` (incluye `reach.ts`) | ✅ sí |
+| **Visión (arte + diseño + gusto)** | arte pobre, salas mal compuestas, HUD que estorba, móvil roto | `npm run shots` + `/revisar-calidad` + agentes | ⚠️ on-demand, **obligatoria** en el flujo de creación |
 
-Las tres primeras son deterministas y baratas → corren en **cada commit**. La
-cuarta cuesta una llamada a un modelo con visión → es on-demand, pero es la
+Las cuatro primeras son deterministas y baratas → corren en **cada commit**. La
+última cuesta una llamada a un modelo con visión → es on-demand, pero es la
 puerta que hay que cruzar **sí o sí** antes de dar por buena una pieza de
 contenido (`/crear-contenido` la fuerza; ver abajo).
+
+### Agentes del proyecto (`.claude/agents/`)
+Multi-agente: **`game-designer`** (diseña salas como niveles pensados, edita),
+**`level-critic`** (crítico adversarial de diseño read-only: ¿nivel o bloques
+spammeados?, ¿todo transitable?), **`art-director`** (legibilidad read-only),
+**`harness-engineer`** (construye/endurece el harness). Se invocan por nombre o
+`@agent-<nombre>`.
 
 ---
 
@@ -61,6 +69,21 @@ El harness headless de siempre, ahora con dos módulos nuevos:
   enorme, poca variedad) que no bloquean pero delatan las cajas vacías. Hoy la
   tabla ya muestra el problema: `entrada` 84% aire / 40% muerto, `santuario`
   densidad 0.38 — exactamente las salas flojas del run nocturno.
+- **`scripts/reach.ts`** — el fixpoint ve el grafo de SALAS; esto ve DENTRO de
+  una sala. Grafo geométrico de alcanzabilidad de plataformas calibrado con el
+  alcance medido del kit (sube ~8 celdas, cruza ~14, trepa una pared pegada al
+  destino con wall-jump). BFS desde el piso principal; falla si un cristal o
+  reliquia queda sobre una plataforma-isla ("no se puede pasar"). Conservador al
+  marcar (sobre generoso) para no falso-rechazar; con auto-test (conectada ok /
+  isla detectada).
+
+### `npm run rooms` — linter de forma de salas (ayuda de autoría)
+Editar ASCII a mano desalinea bordes o deja una fila con un char de más/menos.
+`rooms` da un panorama de todas las salas (dims, filas de ancho erróneo con el
+índice exacto, estado de bordes, conteo de contenido y cristales). Corrélo tras
+CADA edición de un mapa; atrapa el error al instante, antes de `check`. Para
+salas nuevas o rediseños grandes conviene **generar el ASCII con un script**
+(coords → mapa) en vez de tipear a mano: garantiza ancho/alto y bordes.
 
 ### `npm run shots` — el juego REAL en fotos (la pieza clave)
 Arranca el juego real en un Chromium headless (`vite dev`, así se expone el
@@ -93,7 +116,7 @@ debe usar este flujo (o replicarlo), no ir tacheando una lista a ciegas.
 
 ---
 
-## Para un agente que trabaja solo (p. ej. de noche)
+## Para un agente que trabaja solo
 
 1. Trabajá en una rama `feat/*`, nunca en `main`/`slop`.
 2. Para cada pieza de contenido, seguí `/crear-contenido`. No saltees el paso de
