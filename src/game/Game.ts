@@ -625,7 +625,7 @@ export class Game {
     this.drawPopups(ctx, camX, camY);
 
     drawFog(ctx, camX, this.viewW, this.viewH, this.time, biome);
-    drawDust(ctx, this.viewW, this.viewH, this.time, 1 / 60);
+    drawDust(ctx, this.viewW, this.viewH, this.time, 1 / 60, biome);
     drawVignette(ctx, this.viewW, this.viewH);
 
     // El HUD (corazones, contador, minimapa) solo mientras se juega o al ganar.

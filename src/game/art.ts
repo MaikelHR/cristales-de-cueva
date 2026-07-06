@@ -621,9 +621,10 @@ export function initDust(viewW: number, viewH: number): void {
       size: rng() < 0.3 ? 2 : 1,
     });
   }
-  // Brasas: pocas motas doradas con halo que suben lento.
+  // Brasas/esporas: motas con halo que suben lento. El pool es fijo (9); cada
+  // bioma muestra cuántas quiere (AMBIENT.count).
   embers = [];
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < 9; i++) {
     embers.push({
       x: rng() * viewW,
       y: rng() * viewH,
@@ -633,28 +634,44 @@ export function initDust(viewW: number, viewH: number): void {
   }
 }
 
+// Partículas de aire por bioma: color del glow de las brasas/esporas, color
+// de su núcleo, color del polvo fino y cuántas brasas mostrar. Le da a cada
+// región su "aire" propio (brasas en las forjas, esporas en el jardín...).
+interface AmbientStyle { glow: string; core: string; dust: string; count: number; }
+const AMBIENT: Record<string, AmbientStyle> = {
+  motes:   { glow: '#ffcf6a', core: '#fff3c0', dust: 'rgba(214,247,255,0.5)', count: 5 },
+  embers:  { glow: '#ff8a3a', core: '#ffe0a0', dust: 'rgba(255,200,150,0.4)', count: 9 },
+  spores:  { glow: '#9cff7a', core: '#e0ffc8', dust: 'rgba(200,255,210,0.5)', count: 7 },
+  bubbles: { glow: '#8fe0ff', core: '#f5fcff', dust: 'rgba(190,230,255,0.5)', count: 6 },
+  heart:   { glow: '#8fe8ff', core: '#f5fcff', dust: 'rgba(220,250,255,0.55)', count: 6 },
+};
+
 export function drawDust(
   ctx: CanvasRenderingContext2D,
   viewW: number,
   viewH: number,
   time: number,
   dt: number,
+  biomeName?: string,
 ): void {
-  // Brasas doradas con glow (detrás del polvo fino)
-  for (const e of embers) {
+  const style = AMBIENT[biomeOf(biomeName).ambient] ?? AMBIENT.motes;
+  // Brasas/esporas con glow (detrás del polvo fino). Solo mostramos `count`.
+  for (let i = 0; i < embers.length; i++) {
+    const e = embers[i];
     e.y -= e.speed * dt;
     if (e.y < -4) {
       e.y = viewH + 4;
       e.x = (e.x * 1.31 + 29) % viewW;
     }
+    if (i >= style.count) continue;
     const ex = Math.round(e.x + Math.sin(time * 0.6 + e.phase) * 6);
     const ey = Math.round(e.y);
-    drawGlow(ctx, ex, ey, 5, '#ffcf6a', 0.45 + Math.sin(time * 3 + e.phase) * 0.2);
-    ctx.fillStyle = '#fff3c0';
+    drawGlow(ctx, ex, ey, 5, style.glow, 0.45 + Math.sin(time * 3 + e.phase) * 0.2);
+    ctx.fillStyle = style.core;
     ctx.fillRect(ex, ey, 1, 1);
   }
-  // Polvo fino
-  ctx.fillStyle = 'rgba(214, 247, 255, 0.5)';
+  // Polvo fino (tinte del bioma)
+  ctx.fillStyle = style.dust;
   for (const m of motes) {
     m.y -= m.speed * dt;
     if (m.y < -2) {
