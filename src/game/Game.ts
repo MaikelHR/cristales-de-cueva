@@ -11,7 +11,7 @@ import { Player } from './Player';
 import { Camera } from './Camera';
 import { Particles } from './Particles';
 import { World } from './World';
-import type { AbilityName } from './Level';
+import { TILE, type AbilityName } from './Level';
 import type { Enemy } from './entities/Enemy';
 import { justPressed, inputDevice, isTouchMode } from '../engine/input';
 import { overlaps, clamp, type Box } from '../engine/canvas';
@@ -94,6 +94,9 @@ export class Game {
   private announceText = '';
   private announceTimer = 0;
   private lastBiome = ''; // para anunciar el cambio de región
+  private loreShown = ''; // clave del último lore mostrado (para no repetir al toque)
+  private loreText = '';  // texto de tableta/NPC en pantalla
+  private loreTimer = 0;  // segundos que queda el texto de lore
 
   constructor(
     private viewW: number,
@@ -152,6 +155,27 @@ export class Game {
   /** ¿Hay una partida guardada a medio camino para continuar? */
   get hasProgress(): boolean {
     return !!this.save.progress;
+  }
+
+  /** Muestra el texto de una tableta/NPC al solaparte. Guarda la clave del
+   *  último mostrado para no re-dispararlo cada frame; se limpia al alejarte. */
+  private updateLore(room: World['current'], pbox: Box): void {
+    const lore = room.def.lore;
+    if (!lore) return;
+    let overlapping: string | null = null;
+    for (const l of lore) {
+      const lb: Box = { x: l.x * TILE - 4, y: l.y * TILE - 4, w: TILE + 8, h: TILE + 8 };
+      if (overlaps(pbox, lb)) {
+        overlapping = `${room.def.id}:${l.x},${l.y}`;
+        if (overlapping !== this.loreShown) {
+          this.loreText = l.text;
+          this.loreTimer = 4;
+          this.loreShown = overlapping;
+        }
+        break;
+      }
+    }
+    if (!overlapping) this.loreShown = ''; // te alejaste: la próxima vez re-dispara
   }
 
   /** Si entrás a un bioma distinto del anterior, muestra el banner de región
@@ -216,6 +240,8 @@ export class Game {
     this.deadFrozen = false;
     this.hitStop = 0;
     this.lastBiome = this.world.current.def.biome ?? 'eco'; // no anuncia el bioma inicial
+    this.loreShown = '';
+    this.loreTimer = 0;
     this.state = 'playing';
   }
 
@@ -365,6 +391,7 @@ export class Game {
     this.time += dt;
     this.runTime += dt; // el cronómetro solo corre mientras se juega de verdad
     this.announceTimer = Math.max(0, this.announceTimer - dt);
+    this.loreTimer = Math.max(0, this.loreTimer - dt);
     this.particles.update(dt);
     for (const p of this.popups) {
       p.y -= 16 * dt;
@@ -419,6 +446,10 @@ export class Game {
         this.persistProgress(); // autoguardado al recoger una reliquia
       }
     }
+
+    // Lore (tabletas / NPC): al solaparte, muestra su texto. Se re-dispara solo
+    // cuando salís y volvés (evita que parpadee mientras estás encima).
+    this.updateLore(room, pbox);
 
     // Contacto con enemigos: pisar desde arriba lo derrota; de costado
     // o desde abajo, te daña. También sus proyectiles (hazards) dañan.
@@ -583,6 +614,7 @@ export class Game {
 
     room.level.draw(ctx, camX, camY, this.viewW, this.viewH, biome, this.time);
     this.drawDoor(ctx, camX, camY);
+    this.drawLoreMarkers(ctx, camX, camY);
     this.drawCrystals(ctx, camX, camY);
     this.drawRelics(ctx, camX, camY);
     for (const e of room.enemies) {
@@ -600,6 +632,7 @@ export class Game {
     if (this.state !== 'title') {
       this.drawHud(ctx);
       this.drawMinimap(ctx);
+      this.drawLoreText(ctx);
     }
     if (this.state === 'won') this.drawWin(ctx);
     if (this.state === 'title') this.drawTitle(ctx);
@@ -634,6 +667,60 @@ export class Game {
       ctx.fillText(gp ? 'Y para reiniciar' : 'R para reiniciar', cx, this.viewH / 2 + 20);
     }
     ctx.textAlign = 'left';
+  }
+
+  /** Dibuja en el mundo los marcadores de lore: una figurita cristalina para
+   *  el NPC guía, o una tableta grabada con halo tenue para las tabletas. */
+  private drawLoreMarkers(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {
+    const lore = this.world.current.def.lore;
+    if (!lore) return;
+    for (const l of lore) {
+      const x = l.x * TILE - camX;
+      const y = l.y * TILE - camY;
+      const bob = Math.sin(this.time * 2 + l.x) * 1.2;
+      if (l.npc) {
+        // Guía: un ser de cristal pequeño y sereno (violeta claro), con halo.
+        drawGlow(ctx, x + 4, y + 4 + bob, 12, '#b98bff', 0.4 + Math.sin(this.time * 3) * 0.12);
+        ctx.fillStyle = '#d6b8ff';
+        ctx.fillRect(Math.round(x + 2), Math.round(y + bob), 4, 4);      // cabeza
+        ctx.fillStyle = '#a479e0';
+        ctx.fillRect(Math.round(x + 1), Math.round(y + 4 + bob), 6, 5);  // cuerpo
+        ctx.fillStyle = '#f5ecff';
+        ctx.fillRect(Math.round(x + 2), Math.round(y + 1 + bob), 1, 1);  // destello ojo
+      } else {
+        // Tableta: una losa grabada con runas que laten suave.
+        drawGlow(ctx, x + 4, y + 4, 10, '#7ce0ff', 0.25 + Math.sin(this.time * 2 + l.y) * 0.1);
+        ctx.fillStyle = '#3a2f52';
+        ctx.fillRect(Math.round(x), Math.round(y), 8, 9);
+        ctx.fillStyle = '#5f4f80';
+        ctx.fillRect(Math.round(x + 1), Math.round(y + 1), 6, 7);
+        ctx.fillStyle = '#9fd6ff';
+        ctx.fillRect(Math.round(x + 2), Math.round(y + 2), 4, 1);
+        ctx.fillRect(Math.round(x + 2), Math.round(y + 4), 3, 1);
+        ctx.fillRect(Math.round(x + 2), Math.round(y + 6), 4, 1);
+      }
+    }
+  }
+
+  /** Panel de texto de lore (abajo, centrado): tono contemplativo, con fade. */
+  private drawLoreText(ctx: CanvasRenderingContext2D): void {
+    if (this.loreTimer <= 0 || !this.loreText) return;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, this.loreTimer);
+    const cx = this.viewW / 2;
+    const y = this.viewH - 30;
+    // Fondo semitransparente para legibilidad.
+    ctx.fillStyle = 'rgba(11,6,20,0.72)';
+    const w = Math.min(this.viewW - 16, this.loreText.length * 5 + 16);
+    ctx.fillRect(cx - w / 2, y - 8, w, 16);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '8px "JetBrains Mono", ui-monospace, monospace';
+    ctx.fillStyle = '#c7b8e6';
+    ctx.fillText(this.loreText, cx, y);
+    ctx.restore();
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
   }
 
   /** Mapa completo (tecla M): overlay que revela las salas visitadas en su

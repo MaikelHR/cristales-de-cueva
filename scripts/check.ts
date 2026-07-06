@@ -79,6 +79,9 @@ const { exitId, isOneWay, exitRequires } = await import('../src/game/rooms/RoomD
 const { Level, GATE_ABILITY } = await import('../src/game/Level.ts');
 const input = await import('../src/engine/input.ts');
 const { loadSave, writeSave, PROGRESS_VERSION } = await import('../src/game/save.ts');
+const { Player } = await import('../src/game/Player.ts');
+const { Particles } = await import('../src/game/Particles.ts');
+const { TILE } = await import('../src/game/Level.ts');
 const { Spore } = await import('../src/game/entities/Spore.ts');
 const { Fundidor } = await import('../src/game/entities/Fundidor.ts');
 
@@ -375,6 +378,66 @@ for (const r of ROOMS)
   const w = new World();
   if (w.allCrystals.length <= 0) fail('no hay cristales');
   if (!w.allRooms.some((rm: any) => rm.level.doorBox)) fail('no hay puerta D');
+}
+
+// --- Alcanzabilidad desde el SPAWN (§4.6, guardia dura): maneja al Player REAL
+//     desde el punto de aparición de la sala inicial y confirma que llega a
+//     CADA borde de salida. Atrapa el "spawn encerrado" que ni el grafo ni la
+//     alineación de huecos ven (reachability interna).
+{
+  const spawnRoom = ROOMS[0];
+  const lvl: any = new (await import('../src/game/Level.ts')).Level(spawnRoom.map);
+  // Bordes de salida a alcanzar (en px, centro del hueco).
+  const targets: { dir: string; x: number; y: number }[] = [];
+  const openSpan = (cells: number[]) => (cells.length ? cells[Math.floor(cells.length / 2)] : -1);
+  for (const d of DIRS) {
+    if (!spawnRoom.exits?.[d]) continue;
+    if (d === 'right') targets.push({ dir: d, x: lvl.widthPx - TILE, y: 0 });
+    else if (d === 'left') targets.push({ dir: d, x: TILE, y: 0 });
+    else if (d === 'up') {
+      const cols: number[] = [];
+      for (let c = 0; c < lvl.cols; c++) if (spawnRoom.map[0][c] !== '#') cols.push(c);
+      targets.push({ dir: d, x: openSpan(cols) * TILE, y: TILE });
+    } else {
+      const cols: number[] = [];
+      const last = spawnRoom.map[spawnRoom.map.length - 1];
+      for (let c = 0; c < lvl.cols; c++) if (last[c] !== '#') cols.push(c);
+      targets.push({ dir: d, x: openSpan(cols) * TILE, y: lvl.heightPx - TILE });
+    }
+  }
+  const makeRng = (seed: number) => { let s = seed; return () => ((s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff); };
+  // ¿Se alcanza un target deambulando con kit completo? (muchas semillas)
+  const canReach = (tx: number, ty: number): boolean => {
+    for (let seed = 1; seed <= 60; seed++) {
+      const p: any = new Player(lvl, new Particles() as any);
+      p.abilities.doubleJump = true; p.abilities.wallJump = true; p.abilities.dash = true; p.abilities.glide = true;
+      input.releaseAll();
+      p.x = lvl.playerSpawn.x + 1; p.y = lvl.playerSpawn.y;
+      const rng = makeRng(seed * 2654435761);
+      let dir = 1;
+      for (let i = 0; i < 2200; i++) {
+        if (i % 24 === 0) dir = rng() < 0.5 ? -1 : 1;
+        input.touchButton('left', dir < 0); input.touchButton('right', dir > 0);
+        input.touchButton('jump', rng() < 0.6);
+        input.touchButton('dash', rng() < 0.08);
+        p.update(1 / 60); input.endStep();
+        // Cerca del target (a media altura no importa para bordes horizontales).
+        const nearX = Math.abs(p.x + p.w / 2 - tx) < TILE;
+        const nearY = ty === 0 ? true : Math.abs(p.y + p.h / 2 - ty) < TILE * 2;
+        if (nearX && nearY) { input.releaseAll(); return true; }
+        if (p.y > lvl.heightPx + 20) { p.x = lvl.playerSpawn.x + 1; p.y = lvl.playerSpawn.y; p.vy = 0; }
+      }
+      input.releaseAll();
+    }
+    return false;
+  };
+  let reached = 0;
+  for (const t of targets) {
+    if (canReach(t.x, t.y)) reached++;
+    else fail(`spawn: no se alcanza la salida ${t.dir} desde el punto de aparición (encerrado?)`);
+  }
+  if (reached === targets.length && targets.length > 0)
+    ok(`spawn: se alcanzan las ${targets.length} salidas desde el punto de aparición`);
 }
 
 // --- §4.5 fixpoint de completitud: la ÚNICA garantía real de que el juego

@@ -9,6 +9,9 @@ export const forjas: RoomDef = {
   mapPos: { x: 7, y: 6 },
   biome: 'forjas',
   exits: { up: 'santuario' },
+  lore: [
+    { x: 10, y: 19, text: 'Las venas de fuego se enfriaron y se partieron. Todavía muerden.' },
+  ],
   map: [
     '####^^##################################################',
     '#..#^^#................................................#',

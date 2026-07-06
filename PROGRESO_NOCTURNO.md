@@ -292,3 +292,22 @@ intacto. 100% completable. Diario al día.
   (fila 7), donde el jugador sí muestrea la corriente.
 - `PROGRESS_VERSION` -> 3 (cambió santuario + sala nueva).
 - **build**: verde (gzip 19.7 kB). **check**: VERDE (fixpoint 100% completable).
+
+## P2.b — Lore (NPC + tabletas) + FIX de spawn encerrado + guardia nueva  ✅
+
+- **BUG CRÍTICO encontrado y arreglado:** al generar `entrada` en P1.c, el spawn
+  quedó en el nicho izquierdo (cols 1-4), sellado por la pared del tiro de
+  viento (col 5). El jugador aparecía ENCERRADO -> juego injugable desde el
+  frame 1. Ni el fixpoint ni la alineación de huecos lo veían (es alcanzabilidad
+  INTERNA desde el spawn). Lo confirmé con una sonda y lo arreglé: spawn movido
+  al piso principal + boca en la pared derecha del tiro para entrar/salir.
+- **Guardia nueva en el harness (§4.6):** maneja al Player REAL desde el punto
+  de aparición (kit completo, 60 semillas) y afirma que alcanza CADA borde de
+  salida. Esta clase de bug ahora se atrapa sola. Verde (2 salidas alcanzadas).
+- **Lore (§5):** array `lore` opcional en RoomDef ({x,y,text,npc}). Sin chars de
+  mapa nuevos. Al solaparte aparece un texto con fade (panel abajo); se
+  re-dispara solo al alejarte y volver.
+  - NPC guía cerca del spawn (figurita de cristal con halo, 2 toques de intro).
+  - Tabletas (losa grabada con runas) en Jardín y Forjas, tono contemplativo.
+- `PROGRESS_VERSION` -> 4 (spawn reubicado + lore).
+- **build**: verde (gzip 20.4 kB). **check**: VERDE (spawn + fixpoint + todo).

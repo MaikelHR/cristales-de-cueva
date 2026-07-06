@@ -39,6 +39,16 @@ export function exitRequires(e: Exit): AbilityName | null {
   return typeof e === 'object' && e.requires ? e.requires : null;
 }
 
+/** Un marcador de lore: al solaparte con él aparece un texto contemplativo.
+ *  Coordenadas en CELDAS (se multiplican por TILE). `npc:true` dibuja además
+ *  una figurita (el guía cerca del spawn). */
+export interface Lore {
+  x: number;
+  y: number;
+  text: string;
+  npc?: boolean;
+}
+
 export interface RoomDef {
   /** Nombre único; las salidas de otras salas apuntan a este id. */
   id: string;
@@ -50,4 +60,6 @@ export interface RoomDef {
   mapPos: { x: number; y: number };
   /** Bioma al que pertenece (define paleta/atmósfera). Por defecto 'eco' (hub). */
   biome?: string;
+  /** Marcadores de lore (tabletas / NPC guía). Opcional. */
+  lore?: Lore[];
 }

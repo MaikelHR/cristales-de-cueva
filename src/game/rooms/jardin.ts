@@ -11,6 +11,9 @@ export const jardin: RoomDef = {
   biome: 'jardin',
   // La salida derecha pide glide (el abismo la protege); el fixpoint lo checkea.
   exits: { down: 'entrada', right: { to: 'jardin_alto', requires: 'glide' } },
+  lore: [
+    { x: 24, y: 19, text: 'Las esporas respiran donde el viento las deja. Aprendé a soltarte.' },
+  ],
   map: [
     '################################################################',
     '#....#^^^#.....................................................#',
