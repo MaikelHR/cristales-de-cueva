@@ -38,6 +38,9 @@ initTouchControls(canvas);
 if (import.meta.env.DEV) {
   (window as unknown as { __game: Game }).__game = game;
   (window as unknown as { __sprites: typeof sprites }).__sprites = sprites;
+  // El harness de capturas (scripts/shots.mjs) usa __game.__debug para llevar
+  // el juego real a cualquier sala/estado y fotografiarlo con los sprites, la
+  // luz y la atmósfera de verdad — lo único que revela el arte malo.
 }
 
 // Footer de controles adaptativo: muestra teclas o botones según el

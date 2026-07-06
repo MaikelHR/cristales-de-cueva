@@ -624,8 +624,30 @@ if (existsSync('dist/assets')) {
   console.log('  · dist/assets ausente: corré "npm run build" para medir el bundle');
 }
 
+// --- Sonda de FÍSICA / FEEL (scripts/feel.ts): conduce al Player REAL por la
+//     física real y mide alto de salto, dash, planeo, coyote; y prueba que cada
+//     abismo de cada sala sea franqueable con el kit correcto. Lo que el smoke
+//     (que solo probaba "no revienta") nunca vio. Bloquea el commit.
+{
+  const { runFeel } = await import('./feel.ts');
+  await runFeel(fail, ok);
+}
+
+// --- MÉTRICAS DE DISEÑO (scripts/metrics.ts): cuantifican la composición de
+//     cada sala (densidad, aire muerto, plataformas, variedad) y marcan las
+//     "cajas vacías". Hard-fail solo lo roto de verdad; el resto son avisos que
+//     cierra /revisar-calidad. Bloquea el commit ante una sala hueca.
+{
+  const { runMetrics } = await import('./metrics.ts');
+  await runMetrics(fail, ok);
+}
+
 if (fallos) {
   console.error(`\nCHECK ROJO: ${fallos} fallo(s).`);
   process.exit(1);
 }
 console.log('\nCHECK VERDE');
+console.log(
+  '\nNota: `check` prueba CORRECCIÓN y feel/composición medibles, NO gusto. ' +
+    'Para juzgar arte y diseño mirá el juego real: `npm run shots` + `/revisar-calidad`.',
+);

@@ -203,6 +203,57 @@ export class Game {
     return { state: this.state, paused: this.paused };
   }
 
+  /** Gancho de PRUEBA (solo dev): deja al harness de capturas conducir el juego
+   *  real a una sala/estado concreto para fotografiarlo. NO es parte del juego;
+   *  se crea SOLO bajo import.meta.env.DEV (así Vite lo elimina del bundle de
+   *  producción) y main.ts solo lo expone en dev. Sin esto, una foto de una
+   *  sala interna exigiría jugarla entera, y el arte que nunca se ve es
+   *  justamente el que sale mal (ver la lección del run nocturno).
+   *
+   *  warp(id, abilities?): entra a 'playing', te lleva a la sala `id`, te da las
+   *  habilidades pedidas (o todas si es true) y te coloca en su spawn con vida
+   *  llena. Marca la sala como visitada (para el mapa). */
+  readonly __debug?: {
+    warp: (roomId: string, abilities?: AbilityName[] | true) => void;
+    settle: (frames?: number) => void;
+    setState: (s: State) => void;
+    setMapOpen: (open: boolean) => void;
+    rooms: () => string[];
+  } = (import.meta.env && import.meta.env.DEV)
+    ? {
+        warp: (roomId: string, abilities?: AbilityName[] | true): void => {
+          this.reset(); // estado fresco de 'playing'
+          const abis =
+            abilities === true
+              ? (Object.keys(this.player.abilities) as AbilityName[])
+              : (abilities ?? []);
+          for (const a of abis) if (a in this.player.abilities) this.player.abilities[a] = true;
+          if (this.world.hasRoom(roomId)) {
+            this.world.goTo(roomId);
+            this.player.setLevel(this.world.current.level);
+            this.player.respawn();
+            this.player.health = this.player.maxHealth;
+            this.visited.add(roomId);
+            this.checkpoint = { roomId, x: this.player.x, y: this.player.y };
+            this.lastBiome = this.world.current.def.biome ?? 'eco';
+            this.makeCamera();
+          }
+        },
+        // Simula N pasos de física a 60 fps sin input: el mundo “asienta”
+        // (enemigos en pose, cámara centrada) antes de una foto.
+        settle: (frames = 30): void => {
+          for (let i = 0; i < frames; i++) this.update(1 / 60);
+        },
+        setState: (s: State): void => {
+          this.state = s;
+        },
+        setMapOpen: (open: boolean): void => {
+          this.mapOpen = open;
+        },
+        rooms: (): string[] => this.world.allRooms.map((r) => r.def.id),
+      }
+    : undefined;
+
   private get collected(): number {
     return this.world.allCrystals.filter((c) => c.taken).length;
   }

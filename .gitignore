@@ -8,4 +8,7 @@ dist
 .idea
 scripts/.check.mjs
 scripts/.visualize.mjs
+scripts/.feel.mjs
+scripts/.metrics.mjs
 .viz
+.shots
