@@ -1,8 +1,9 @@
 // ============================================================
 //  PUNTO DE ENTRADA
 // ------------------------------------------------------------
-//  Crea el canvas, el juego y arranca el bucle. Todo lo demás
-//  vive en /engine (motor reutilizable) y /game (este juego).
+//  Crea el canvas, la sesión y las escenas, y arranca el bucle.
+//  Todo lo demás vive en /engine (motor reutilizable) y /game
+//  (este juego): la sesión es el estado, las escenas el flujo.
 // ============================================================
 
 // El CSS ya no se importa acá: se enlaza desde index.html (<link> en el
@@ -12,8 +13,11 @@ import { setupContext } from './engine/canvas';
 import { initInput, endStep, pollGamepad, inputDevice, type InputDevice } from './engine/input';
 import { initAudio } from './engine/audio';
 import { startLoop } from './engine/loop';
-import { Game } from './game/Game';
-import { sprites } from './game/art';
+import { GameSession } from './game/session';
+import { SceneManager } from './game/scenes/Scene';
+import { TitleScene } from './game/scenes/TitleScene';
+import { sprites } from './game/art/sprites';
+import { debug } from './game/debug';
 import { initTouchControls, syncTouchUI } from './game/touch';
 import { t, getLang, onLangChange } from './game/i18n';
 import { initLangSwitch, syncLangSwitch } from './game/langSwitch';
@@ -28,18 +32,35 @@ const ctx = setupContext(canvas);
 
 initInput();
 initAudio();
-const game = new Game(VIEW_W, VIEW_H);
+const session = new GameSession(VIEW_W, VIEW_H);
+const scenes = new SceneManager();
+scenes.replace(new TitleScene(session, scenes));
 
 // Controles táctiles: solo se activan en dispositivos con puntero grueso
 // (móvil/tablet). En escritorio no construye nada ni altera el layout.
 initTouchControls(canvas);
 
-// Gancho de depuración: con la consola del navegador abierta (F12)
-// podés inspeccionar el juego en vivo, p. ej. `__game.player.vy`.
-// Solo existe en desarrollo: el build de producción no lo incluye.
+// Ganchos de depuración: con la consola del navegador abierta (F12)
+// podés inspeccionar el juego en vivo, p. ej. `__game.player.vy`,
+// prender `__debug.hitboxes = true` o saltar con `__debug.warp('tunel')`.
+// Solo existen en desarrollo: el build de producción no los incluye.
 if (import.meta.env.DEV) {
-  (window as unknown as { __game: Game }).__game = game;
-  (window as unknown as { __sprites: typeof sprites }).__sprites = sprites;
+  const dev = window as unknown as Record<string, unknown>;
+  dev.__game = session;
+  dev.__scenes = scenes;
+  dev.__sprites = sprites;
+  dev.__debug = Object.assign(debug, {
+    warp(id: string): void {
+      const room = session.world.get(id);
+      session.world.goTo(id);
+      session.player.setLevel(room.level);
+      const spawn = room.playerSpawn ?? { x: 16, y: 16 };
+      session.player.respawnAt(spawn.x + 1, spawn.y);
+      session.makeCamera();
+      session.visited.add(id);
+      session.saveCheckpoint();
+    },
+  });
 }
 
 // Footer de controles adaptativo: muestra teclas o botones según el
@@ -84,20 +105,26 @@ initLangSwitch();
 localizeChrome();
 onLangChange(localizeChrome);
 
+/** El estado de la escena activa más lo que la UI táctil necesita saber. */
+function uiState() {
+  return { ...scenes.ui, hasDash: session.player.abilities.dash };
+}
+
 // Primer frame ya pintado antes de arrancar el bucle: el canvas nunca se
 // muestra vacío esperando al primer requestAnimationFrame.
-game.draw(ctx);
+scenes.draw(ctx);
 
 startLoop(
   (dt) => {
     pollGamepad(); // leer el estado del control antes de actualizar el juego
-    game.update(dt);
+    scenes.update(dt);
     syncControls();
     endStep(); // limpiar "recién presionado" después de cada paso de lógica
   },
   () => {
-    game.draw(ctx);
-    syncTouchUI(game.ui); // reflejar el estado del juego en la UI táctil
-    syncLangSwitch(game.ui); // mostrar/ocultar el selector de idioma según el estado
+    scenes.draw(ctx);
+    const ui = uiState();
+    syncTouchUI(ui); // reflejar el estado del juego en la UI táctil
+    syncLangSwitch(ui); // mostrar/ocultar el selector de idioma según el estado
   },
 );

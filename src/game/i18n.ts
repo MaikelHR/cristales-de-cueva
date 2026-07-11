@@ -157,8 +157,9 @@ function detect(): Lang {
   } catch {
     // localStorage bloqueado: seguimos con la detección del navegador.
   }
-  const nav = (navigator.language || 'es').toLowerCase();
-  return nav.startsWith('es') ? 'es' : 'en';
+  // typeof-guard: en Node (tests) no hay navigator y este módulo igual carga.
+  const nav = (typeof navigator !== 'undefined' && navigator.language) || 'es';
+  return nav.toLowerCase().startsWith('es') ? 'es' : 'en';
 }
 
 let current: Lang = detect();

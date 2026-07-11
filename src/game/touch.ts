@@ -21,14 +21,11 @@
 
 import { touchButton, releaseAll, setDevice, setTouchMode } from '../engine/input';
 import { t, onLangChange } from './i18n';
+import type { UiState } from './scenes/Scene';
 
 /** Estado de interfaz que nos pasa el juego para decidir qué mostrar.
  *  `hasDash` indica si ya se desbloqueó el dash (para mostrar su botón). */
-type TouchUI = {
-  state: 'title' | 'playing' | 'won' | 'gameover';
-  paused: boolean;
-  hasDash: boolean;
-};
+type TouchUI = UiState & { hasDash: boolean };
 
 /** Modo de visibilidad del mando; el CSS decide qué se ve en cada uno. */
 type TouchMode = 'play' | 'paused' | 'menu';

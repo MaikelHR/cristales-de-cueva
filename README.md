@@ -66,13 +66,26 @@ GitHub Pages.
 ## Cómo está armado
 
 - `src/engine/` — motor reutilizable (bucle de paso fijo, entrada teclado+gamepad,
-  canvas/colisiones, `Sprite`, audio). No sabe nada de "cristales".
-- `src/game/` — este juego en concreto: jugador, mundo, salas, enemigos, cámara y reglas.
-- Las **salas** son texto ASCII en `src/game/rooms/` (un archivo por sala). Editá una,
-  o creá la tuya y sumala a `rooms/index.ts`.
-- El **arte** vive en `src/game/art.ts`: cada sprite es una grilla de texto con una
-  paleta — cambiá un carácter y cambia un píxel. Ahí también están los brillos, el fondo
-  con parallax, el polvo y la atmósfera.
+  canvas/colisiones, `Sprite`, animación, audio con canales). No sabe nada de "cristales".
+- `src/game/` — este juego, en capas con una responsabilidad cada una:
+  - `session.ts` — el **estado** de una corrida (mundo, jugador, puntaje, checkpoint).
+  - `scenes/` — el **flujo** de pantallas (título, partida, pausa, victoria, game over)
+    como pila de escenas: la pausa es una escena apilada sobre la partida.
+  - `systems/` — las **reglas**: combate (pisotón vs. golpe), recogibles, transiciones.
+  - `actors/` — lo que vive en las salas: el jugador, enemigos y recogibles, todos
+    detrás de la interfaz `Actor` con su capa de colisión.
+  - `world/` — salas y conexiones: `RoomData` (el formato), `Level` (colisiones, lógica
+    pura testeable), `Room`/`World` (instancias vivas).
+  - `render/` + `ui/` — el dibujo: composición del mundo, tiles, HUD, minimapa, overlays.
+  - `art/` — paleta, sprites (grillas de texto: cambiá un carácter y cambia un píxel),
+    brillos y atmósfera (parallax, niebla, polvo, viñeta).
+- Las **salas** son datos en `src/game/world/rooms/` (un archivo por sala): la geometría
+  como texto (`#`, `.`, `-`) y las entidades como lista tipada con propiedades. Creá la
+  tuya y sumala a `rooms/index.ts`; `validateRooms` y los tests avisan si quedó torcida.
+- **Tests** (`npm test`, Vitest) cubren la lógica pura: parsing de niveles, colisiones,
+  la regla del pisotón, migración de guardados y la integridad de los mapas reales.
+- En desarrollo hay ganchos de consola: `__game`, `__debug.hitboxes = true` y
+  `__debug.warp('tunel')`.
 
 ## Hoja de ruta
 
