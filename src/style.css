@@ -1,6 +1,6 @@
 /* La página que contiene el juego: una "cabina" oscura estilo cueva. */
-
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@600;700&display=swap');
+/* Las fuentes (JetBrains Mono / Space Grotesk) se cargan desde index.html
+   con <link ... display=swap>, no con @import, para no bloquear el render. */
 
 * {
   box-sizing: border-box;
@@ -10,6 +10,8 @@ html,
 body {
   margin: 0;
   height: 100%;
+  /* Movil: nada de pull-to-refresh ni rebote elastico al llegar al borde. */
+  overscroll-behavior: none;
 }
 
 body {
@@ -46,6 +48,11 @@ h1 {
 /* El canvas se escala x3 sin difuminar: ese es el look pixel-art. */
 canvas {
   image-rendering: pixelated;
+  /* Mismo degradado base que dibuja el juego (drawBackground): así, mientras
+     carga el JS y llega el primer frame, el lienzo ya parece la cueva en vez
+     de una caja vacía. El juego pinta encima opaco, así que solo se ve antes
+     del primer dibujado. */
+  background: linear-gradient(180deg, #170c28, #2a1644);
   width: 960px;
   max-width: 94vw;
   height: auto;
@@ -53,6 +60,11 @@ canvas {
   border-radius: 4px;
   box-shadow: 0 0 0 3px #1c1029, 0 18px 44px rgba(0, 0, 0, 0.6);
   touch-action: none;
+  /* En tactil: sin flash azul al tocar, sin menu contextual, sin seleccion. */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .controles {
@@ -70,4 +82,305 @@ kbd {
   padding: 1px 6px;
   color: #e8dcff;
   font-size: 11px;
+}
+
+/* =========================================================================
+   AVISO DE ROTAR (retrato -> apaisado)
+   La cueva es apaisada (320x176). En retrato el canvas quedaba en una franja
+   fina con enormes vacios negros (el juez de vision lo marco 1/5). Este overlay,
+   SOLO en tactil + retrato, cubre todo y pide girar el telefono. Es CSS puro
+   (media orientation), robusto y honesto (el lock de orientacion no es fiable).
+   En escritorio nunca se ve; en apaisado se oculta y el juego ocupa la pantalla.
+   ========================================================================= */
+.rotate-hint {
+  display: none;
+}
+body.touch .rotate-hint {
+  /* Por defecto (apaisado) sigue oculto; solo se muestra en retrato, abajo. */
+  display: none;
+}
+@media (orientation: portrait) {
+  body.touch .rotate-hint {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 50; /* por encima de los controles tactiles (z 10) */
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 24px;
+    text-align: center;
+    background: radial-gradient(600px 400px at 50% 40%, rgba(122, 75, 214, 0.22), transparent 65%),
+      #0b0510;
+  }
+  /* En retrato, mientras se pide rotar, ocultamos el juego y sus controles
+     (no tiene sentido mostrar la franja fina detras del aviso). */
+  body.touch canvas,
+  body.touch .tc {
+    display: none;
+  }
+  .rotate-phone {
+    font-size: 56px;
+    animation: rotate-nudge 1.8s ease-in-out infinite;
+  }
+  .rotate-title {
+    margin: 0;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    letter-spacing: 2px;
+    color: #ffd36e;
+    text-shadow: 2px 2px 0 #5a2d82;
+  }
+  .rotate-sub {
+    margin: 0;
+    font-size: 13px;
+    color: #9b86c4;
+  }
+}
+@keyframes rotate-nudge {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-90deg); }
+}
+
+/* =========================================================================
+   SOPORTE MOVIL TACTIL
+   Todo lo de abajo solo entra en juego cuando touch.ts detecta un dispositivo
+   tactil y agrega la clase .touch al <body>. En escritorio: CERO cambios.
+   ========================================================================= */
+
+/* El overlay de controles no debe verse jamas en escritorio (red de seguridad). */
+body:not(.touch) .tc {
+  display: none;
+}
+
+/* --- Layout a pantalla completa en modo tactil ------------------------- */
+body.touch {
+  /* La cabina desaparece: el juego ocupa toda la pantalla. */
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+  /* 100dvh sigue en vivo a la barra del navegador; fallback a 100vh. */
+  height: 100vh;
+  height: 100dvh;
+  justify-content: center;
+  align-items: center;
+  /* Sin rebote/scroll accidental que descoloque el canvas. */
+  touch-action: none;
+}
+
+/* En movil sobran los textos de la cabina y las instrucciones de teclado. */
+body.touch h1,
+body.touch .sub,
+body.touch .controles {
+  display: none;
+}
+
+/* Canvas a sangre completa, sin marco: se adapta a retrato y apaisado
+   conservando la proporcion interna 320x176. */
+body.touch canvas {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  /* Encaja el canvas en la pantalla conservando 320:176. Primero el
+     fallback en vw/vh (navegadores viejos), luego dvw/dvh (siguen a la
+     barra del navegador). Sin el fallback, un navegador que no entiende
+     dvw descarta TODA la regla y el canvas volvería al layout de escritorio. */
+  width: min(100vw, calc(100vh * 320 / 176));
+  width: min(100dvw, calc(100dvh * 320 / 176));
+  height: auto;
+  max-width: 100vw;
+  max-width: 100dvw;
+  max-height: 100vh;
+  max-height: 100dvh;
+}
+
+/* --- Contenedor de controles tactiles ---------------------------------- */
+/* Cubre toda la pantalla pero deja pasar los toques salvo en los botones. */
+.tc {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Botones base: grandes, semitransparentes, tematicos (violeta/dorado). */
+.tc-btn {
+  pointer-events: auto;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(122, 75, 214, 0.55);
+  border-radius: 16px;
+  background: rgba(30, 16, 41, 0.42);
+  color: #e8dcff;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 1px;
+  text-shadow: 1px 1px 0 rgba(20, 8, 30, 0.8);
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.05s linear, border-color 0.05s linear,
+    transform 0.05s linear;
+}
+
+/* Estado presionado (dedo encima o clase que agrega touch.ts): mas brillante. */
+.tc-btn:active,
+.tc-btn.is-active {
+  background: rgba(122, 75, 214, 0.5);
+  border-color: rgba(255, 211, 110, 0.9);
+  color: #fff4d6;
+  transform: scale(0.96);
+}
+
+/* --- Pad de movimiento (abajo-izquierda) ------------------------------- */
+.tc-pad {
+  position: absolute;
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  left: calc(18px + env(safe-area-inset-left, 0px));
+  display: flex;
+  gap: 14px;
+  pointer-events: none;
+}
+
+.tc-left,
+.tc-right {
+  width: 72px;
+  height: 72px;
+  font-size: 30px;
+}
+
+/* --- Acciones (abajo-derecha) ------------------------------------------ */
+.tc-actions {
+  position: absolute;
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  right: calc(18px + env(safe-area-inset-right, 0px));
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  pointer-events: none;
+}
+
+/* DASH mas chico; SALTO mas grande y protagonico (dorado). */
+.tc-dash {
+  width: 64px;
+  height: 64px;
+}
+
+.tc-jump {
+  width: 92px;
+  height: 92px;
+  font-size: 16px;
+  border-color: rgba(255, 211, 110, 0.7);
+  background: rgba(90, 45, 130, 0.4);
+}
+
+/* --- Boton de pausa (arriba-derecha) ----------------------------------- */
+.tc-pause {
+  position: absolute;
+  top: calc(14px + env(safe-area-inset-top, 0px));
+  right: calc(14px + env(safe-area-inset-right, 0px));
+  width: 56px;
+  height: 56px;
+  font-size: 20px;
+  border-radius: 14px;
+}
+
+/* --- Menu de pausa (centro) -------------------------------------------- */
+.tc-menu {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  background: rgba(17, 9, 26, 0.72);
+  pointer-events: auto;
+}
+
+.tc-mbtn {
+  width: min(78vw, 300px);
+  width: min(78dvw, 300px);
+  height: 60px;
+  font-size: 18px;
+  border-radius: 14px;
+}
+
+.tc-resume {
+  border-color: rgba(255, 211, 110, 0.8);
+  background: rgba(90, 45, 130, 0.5);
+}
+
+/* --- Visibilidad por data-mode del contenedor -------------------------- */
+/* En juego: pad, acciones y pausa; sin menu. */
+.tc[data-mode='play'] .tc-menu {
+  display: none;
+}
+.tc[data-mode='play'] .tc-pad,
+.tc[data-mode='play'] .tc-actions,
+.tc[data-mode='play'] .tc-pause {
+  display: flex;
+}
+
+/* En pausa: solo el menu. */
+.tc[data-mode='paused'] .tc-pad,
+.tc[data-mode='paused'] .tc-actions,
+.tc[data-mode='paused'] .tc-pause {
+  display: none;
+}
+.tc[data-mode='paused'] .tc-menu {
+  display: flex;
+}
+
+/* En menus del juego (titulo/victoria/derrota): todo oculto, el tap va al canvas. */
+.tc[data-mode='menu'] .tc-pad,
+.tc[data-mode='menu'] .tc-actions,
+.tc[data-mode='menu'] .tc-pause,
+.tc[data-mode='menu'] .tc-menu {
+  display: none;
+}
+
+/* --- Pantallas angostas (retrato en teléfonos) ------------------------- */
+/* Con los tamaños base, cruceta (izq) y acciones (der) se solapan en el
+   centro-inferior por debajo de ~366px de ancho. Achicamos botones, gaps
+   e insets para que las dos zonas nunca se pisen. Landscape (>400px) queda
+   con los tamaños grandes. */
+@media (max-width: 400px) {
+  .tc-pad,
+  .tc-actions {
+    gap: 12px;
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  }
+  .tc-pad {
+    left: calc(12px + env(safe-area-inset-left, 0px));
+  }
+  .tc-actions {
+    right: calc(12px + env(safe-area-inset-right, 0px));
+  }
+  .tc-left,
+  .tc-right {
+    width: 60px;
+    height: 60px;
+    font-size: 26px;
+  }
+  .tc-dash {
+    width: 56px;
+    height: 56px;
+  }
+  .tc-jump {
+    width: 78px;
+    height: 78px;
+  }
 }

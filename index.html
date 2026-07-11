@@ -2,18 +2,61 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Fondo oscuro desde el PRIMER frame, antes de que cargue el CSS
+         principal (que en dev inyecta el JS). Sin esto, el navegador pinta
+         su fondo blanco por defecto un instante: el "flashbang" al entrar. -->
+    <meta name="color-scheme" content="dark" />
+    <style>
+      html {
+        background: #11091a;
+      }
+    </style>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <!-- Color de la barra del navegador (Android Chrome) a tono con la cueva -->
+    <meta name="theme-color" content="#11091a" />
+    <!-- Modo pantalla completa al "Agregar a inicio" (iOS y estandar) -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- Fuentes: se piden aparte (con display=swap) para NO bloquear el
+         render esperando a Google Fonts; hasta que lleguen se usa la
+         monoespaciada del sistema como fallback. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@600;700&display=swap"
+    />
+    <!-- CSS de la app como <link> (bloquea el render hasta aplicarse): así
+         la primera pintura ya sale con estilos y no hay flash de HTML crudo.
+         En dev, importarlo desde el JS lo inyectaba tarde (FOUC). -->
+    <link rel="stylesheet" href="/src/style.css" />
     <title>Cristales de la Cueva</title>
   </head>
   <body>
     <h1>CRISTALES DE LA CUEVA</h1>
     <p class="sub">recoge los 5 cristales y llega a la puerta</p>
-    <canvas id="game"></canvas>
+    <!-- width/height fijados en el HTML (no solo por JS) para que el lienzo
+         tenga su tamaño correcto desde la primera pintura: sin salto de
+         layout ni caja vacía mientras carga el juego. -->
+    <canvas id="game" width="320" height="176"></canvas>
     <div class="controles" id="controles">
       <kbd>←</kbd> <kbd>→</kbd> o <kbd>A</kbd> <kbd>D</kbd> para moverte &nbsp;·&nbsp;
       <kbd>espacio</kbd> / <kbd>↑</kbd> / <kbd>W</kbd> para saltar (¡doble!) &nbsp;·&nbsp;
       <kbd>shift</kbd> / <kbd>X</kbd> para dash &nbsp;·&nbsp;
       <kbd>R</kbd> para reiniciar
+    </div>
+    <!-- Aviso de rotar: la cueva es apaisada. En retrato el juego quedaría en
+         una franja fina; este overlay (solo táctil + retrato, por CSS) pide
+         girar el teléfono para jugar a pantalla completa. -->
+    <div class="rotate-hint" id="rotate-hint" aria-hidden="true">
+      <div class="rotate-phone">📱</div>
+      <p class="rotate-title">GIRÁ EL TELÉFONO</p>
+      <p class="rotate-sub">La cueva se juega apaisada</p>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

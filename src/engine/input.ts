@@ -15,7 +15,7 @@
 type Action = 'left' | 'right' | 'jump' | 'dash' | 'restart' | 'confirm' | 'pause';
 
 /** Qué estuvo usando el jugador de último: define qué controles mostrar. */
-export type InputDevice = 'keyboard' | 'gamepad';
+export type InputDevice = 'keyboard' | 'gamepad' | 'touch';
 
 const KEY_TO_ACTION: Record<string, Action> = {
   ArrowLeft: 'left',
@@ -51,6 +51,11 @@ const gpPressed = new Set<Action>();
 let gpPrev = new Set<Action>();
 
 let lastDevice: InputDevice = 'keyboard';
+
+// Capacidad táctil FIJA del dispositivo (no cambia una vez detectada).
+// El módulo táctil la enciende al arrancar si el aparato tiene pantalla
+// táctil; el resto del juego la consulta para decidir el layout móvil.
+let touchMode = false;
 
 export function initInput(): void {
   window.addEventListener('keydown', (e) => {
@@ -132,4 +137,46 @@ export function inputDevice(): InputDevice {
 /** Llamar al final de cada paso de lógica para limpiar los "recién presionados". */
 export function endStep(): void {
   pressedThisStep.clear();
+}
+
+// ------------------------------------------------------------
+//  ENTRADA TÁCTIL (botones en pantalla)
+// ------------------------------------------------------------
+//  Los controles táctiles reutilizan EXACTAMENTE los mismos sets que
+//  el teclado (down y pressedThisStep), así que el juego no distingue
+//  el origen: un botón en pantalla "presiona" y "suelta" una acción
+//  igual que una tecla. El módulo game/touch.ts llama estas funciones
+//  desde los eventos de puntero.
+
+/** Presiona (isDownNow=true) o suelta (isDownNow=false) una acción táctil.
+ *  Al presionar por primera vez marca el flanco de subida (recién presionado)
+ *  y la deja mantenida; al soltar solo la quita de las mantenidas. */
+export function touchButton(action: Action, isDownNow: boolean): void {
+  if (isDownNow) {
+    if (!down.has(action)) pressedThisStep.add(action);
+    down.add(action);
+  } else {
+    down.delete(action);
+  }
+  lastDevice = 'touch';
+}
+
+/** Suelta TODO lo que estuviera mantenido (al perder foco o cambiar de pestaña). */
+export function releaseAll(): void {
+  down.clear();
+}
+
+/** Fuerza el último dispositivo usado (para sincronizar qué controles mostrar). */
+export function setDevice(d: InputDevice): void {
+  lastDevice = d;
+}
+
+/** ¿El aparato tiene capacidad táctil? (flag fijo detectado al arrancar). */
+export function isTouchMode(): boolean {
+  return touchMode;
+}
+
+/** Enciende/apaga el flag de capacidad táctil (lo fija el módulo táctil). */
+export function setTouchMode(v: boolean): void {
+  touchMode = v;
 }

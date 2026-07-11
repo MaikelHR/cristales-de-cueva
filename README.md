@@ -34,19 +34,24 @@ niebla, parallax) se genera en tiempo real.
 - **Estructura completa**: menú de inicio, pausa, game over y victoria; **récords
   guardados** en localStorage (mejor puntaje, mejor tiempo, veces completado) y un
   **cronómetro** para speedrun.
-- **Teclado y gamepad**, con **prompts adaptativos**: los controles en pantalla cambian
-  entre teclas y botones según el dispositivo que estés usando, al instante.
+- **Teclado, gamepad y táctil**, con **prompts adaptativos**: los controles en pantalla
+  cambian entre teclas, botones del mando o toques según el dispositivo que estés usando,
+  al instante.
+- **Móvil de verdad**: en teléfonos/tablets aparece un **mando en pantalla** (cruceta a la
+  izquierda, salto y dash a la derecha, pausa arriba) con **multitáctil** real —moverte y
+  saltar a la vez—, layout a **pantalla completa** en retrato y apaisado, botón de
+  pantalla completa y bloqueo de zoom/scroll accidental. En escritorio no cambia nada.
 
 ## Controles
 
-| Acción            | Teclado           | Gamepad       |
-| ----------------- | ----------------- | ------------- |
-| Mover             | ← → / A D         | D-pad / stick |
-| Saltar (¡doble!)  | espacio / ↑ / W   | A             |
-| Dash              | shift / X         | X             |
-| Pausa             | Esc / P           | Start         |
-| Reiniciar         | R                 | Y             |
-| Confirmar (menús) | Enter             | A / Start     |
+| Acción            | Teclado           | Gamepad       | Táctil (móvil)          |
+| ----------------- | ----------------- | ------------- | ----------------------- |
+| Mover             | ← → / A D         | D-pad / stick | botones ◀ ▶             |
+| Saltar (¡doble!)  | espacio / ↑ / W   | A             | botón SALTO             |
+| Dash              | shift / X         | X             | botón DASH              |
+| Pausa             | Esc / P           | Start         | botón ‖ (arriba der.)   |
+| Reiniciar         | R                 | Y             | REINICIAR (en pausa)    |
+| Confirmar (menús) | Enter             | A / Start     | tocá la pantalla        |
 
 ## Build
 

@@ -5,13 +5,16 @@
 //  vive en /engine (motor reutilizable) y /game (este juego).
 // ============================================================
 
-import './style.css';
+// El CSS ya no se importa acá: se enlaza desde index.html (<link> en el
+// <head>) para que aplique en la primera pintura y no haya flash de
+// contenido sin estilo (FOUC) en desarrollo.
 import { setupContext } from './engine/canvas';
 import { initInput, endStep, pollGamepad, inputDevice, type InputDevice } from './engine/input';
 import { initAudio } from './engine/audio';
 import { startLoop } from './engine/loop';
 import { Game } from './game/Game';
 import { sprites } from './game/art';
+import { initTouchControls, syncTouchUI } from './game/touch';
 
 const VIEW_W = 320;
 const VIEW_H = 176;
@@ -24,6 +27,10 @@ const ctx = setupContext(canvas);
 initInput();
 initAudio();
 const game = new Game(VIEW_W, VIEW_H);
+
+// Controles táctiles: solo se activan en dispositivos con puntero grueso
+// (móvil/tablet). En escritorio no construye nada ni altera el layout.
+initTouchControls(canvas);
 
 // Gancho de depuración: con la consola del navegador abierta (F12)
 // podés inspeccionar el juego en vivo, p. ej. `__game.player.vy`.
@@ -45,6 +52,9 @@ const CONTROLS_HTML: Record<InputDevice, string> = {
     '<kbd>D-pad</kbd> / <kbd>stick</kbd> para moverte &nbsp;·&nbsp; ' +
     '<kbd>A</kbd> para saltar (¡doble!) &nbsp;·&nbsp; ' +
     '<kbd>X</kbd> para dash &nbsp;·&nbsp; <kbd>Y</kbd> reiniciar &nbsp;·&nbsp; <kbd>START</kbd> pausa',
+  // En móvil el footer queda oculto (se juega con los botones en pantalla),
+  // pero el tipo Record<InputDevice, string> exige la clave igualmente.
+  touch: 'usá los botones en pantalla para jugar',
 };
 let shownDevice: InputDevice | null = null;
 function syncControls(): void {
@@ -54,6 +64,10 @@ function syncControls(): void {
   controlsEl.innerHTML = CONTROLS_HTML[dev];
 }
 
+// Primer frame ya pintado antes de arrancar el bucle: el canvas nunca se
+// muestra vacío esperando al primer requestAnimationFrame.
+game.draw(ctx);
+
 startLoop(
   (dt) => {
     pollGamepad(); // leer el estado del control antes de actualizar el juego
@@ -61,5 +75,8 @@ startLoop(
     syncControls();
     endStep(); // limpiar "recién presionado" después de cada paso de lógica
   },
-  () => game.draw(ctx),
+  () => {
+    game.draw(ctx);
+    syncTouchUI(game.ui); // reflejar el estado del juego en la UI táctil
+  },
 );
