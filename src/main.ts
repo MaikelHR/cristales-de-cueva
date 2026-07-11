@@ -15,6 +15,8 @@ import { startLoop } from './engine/loop';
 import { Game } from './game/Game';
 import { sprites } from './game/art';
 import { initTouchControls, syncTouchUI } from './game/touch';
+import { t, getLang, onLangChange } from './game/i18n';
+import { initLangSwitch, syncLangSwitch } from './game/langSwitch';
 
 const VIEW_W = 320;
 const VIEW_H = 176;
@@ -42,27 +44,45 @@ if (import.meta.env.DEV) {
 
 // Footer de controles adaptativo: muestra teclas o botones según el
 // último dispositivo usado, y cambia al instante al detectar el otro.
+// El texto sale del diccionario de idiomas (i18n), no de literales.
 const controlsEl = document.getElementById('controles');
-const CONTROLS_HTML: Record<InputDevice, string> = {
-  keyboard:
-    '<kbd>←</kbd> <kbd>→</kbd> o <kbd>A</kbd> <kbd>D</kbd> para moverte &nbsp;·&nbsp; ' +
-    '<kbd>espacio</kbd> / <kbd>↑</kbd> / <kbd>W</kbd> para saltar (¡doble!) &nbsp;·&nbsp; ' +
-    '<kbd>shift</kbd> / <kbd>X</kbd> para dash &nbsp;·&nbsp; <kbd>R</kbd> para reiniciar',
-  gamepad:
-    '<kbd>D-pad</kbd> / <kbd>stick</kbd> para moverte &nbsp;·&nbsp; ' +
-    '<kbd>A</kbd> para saltar (¡doble!) &nbsp;·&nbsp; ' +
-    '<kbd>X</kbd> para dash &nbsp;·&nbsp; <kbd>Y</kbd> reiniciar &nbsp;·&nbsp; <kbd>START</kbd> pausa',
+function controlsHtml(dev: InputDevice): string {
   // En móvil el footer queda oculto (se juega con los botones en pantalla),
-  // pero el tipo Record<InputDevice, string> exige la clave igualmente.
-  touch: 'usá los botones en pantalla para jugar',
-};
+  // pero devolvemos igual el texto por si acaso.
+  return dev === 'gamepad' ? t('ctl_gp') : dev === 'touch' ? t('ctl_touch') : t('ctl_kb');
+}
 let shownDevice: InputDevice | null = null;
 function syncControls(): void {
   const dev = inputDevice();
   if (dev === shownDevice || !controlsEl) return;
   shownDevice = dev;
-  controlsEl.innerHTML = CONTROLS_HTML[dev];
+  controlsEl.innerHTML = controlsHtml(dev);
 }
+
+// Textos estáticos de la página (título, subtítulo, aviso de rotar y footer)
+// en el idioma activo. Se llama al arrancar y cada vez que cambia el idioma.
+function localizeChrome(): void {
+  document.documentElement.lang = getLang();
+  document.title = t('page_title');
+  const h1 = document.querySelector('h1');
+  if (h1) h1.textContent = t('page_title');
+  const sub = document.querySelector('.sub');
+  if (sub) sub.textContent = t('page_sub');
+  const rTitle = document.querySelector('.rotate-title');
+  if (rTitle) rTitle.textContent = t('rotate_title');
+  const rSub = document.querySelector('.rotate-sub');
+  if (rSub) rSub.textContent = t('rotate_sub');
+  // Forzar el re-render del footer de controles en el nuevo idioma.
+  shownDevice = null;
+  syncControls();
+  // Ya está el chrome en el idioma correcto: quitamos el velo anti-parpadeo
+  // que puso el script de <head> (no-op si nunca se aplicó).
+  document.documentElement.classList.remove('pre-i18n');
+}
+
+initLangSwitch();
+localizeChrome();
+onLangChange(localizeChrome);
 
 // Primer frame ya pintado antes de arrancar el bucle: el canvas nunca se
 // muestra vacío esperando al primer requestAnimationFrame.
@@ -78,5 +98,6 @@ startLoop(
   () => {
     game.draw(ctx);
     syncTouchUI(game.ui); // reflejar el estado del juego en la UI táctil
+    syncLangSwitch(game.ui); // mostrar/ocultar el selector de idioma según el estado
   },
 );

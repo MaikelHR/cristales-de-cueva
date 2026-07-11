@@ -31,6 +31,29 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@600;700&display=swap"
     />
+    <!-- Idioma antes de la primera pintura: el HTML trae el texto en español
+         por defecto. Fijamos <html lang> ya mismo y, si el idioma detectado
+         NO es español, ocultamos el "chrome" (título, subtítulo, footer, aviso
+         de rotar) con la clase .pre-i18n hasta que main.ts lo traduzca. Así un
+         visitante en inglés no ve un parpadeo en español. main.ts quita la
+         clase. Misma detección que src/game/i18n.ts (guardado > navegador). -->
+    <script>
+      (function () {
+        try {
+          var s = localStorage.getItem('cristales-lang');
+          var lang =
+            s === 'es' || s === 'en'
+              ? s
+              : (navigator.language || 'es').toLowerCase().indexOf('es') === 0
+                ? 'es'
+                : 'en';
+          document.documentElement.lang = lang;
+          if (lang !== 'es') document.documentElement.classList.add('pre-i18n');
+        } catch (e) {
+          /* sin localStorage: dejamos el español por defecto del HTML */
+        }
+      })();
+    </script>
     <!-- CSS de la app como <link> (bloquea el render hasta aplicarse): así
          la primera pintura ya sale con estilos y no hay flash de HTML crudo.
          En dev, importarlo desde el JS lo inyectaba tarde (FOUC). -->
@@ -55,8 +78,8 @@
          girar el teléfono para jugar a pantalla completa. -->
     <div class="rotate-hint" id="rotate-hint" aria-hidden="true">
       <div class="rotate-phone">📱</div>
-      <p class="rotate-title">GIRÁ EL TELÉFONO</p>
-      <p class="rotate-sub">La cueva se juega apaisada</p>
+      <p class="rotate-title">GIRA EL TELÉFONO</p>
+      <p class="rotate-sub">La cueva se juega en horizontal</p>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

@@ -18,15 +18,18 @@ import { overlaps, clamp, type Box } from '../engine/canvas';
 import { sprites, drawGlow, drawBackground, drawDust, drawFog, drawVignette, initDust } from './art';
 import { sfx } from './sfx';
 import { loadSave, writeSave, type SaveData } from './save';
+import { t, type StrKey } from './i18n';
 
 // Los estados del juego. 'title' = menú de inicio; 'playing' = jugando;
 // 'won' = pantalla de victoria; 'gameover' = te quedaste sin corazones.
 type State = 'title' | 'playing' | 'won' | 'gameover';
 
-const ABILITY_LABEL: Record<AbilityName, string> = {
-  doubleJump: '¡DOBLE SALTO!',
-  dash: '¡DASH!',
-  wallJump: '¡SALTO DE PARED!',
+// Clave de texto (i18n) del aviso al ganar cada habilidad. Se traduce al
+// mostrarlo, así respeta el idioma activo en ese momento.
+const ABILITY_KEY: Record<AbilityName, StrKey> = {
+  doubleJump: 'ab_doubleJump',
+  dash: 'ab_dash',
+  wallJump: 'ab_wallJump',
 };
 
 const ABILITY_GLOW: Record<AbilityName, string> = {
@@ -99,8 +102,8 @@ export class Game {
 
   /** Estado observable para la UI táctil: qué pantalla se muestra y si
    *  está en pausa. Lo consume touch.ts para saber qué botones enseñar. */
-  get ui(): { state: State; paused: boolean } {
-    return { state: this.state, paused: this.paused };
+  get ui(): { state: State; paused: boolean; hasDash: boolean } {
+    return { state: this.state, paused: this.paused, hasDash: this.player.abilities.dash };
   }
 
   private get collected(): number {
@@ -261,7 +264,7 @@ export class Game {
         r.taken = true;
         this.player.abilities[r.ability] = true;
         this.particles.burst(r.x + 3, r.y + 4, 22, ['#7ce0ff', '#f5fcff', '#b98bff']);
-        this.announceText = ABILITY_LABEL[r.ability];
+        this.announceText = t(ABILITY_KEY[r.ability]);
         this.announceTimer = 2.5;
         sfx.relic();
       }
@@ -339,7 +342,7 @@ export class Game {
       this.score += pts;
       this.popups.push({ x: eb.x + eb.w / 2, y: eb.y - 2, text: '+' + pts, life: 0.9 });
       if (e.isBoss) {
-        this.announceText = '¡GUARDIÁN DERROTADO!';
+        this.announceText = t('boss_defeated');
         this.announceTimer = 2.5;
         sfx.relic();
       }
@@ -449,20 +452,20 @@ export class Game {
     ctx.textAlign = 'center';
     ctx.fillStyle = '#e9d6ff';
     ctx.font = '18px "JetBrains Mono", ui-monospace, monospace';
-    ctx.fillText('PAUSA', cx, this.viewH / 2 - 10);
+    ctx.fillText(t('pause_title'), cx, this.viewH / 2 - 10);
     const dev = inputDevice();
     const gp = dev === 'gamepad';
     const touch = dev === 'touch';
     ctx.fillStyle = '#9b86c4';
     ctx.font = '8px "JetBrains Mono", ui-monospace, monospace';
     ctx.fillText(
-      touch ? 'tocá continuar o reiniciar' : gp ? 'START para continuar' : 'ESC o P para continuar',
+      touch ? t('pause_resume_touch') : gp ? t('pause_resume_gp') : t('pause_resume_kb'),
       cx,
       this.viewH / 2 + 8,
     );
     if (!touch) {
       ctx.fillStyle = '#6f5a94';
-      ctx.fillText(gp ? 'Y para reiniciar' : 'R para reiniciar', cx, this.viewH / 2 + 20);
+      ctx.fillText(gp ? t('pause_restart_gp') : t('pause_restart_kb'), cx, this.viewH / 2 + 20);
     }
     ctx.textAlign = 'left';
   }
@@ -579,9 +582,9 @@ export class Game {
     ctx.font = '8px "JetBrains Mono", ui-monospace, monospace';
     ctx.textBaseline = 'top';
     ctx.fillStyle = '#ffe25a';
-    ctx.fillText(`CRISTALES ${this.collected}/${this.totalCrystals}`, 6, 15);
+    ctx.fillText(`${t('hud_crystals')} ${this.collected}/${this.totalCrystals}`, 6, 15);
     ctx.fillStyle = '#9b86c4';
-    ctx.fillText(`PUNTOS ${this.score}`, 6, 24);
+    ctx.fillText(`${t('hud_points')} ${this.score}`, 6, 24);
     // Cronómetro de la partida, arriba al centro (estilo speedrun).
     ctx.textAlign = 'center';
     ctx.fillStyle = '#c7b8e6';
@@ -590,10 +593,10 @@ export class Game {
     if (this.collected === this.totalCrystals && this.state === 'playing') {
       if (this.bossAlive) {
         ctx.fillStyle = '#ff5a7a';
-        ctx.fillText('SALTA SOBRE EL GUARDIÁN', 6, 33);
+        ctx.fillText(t('hud_stomp_boss'), 6, 33);
       } else {
         ctx.fillStyle = '#b98bff';
-        ctx.fillText('LA PUERTA ESTÁ ABIERTA', 6, 33);
+        ctx.fillText(t('hud_door_open'), 6, 33);
       }
     }
     // Aviso grande al ganar una habilidad (se desvanece al final)
@@ -616,23 +619,23 @@ export class Game {
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ffd36e';
     ctx.font = '16px "JetBrains Mono", ui-monospace, monospace';
-    ctx.fillText('¡LO LOGRASTE!', cx, this.viewH / 2 - 30);
+    ctx.fillText(t('win_title'), cx, this.viewH / 2 - 30);
     ctx.font = '8px "JetBrains Mono", ui-monospace, monospace';
     ctx.fillStyle = '#ffe25a';
-    ctx.fillText(`PUNTOS: ${this.score}`, cx, this.viewH / 2 - 14);
+    ctx.fillText(t('win_points', { n: this.score }), cx, this.viewH / 2 - 14);
     ctx.fillStyle = '#7ce0ff';
-    ctx.fillText(`TIEMPO: ${formatTime(this.runTime)}`, cx, this.viewH / 2 - 3);
+    ctx.fillText(t('win_time', { t: formatTime(this.runTime) }), cx, this.viewH / 2 - 3);
     // Récord de tiempo (la métrica de speedrun): si lo batiste, celebración
     // pulsante; si no, tu mejor marca para comparar.
     if (this.newBestTime) {
       ctx.save();
       ctx.globalAlpha = 0.6 + Math.sin(this.time * 8) * 0.4;
       ctx.fillStyle = '#ffe25a';
-      ctx.fillText('¡NUEVO RÉCORD DE TIEMPO!', cx, this.viewH / 2 + 9);
+      ctx.fillText(t('win_new_best_time'), cx, this.viewH / 2 + 9);
       ctx.restore();
     } else {
       ctx.fillStyle = '#ffd36e';
-      ctx.fillText(`MEJOR TIEMPO: ${formatTime(this.save.bestTime)}`, cx, this.viewH / 2 + 9);
+      ctx.fillText(t('best_time', { t: formatTime(this.save.bestTime) }), cx, this.viewH / 2 + 9);
     }
     ctx.fillStyle = '#9b86c4';
     ctx.fillText(this.backToMenuText(), cx, this.viewH / 2 + 22);
@@ -642,8 +645,8 @@ export class Game {
   /** El texto para volver al menú, según teclado, gamepad o táctil. */
   private backToMenuText(): string {
     const dev = inputDevice();
-    if (dev === 'touch') return 'tocá para volver al menú';
-    return dev === 'gamepad' ? 'botón A para volver al menú' : 'ENTER para volver al menú';
+    if (dev === 'touch') return t('back_touch');
+    return dev === 'gamepad' ? t('back_gp') : t('back_kb');
   }
 
   /** Línea de récord bajo el puntaje: si batiste tu marca, un "¡NUEVO
@@ -654,11 +657,11 @@ export class Game {
       ctx.save();
       ctx.globalAlpha = 0.6 + Math.sin(this.time * 8) * 0.4;
       ctx.fillStyle = '#ffe25a';
-      ctx.fillText('¡NUEVO RÉCORD!', cx, y);
+      ctx.fillText(t('new_record'), cx, y);
       ctx.restore();
     } else {
       ctx.fillStyle = '#ffd36e';
-      ctx.fillText(`MEJOR: ${this.save.bestScore}`, cx, y);
+      ctx.fillText(t('best_score_short', { n: this.save.bestScore }), cx, y);
     }
   }
 
@@ -682,24 +685,27 @@ export class Game {
     // Título en dos líneas para que entre bien en 320px.
     ctx.fillStyle = '#e9d6ff';
     ctx.font = '18px "JetBrains Mono", ui-monospace, monospace';
-    ctx.fillText('CRISTALES', cx, this.viewH / 2 - 8);
+    ctx.fillText(t('title_line1'), cx, this.viewH / 2 - 8);
     ctx.fillStyle = '#b98bff';
     ctx.font = '11px "JetBrains Mono", ui-monospace, monospace';
-    ctx.fillText('DE LA CUEVA', cx, this.viewH / 2 + 8);
+    ctx.fillText(t('title_line2'), cx, this.viewH / 2 + 8);
 
     // Récords guardados (solo si ya jugaste alguna vez).
     ctx.font = '8px "JetBrains Mono", ui-monospace, monospace';
     if (this.save.bestScore > 0 || this.save.victories > 0) {
       ctx.fillStyle = '#ffd36e';
-      ctx.fillText(`MEJOR PUNTAJE: ${this.save.bestScore}`, cx, this.viewH / 2 + 20);
+      ctx.fillText(t('best_score', { n: this.save.bestScore }), cx, this.viewH / 2 + 20);
       if (this.save.bestTime > 0) {
         ctx.fillStyle = '#7ce0ff';
-        ctx.fillText(`MEJOR TIEMPO: ${formatTime(this.save.bestTime)}`, cx, this.viewH / 2 + 30);
+        ctx.fillText(t('best_time', { t: formatTime(this.save.bestTime) }), cx, this.viewH / 2 + 30);
       }
       if (this.save.victories > 0) {
         ctx.fillStyle = '#5ce06a';
-        const veces = this.save.victories === 1 ? 'vez' : 'veces';
-        ctx.fillText(`completado ${this.save.victories} ${veces}`, cx, this.viewH / 2 + 40);
+        const completed =
+          this.save.victories === 1
+            ? t('completed_once')
+            : t('completed_many', { n: this.save.victories });
+        ctx.fillText(completed, cx, this.viewH / 2 + 40);
       }
     }
 
@@ -712,7 +718,7 @@ export class Game {
     ctx.globalAlpha = blink;
     ctx.fillStyle = '#ffe25a';
     ctx.fillText(
-      touch ? 'TOCA PARA EMPEZAR' : gp ? 'botón A o START para empezar' : 'ENTER o ↑ para empezar',
+      touch ? t('start_touch') : gp ? t('start_gp') : t('start_kb'),
       cx,
       this.viewH / 2 + 54,
     );
@@ -720,7 +726,7 @@ export class Game {
 
     ctx.fillStyle = '#6f5a94';
     ctx.fillText(
-      touch ? 'usá los botones en pantalla' : gp ? 'D-pad mover · A saltar · X dash' : '← → mover · ↑ saltar · X dash',
+      touch ? t('hint_touch') : gp ? t('hint_gp') : t('hint_kb'),
       cx,
       this.viewH - 12,
     );
@@ -736,10 +742,10 @@ export class Game {
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ff5a7a';
     ctx.font = '18px "JetBrains Mono", ui-monospace, monospace';
-    ctx.fillText('GAME OVER', cx, this.viewH / 2 - 20);
+    ctx.fillText(t('gameover_title'), cx, this.viewH / 2 - 20);
     ctx.fillStyle = '#ffd0dc';
     ctx.font = '8px "JetBrains Mono", ui-monospace, monospace';
-    ctx.fillText(`PUNTOS: ${this.score}`, cx, this.viewH / 2 - 4);
+    ctx.fillText(t('win_points', { n: this.score }), cx, this.viewH / 2 - 4);
     this.drawRecordLine(ctx, cx, this.viewH / 2 + 8);
     const blink = 0.55 + Math.sin(this.time * 4) * 0.45;
     ctx.globalAlpha = blink;

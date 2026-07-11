@@ -6,6 +6,17 @@
   box-sizing: border-box;
 }
 
+/* Anti-parpadeo de idioma: si el idioma detectado no es el español por
+   defecto del HTML, un script en <head> pone .pre-i18n en <html> y ocultamos
+   el "chrome" hasta que main.ts lo traduzca (luego quita la clase). Usamos
+   visibility (no display) para reservar el espacio y no provocar saltos. */
+html.pre-i18n h1,
+html.pre-i18n .sub,
+html.pre-i18n .controles,
+html.pre-i18n .rotate-hint {
+  visibility: hidden;
+}
+
 html,
 body {
   margin: 0;
@@ -382,5 +393,59 @@ body.touch canvas {
   .tc-jump {
     width: 78px;
     height: 78px;
+  }
+}
+
+/* =========================================================================
+   SELECTOR DE IDIOMA (ES / EN)
+   Botones fijos arriba a la izquierda. En escritorio siempre visibles; en
+   tactil los muestra langSwitch.ts (data-show) solo en menus/pausa, y en
+   retrato se ocultan (ahi manda el aviso de rotar).
+   ========================================================================= */
+.lang-switch {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 60; /* por encima del aviso de rotar (50) y los controles (10) */
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  background: rgba(30, 16, 41, 0.6);
+  border: 1px solid #4a2e70;
+  border-radius: 10px;
+}
+
+.lang-btn {
+  cursor: pointer;
+  border: 0;
+  border-radius: 7px;
+  padding: 4px 9px;
+  background: transparent;
+  color: #9b86c4;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 1px;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.lang-btn.is-active {
+  background: #5a2d82;
+  color: #ffe9b8;
+}
+
+/* En tactil arranca oculto; solo aparece en menus/pausa (data-show='1'). */
+body.touch .lang-switch {
+  display: none;
+}
+body.touch .lang-switch[data-show='1'] {
+  display: flex;
+}
+/* En retrato manda el aviso de rotar: nada de selector encima. */
+@media (orientation: portrait) {
+  body.touch .lang-switch[data-show='1'] {
+    display: none;
   }
 }

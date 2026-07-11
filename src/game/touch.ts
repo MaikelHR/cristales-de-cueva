@@ -20,9 +20,15 @@
 // ============================================================
 
 import { touchButton, releaseAll, setDevice, setTouchMode } from '../engine/input';
+import { t, onLangChange } from './i18n';
 
-/** Estado de interfaz que nos pasa el juego para decidir qué mostrar. */
-type TouchUI = { state: 'title' | 'playing' | 'won' | 'gameover'; paused: boolean };
+/** Estado de interfaz que nos pasa el juego para decidir qué mostrar.
+ *  `hasDash` indica si ya se desbloqueó el dash (para mostrar su botón). */
+type TouchUI = {
+  state: 'title' | 'playing' | 'won' | 'gameover';
+  paused: boolean;
+  hasDash: boolean;
+};
 
 /** Modo de visibilidad del mando; el CSS decide qué se ve en cada uno. */
 type TouchMode = 'play' | 'paused' | 'menu';
@@ -30,9 +36,13 @@ type TouchMode = 'play' | 'paused' | 'menu';
 // Guardamos el último estado conocido para dos cosas: para no tocar
 // el DOM si no cambió (data-mode) y para saber, cuando se toca el
 // canvas, si estamos en un menú (tap = confirmar) o jugando (se ignora).
-let currentUi: TouchUI = { state: 'title', paused: false };
+let currentUi: TouchUI = { state: 'title', paused: false, hasDash: false };
 let container: HTMLDivElement | null = null;
 let currentMode: TouchMode | null = null;
+// El botón de dash: se guarda aparte porque su visibilidad no depende del
+// modo, sino de si ya se desbloqueó el dash (arranca oculto).
+let dashBtn: HTMLButtonElement | null = null;
+let currentHasDash = false;
 // Cada botón HOLD registra aquí un "soltador forzado" que limpia su
 // estado (dedos apoyados + resaltado). Lo usa el pánico (perder foco)
 // para no dejar nada trabado sin depender de un evento del navegador.
@@ -89,28 +99,46 @@ function buildTouchControls(canvas: HTMLCanvasElement): void {
   tc.dataset.mode = 'menu';
 
   // Cada botón lleva su glifo/rótulo VISIBLE (lo que se ve) y un
-  // aria-label (lo que anuncia un lector de pantalla).
+  // aria-label (lo que anuncia un lector de pantalla). Ambos salen del
+  // diccionario de idiomas (i18n) y se re-aplican al cambiar de idioma.
   // Botón de pausa (arriba-derecha).
-  const btnPause = makeButton('tc-btn tc-pause', 'Pausa', '‖');
+  const btnPause = makeButton('tc-btn tc-pause', t('tc_pause_aria'), '‖');
   // Cruceta de movimiento (abajo-izquierda).
   const pad = document.createElement('div');
   pad.className = 'tc-pad';
-  const btnLeft = makeButton('tc-btn tc-left', 'Izquierda', '◀');
-  const btnRight = makeButton('tc-btn tc-right', 'Derecha', '▶');
+  const btnLeft = makeButton('tc-btn tc-left', t('tc_left_aria'), '◀');
+  const btnRight = makeButton('tc-btn tc-right', t('tc_right_aria'), '▶');
   pad.append(btnLeft, btnRight);
   // Acciones (abajo-derecha).
   const actions = document.createElement('div');
   actions.className = 'tc-actions';
-  const btnDash = makeButton('tc-btn tc-dash', 'Dash', 'DASH');
-  const btnJump = makeButton('tc-btn tc-jump', 'Saltar', 'SALTO');
+  const btnDash = makeButton('tc-btn tc-dash', t('tc_dash_aria'), t('tc_dash_text'));
+  // El dash arranca bloqueado: ocultamos su botón hasta desbloquearlo
+  // (syncTouchUI lo muestra cuando el juego reporta hasDash).
+  btnDash.style.display = 'none';
+  dashBtn = btnDash;
+  const btnJump = makeButton('tc-btn tc-jump', t('tc_jump_aria'), t('tc_jump_text'));
   actions.append(btnDash, btnJump);
   // Menú de pausa (centro).
   const menu = document.createElement('div');
   menu.className = 'tc-menu';
-  const btnResume = makeButton('tc-btn tc-mbtn tc-resume', 'Continuar', 'Continuar');
-  const btnFs = makeButton('tc-btn tc-mbtn tc-fs', 'Pantalla completa', 'Pantalla completa');
-  const btnRestart = makeButton('tc-btn tc-mbtn tc-restart', 'Reiniciar', 'Reiniciar');
+  const btnResume = makeButton('tc-btn tc-mbtn tc-resume', t('tc_resume'), t('tc_resume'));
+  const btnFs = makeButton('tc-btn tc-mbtn tc-fs', t('tc_fs'), t('tc_fs'));
+  const btnRestart = makeButton('tc-btn tc-mbtn tc-restart', t('tc_restart'), t('tc_restart'));
   menu.append(btnResume, btnFs, btnRestart);
+
+  // Al cambiar de idioma, re-aplicar rótulos y aria-labels de cada botón.
+  const relocalize = (): void => {
+    btnPause.setAttribute('aria-label', t('tc_pause_aria'));
+    btnLeft.setAttribute('aria-label', t('tc_left_aria'));
+    btnRight.setAttribute('aria-label', t('tc_right_aria'));
+    setLabel(btnDash, t('tc_dash_aria'), t('tc_dash_text'));
+    setLabel(btnJump, t('tc_jump_aria'), t('tc_jump_text'));
+    setLabel(btnResume, t('tc_resume'), t('tc_resume'));
+    setLabel(btnFs, t('tc_fs'), t('tc_fs'));
+    setLabel(btnRestart, t('tc_restart'), t('tc_restart'));
+  };
+  onLangChange(relocalize);
 
   tc.append(btnPause, pad, actions, menu);
   document.body.appendChild(tc);
@@ -158,9 +186,16 @@ export function syncTouchUI(ui: TouchUI): void {
   currentUi = ui;
   const mode: TouchMode =
     ui.state === 'playing' ? (ui.paused ? 'paused' : 'play') : 'menu';
-  if (mode === currentMode) return;
-  currentMode = mode;
-  if (container) container.dataset.mode = mode;
+  if (mode !== currentMode) {
+    currentMode = mode;
+    if (container) container.dataset.mode = mode;
+  }
+  // El botón de dash solo se muestra una vez desbloqueada la habilidad.
+  // Un mundo nuevo (reset) vuelve a bloquearla, así que también lo re-oculta.
+  if (ui.hasDash !== currentHasDash) {
+    currentHasDash = ui.hasDash;
+    if (dashBtn) dashBtn.style.display = ui.hasDash ? '' : 'none';
+  }
 }
 
 // ------------------------------------------------------------
@@ -176,6 +211,12 @@ function makeButton(className: string, label: string, text: string): HTMLButtonE
   b.textContent = text;
   b.setAttribute('aria-label', label);
   return b;
+}
+
+/** Actualiza el rótulo visible y el aria-label de un botón (cambio de idioma). */
+function setLabel(el: HTMLButtonElement, label: string, text: string): void {
+  el.textContent = text;
+  el.setAttribute('aria-label', label);
 }
 
 /**
