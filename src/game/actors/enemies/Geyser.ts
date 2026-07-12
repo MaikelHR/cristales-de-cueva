@@ -51,9 +51,19 @@ export class Geyser implements Enemy {
     return { state: 'erupt', p: (c - QUIET - WARN) / ERUPT };
   }
 
+  /** Eruption height envelope: races up, holds, dies back down. */
+  private eruptHeight(p: number): number {
+    const env = Math.min(1, p / 0.08, (1 - p) / 0.12);
+    return Math.max(4, Math.round(FLAME_H * env));
+  }
+
   hazards(): Box[] {
-    if (this.phase().state !== 'erupt') return [];
-    return [{ x: this.x + 1, y: this.y - FLAME_H, w: this.w - 2, h: FLAME_H + 4 }];
+    const { state, p } = this.phase();
+    if (state !== 'erupt') return [];
+    // The hitbox follows the visual envelope, so the flame never hurts
+    // taller than it draws (it used to pop to full height instantly).
+    const h = this.eruptHeight(p);
+    return [{ x: this.x + 1, y: this.y - h, w: this.w - 2, h: h + 4 }];
   }
 
   update(dt: number): void {
@@ -73,6 +83,11 @@ export class Geyser implements Enemy {
     ctx.fillRect(px + 1, py + 3, this.w - 2, 2);
     ctx.fillStyle = state === 'quiet' ? '#7a3416' : '#ff9a3a';
     ctx.fillRect(px + 2, py + 3, this.w - 4, 1);
+    if (state === 'quiet' && Math.floor(this.t * 3) % 4 === 0) {
+      // A lone ember winks in the mouth: asleep, not dead.
+      ctx.fillStyle = '#c1521f';
+      ctx.fillRect(px + 3 + (Math.floor(this.t * 7) % 3), py + 3, 1, 1);
+    }
 
     if (state === 'warn') {
       // Sparks jumping from the mouth: "step aside".
@@ -84,23 +99,41 @@ export class Geyser implements Enemy {
         ctx.fillRect(Math.round(sx), Math.round(sy), 1, 1);
       }
     } else if (state === 'erupt') {
-      // The column: bright core, winding tongues, strong glow.
-      const topY = py - FLAME_H;
-      drawGlow(ctx, cx, py - FLAME_H / 2, 18, '#ff9a3a', 0.55);
-      for (let yy = 0; yy < FLAME_H; yy += 2) {
-        const wob = Math.sin(this.t * 18 + yy * 0.5) > 0 ? 1 : -1;
-        const taper = yy < 6 ? 0 : yy > FLAME_H - 8 ? 2 : 1;
-        ctx.fillStyle = '#ff7a2a';
-        ctx.fillRect(px + 1 + taper, topY + yy, this.w - 2 - taper * 2, 2);
+      // The column is ALIVE: it races up, whips side to side (harder near
+      // the flared crown), its shades scroll upward like flow, tongues lick
+      // off the tip and embers drift alongside. The old straight two-tone
+      // stripes read as a painted wall in playtests.
+      const h = this.eruptHeight(p);
+      const topY = py - h;
+      drawGlow(ctx, cx, py - h / 2, 18, '#ff9a3a', 0.45 + Math.sin(this.t * 22) * 0.12);
+      for (let yy = 0; yy < h; yy += 2) {
+        const taper = yy < 6 ? 0 : yy > h - 8 ? 2 : 1; // flared crown, tight base
+        const off = Math.round(Math.sin(this.t * 13 + yy * 0.55) * (taper === 0 ? 2 : 1));
+        const band = (((yy - Math.floor(this.t * 23) * 2) % 8) + 8) % 8;
+        ctx.fillStyle = band < 3 ? '#ff9a3a' : '#ff7a2a';
+        ctx.fillRect(px + 1 + taper + off, topY + yy, this.w - 2 - taper * 2, 2);
+        const core = Math.round(Math.sin(this.t * 17 + yy * 0.4) * (taper === 0 ? 2 : 1));
         ctx.fillStyle = '#ffd23a';
-        ctx.fillRect(Math.round(cx - 1 + wob * (taper === 0 ? 1 : 0)), topY + yy, 2, 2);
+        ctx.fillRect(Math.round(cx - 1 + core), topY + yy, 2, 2);
       }
+      // White-hot jet at the mouth, tongues licking off the crown.
       ctx.fillStyle = '#ffe8c0';
       ctx.fillRect(Math.round(cx) - 1, py - 6, 2, 5);
-      // The tip flickers as the eruption dies.
-      if (p > 0.75) {
-        ctx.fillStyle = '#ff7a2a';
-        ctx.fillRect(Math.round(cx), topY - 2, 1, 2);
+      ctx.fillStyle = '#ffd23a';
+      for (let i = 0; i < 3; i++) {
+        const seed = Math.floor(this.t * 12) + i * 7;
+        ctx.fillRect(
+          Math.round(cx - 3 + ((seed * 13) % 7)),
+          Math.round(topY - 2 - ((seed * 5) % 6)),
+          1, 2,
+        );
+      }
+      // Stray embers drifting up alongside the column.
+      ctx.fillStyle = '#ff9a3a';
+      for (let i = 0; i < 2; i++) {
+        const ph = (this.t * (0.9 + i * 0.35)) % 1;
+        const ex = cx + (i === 0 ? -6 : 5) + Math.sin(this.t * 6 + i * 3) * 1.5;
+        ctx.fillRect(Math.round(ex), Math.round(py - ph * (h + 6)), 1, 1);
       }
     }
   }
