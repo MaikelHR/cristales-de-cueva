@@ -31,9 +31,30 @@ export function drawLevelTiles(
         drawSolidTile(ctx, level, row, col, col * TILE - camX, row * TILE - camY);
       } else if (level.oneWayCell(row, col)) {
         sprites.plank.draw(ctx, col * TILE - camX, row * TILE - camY);
+      } else if (level.spikeCell(row, col)) {
+        drawSpikeTile(ctx, col * TILE - camX, row * TILE - camY);
       }
     }
   }
+}
+
+/** Púas: dos agujas de roca clavadas en el piso, con la punta clara.
+ *  El dibujo llena la celda pero la caja de daño (Level.touchesSpike)
+ *  es más chica: lo que se ve amenaza un poco más de lo que pincha. */
+function drawSpikeTile(ctx: CanvasRenderingContext2D, px: number, py: number): void {
+  ctx.fillStyle = '#5f4790';
+  for (const base of [0, 4]) {
+    // Triángulo en escalera: ancho 4 en la base, 2 al medio, 1 en la punta.
+    ctx.fillRect(px + base, py + 6, 4, 2);
+    ctx.fillRect(px + base + 1, py + 3, 2, 3);
+    ctx.fillStyle = '#8064b0';
+    ctx.fillRect(px + base + 1, py + 1, 1, 2);
+    ctx.fillStyle = '#5f4790';
+  }
+  // Puntas iluminadas: se leen de un vistazo como "esto pincha".
+  ctx.fillStyle = '#d7c9ec';
+  ctx.fillRect(px + 1, py + 1, 1, 1);
+  ctx.fillRect(px + 5, py + 1, 1, 1);
 }
 
 function drawSolidTile(

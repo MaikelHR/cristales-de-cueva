@@ -1,8 +1,8 @@
 // ============================================================
-//  EL MUNDO (las salas y sus conexiones)
+//  EL MUNDO (las salas de UN NIVEL y sus conexiones)
 // ------------------------------------------------------------
-//  Construye todas las salas al crear la corrida y sabe pasar de
-//  una a otra: la transición ocurre cuando el CENTRO del jugador
+//  Construye las salas del nivel al crear la corrida y sabe pasar
+//  de una a otra: la transición ocurre cuando el CENTRO del jugador
 //  cruza un borde que tiene salida definida.
 // ============================================================
 
@@ -10,21 +10,20 @@ import type { Clock } from '../clock';
 import type { Player } from '../actors/Player';
 import type { Crystal } from '../actors/pickups/Crystal';
 import { Room } from './Room';
-import { ROOMS } from './rooms';
-import { validateRooms } from './RoomData';
+import { validateRooms, type RoomData } from './RoomData';
 
 export class World {
   private rooms = new Map<string, Room>();
   current: Room;
 
-  constructor(clock: Clock) {
+  constructor(clock: Clock, roomsData: RoomData[]) {
     // En desarrollo, un mapa roto avisa fuerte y claro al arrancar.
     if (import.meta.env.DEV) {
-      const problems = validateRooms(ROOMS);
+      const problems = validateRooms(roomsData);
       if (problems.length > 0) throw new Error('Salas inválidas:\n' + problems.join('\n'));
     }
-    for (const data of ROOMS) this.rooms.set(data.id, new Room(data, clock));
-    this.current = this.get(ROOMS[0].id);
+    for (const data of roomsData) this.rooms.set(data.id, new Room(data, clock));
+    this.current = this.get(roomsData[0].id);
   }
 
   get(id: string): Room {

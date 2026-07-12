@@ -17,49 +17,73 @@ Before considering a change done: `npm test` and `npm run build` must both pass.
 ## Architecture (layers, each with one job)
 
 - `src/engine/` — reusable, game-agnostic: fixed-step loop, input (keyboard/gamepad/touch
-  → actions), canvas/AABB, `Sprite`, `frameAt` animation, audio with channels (sfx/music).
-  Must never import from `src/game/`.
+  → actions; gamepad UI strings use `{j}/{d}/{r}/{p}` placeholders filled by `padLabels()`
+  so PlayStation pads show ✕/□/△/OPTIONS), canvas/AABB, `Sprite`, `frameAt` animation,
+  audio with channels (sfx/music). Must never import from `src/game/`.
 - `src/game/session.ts` — `GameSession`: ALL run state (world, player, camera, score,
-  checkpoint, records) + lifecycle ops (reset, respawn, endRun). No flow, no rendering.
-- `src/game/scenes/` — flow as a scene STACK (Title, Gameplay, Pause, Won, GameOver).
-  Only the top scene updates; all draw bottom-up (Pause is pushed over Gameplay and
-  freezes it by covering it). New screen = new scene.
+  checkpoint, records) + lifecycle ops (startLevel, reset, respawn, endRun). Carries the
+  current `level` (LevelDef) and `mode` ('normal' | 'trial'). No flow, no rendering.
+- `src/game/scenes/` — flow as a scene STACK (Title, Overworld, Gameplay, Pause, Won,
+  GameOver). Only the top scene updates; all draw bottom-up (Pause is pushed over
+  Gameplay and freezes it by covering it). New screen = new scene. Flow: Title →
+  Overworld (Mario-style level map: walk node to node, jump/confirm enters; a completed
+  level opens the normal/time-trial mode chooser) → Gameplay → Won/GameOver → Overworld.
 - `src/game/systems/` — gameplay rules as functions over the session: `combat.ts`
-  (stomp-vs-hurt; `isStomp` is the pure, tested decision), `pickups.ts`, `transitions.ts`.
+  (stomp-vs-hurt; `isStomp` is the pure, tested decision), `pickups.ts`, `transitions.ts`,
+  `devices.ts` (springs launch, moving platforms carry; ORDER matters — carry before
+  player physics, contacts after).
 - `src/game/actors/` — things living in rooms behind the `Actor` interface with a
-  collision `layer` ('enemy' | 'pickup'). Enemies implement `Enemy` (optional `hazards()`,
-  `onStomp()`); pickups implement `collect()`. New enemy/pickup = new class + a case in
-  `world/Room.ts` + an entity type in `world/RoomData.ts`.
-- `src/game/world/` — `RoomData` (data format + `validateRooms`), `Level` (collision
-  grid, PURE — no DOM, keep it Node-testable), `Room`/`World` (live instances; room state
-  persists across re-entry within a run).
+  collision `layer` ('enemy' | 'pickup' | 'device'). Enemies implement `Enemy` (optional
+  `hazards()`, `onStomp()`); pickups implement `collect()`; devices (Spring,
+  MovingPlatform) interact with player physics via `systems/devices.ts`. New actor =
+  new class + a case in `world/Room.ts` + an entity type in `world/RoomData.ts`.
+- `src/game/world/` — `RoomData` (room format + `validateRooms`), `LevelData`
+  (`LevelDef`: id, nameKey, rooms, startAbilities + `validateLevels`), `Level` (collision
+  grid, PURE — no DOM, keep it Node-testable), `Room`/`World` (live instances of ONE
+  level's rooms; room state persists across re-entry within a run).
 - `src/game/render/` + `src/game/ui/` — all drawing: `drawWorld` composition, tile
-  auto-tiling, HUD, minimap, screen overlays. Logic modules never draw.
+  auto-tiling, HUD, minimap, screen overlays, `overworld.ts` (level map + `OW_NODES`).
+  Logic modules never draw.
 - `src/game/art/` — palette, sprite pixel-grids, glow, atmosphere (parallax/fog/dust).
 
-## Rooms are data
+## Levels and rooms are data
 
-`src/game/world/rooms/*.ts`: geometry as ASCII rows (`#` solid, `.` air, `-` one-way
-plank ONLY) + a typed `entities` list (tile coords, e.g.
-`{ type: 'relic', ability: 'dash', x: 47, y: 9 }`). Never put entity characters in the
-tile grid. Register new rooms in `rooms/index.ts`; `validateRooms` + `rooms.test.ts`
-enforce integrity (row lengths, exits exist and are reciprocal, one playerSpawn, a door).
+`src/game/world/rooms/<level>/*.ts`: geometry as ASCII rows (`#` solid, `.` air, `-`
+one-way plank, `^` spikes ONLY) + a typed `entities` list (tile coords, e.g.
+`{ type: 'relic', ability: 'dash', x: 47, y: 9 }` or
+`{ type: 'platform', axis: 'x', range: 6, x: 8, y: 15 }`). Never put entity characters
+in the tile grid. Levels register in `rooms/index.ts` (`LEVELS`, in overworld order —
+completing one unlocks the next); `validateLevels` + `rooms.test.ts` enforce integrity
+(row lengths, reciprocal exits, one playerSpawn + a door per level, connected rooms
+open their borders at matching rows — transitions preserve player y). Each level's
+`startAbilities` are what previous levels taught; its new ability comes from a relic
+inside. Design metrics (TILE=8): jump ≈ 4 tiles high, double jump ≈ 7, spring = 9,
+wall-jump chimneys 4 wide; a dash gate is ~14 tiles at same height (impossible without
+dash, comfortable with it). Level 1 id ('cavernas') is pinned in save.ts for migration.
 
 ## Conventions
 
 - Code comments and identifiers-facing docs are in **Spanish** (intent-explaining style —
   keep matching it). Player-facing text is **neutral LatAm Spanish (tuteo)** + English,
   ALWAYS via `src/game/i18n.ts` (`t(key)`) — never hardcode player-visible strings.
+- The page is ONLY the game's frame: fullscreen letterboxed canvas, no HTML title/
+  footer/chrome. Everything player-facing lives in-canvas — Title menu (play/fullscreen/
+  language) and Pause menu (resume/restart/fullscreen/language/exit to map), navigated
+  with the 'up'/'down'/'confirm' actions (keys can map to SEVERAL actions: ↑/W = jump+up,
+  space = jump+confirm). The touch pause menu stays DOM buttons (touch.ts); its "exit to
+  map" arrives as the 'quit' action; the ES/EN DOM chip is touch-only, menus-only.
   Both languages must have every key (the `en` table is typed to enforce it).
 - Behavior-preserving details matter here (game feel): coyote time, jump buffer,
   hit-stop, the shared animation `Clock` also ticking on menus. Don't "simplify" them away.
 - Touch UI: ability buttons (dash) only appear once unlocked (`syncTouchUI` via
   `scenes.ui` + `hasDash`). Keep the `UiState` shape stable — touch.ts/langSwitch depend on it.
-- Saves are versioned (`save.ts`): change the format only via `parseSave` migration,
-  never by breaking old localStorage data.
+- Saves are versioned (`save.ts`, v2 = per-level records incl. best time-trial time):
+  change the format only via `parseSave` migration, never by breaking old localStorage
+  data. Record/unlock logic (`recordRun`, `unlockedLevels`) is pure and tested.
 - No new runtime dependencies without a strong reason.
 
 ## Debugging (dev only)
 
 Browser console: `__game` (session), `__scenes`, `__debug.hitboxes = true`,
-`__debug.warp('tunel' | 'santuario' | 'entrada')`, `__sprites`, `__audio()`.
+`__debug.warp('<room-id>')` (rooms of the CURRENT level, e.g. 'galeria', 'chimenea'),
+`__debug.level('cavernas' | 'galerias' | 'corazon')`, `__sprites`, `__audio()`.

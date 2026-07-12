@@ -2,8 +2,8 @@
 //  EL NIVEL (la geometría de una sala)
 // ------------------------------------------------------------
 //  Interpreta las filas de tiles de RoomData ('#' sólido, '.' aire,
-//  '-' tablón de un sentido) y responde consultas de colisión.
-//  Cada celda mide 8x8 px.
+//  '-' tablón de un sentido, '^' púas) y responde consultas de
+//  colisión. Cada celda mide 8x8 px.
 //
 //  Este módulo es LÓGICA PURA: no dibuja ni toca el DOM, así que
 //  se puede testear en Node. El dibujo de los tiles vive en
@@ -22,6 +22,7 @@ export class Level {
 
   private solid: boolean[][] = [];
   private oneWay: boolean[][] = [];
+  private spike: boolean[][] = [];
 
   constructor(tiles: string[]) {
     this.rows = tiles.length;
@@ -37,13 +38,15 @@ export class Level {
       }
       this.solid[y] = [];
       this.oneWay[y] = [];
+      this.spike[y] = [];
       for (let x = 0; x < this.cols; x++) {
         const ch = row[x];
-        if (ch !== '#' && ch !== '.' && ch !== '-') {
+        if (ch !== '#' && ch !== '.' && ch !== '-' && ch !== '^') {
           throw new Error(`Mapa inválido: carácter desconocido '${ch}' en (${x}, ${y})`);
         }
         this.solid[y][x] = ch === '#';
         this.oneWay[y][x] = ch === '-';
+        this.spike[y][x] = ch === '^';
       }
     });
   }
@@ -63,6 +66,35 @@ export class Level {
   oneWayCell(row: number, col: number): boolean {
     if (row < 0 || row >= this.rows || col < 0 || col >= this.cols) return false;
     return this.oneWay[row][col];
+  }
+
+  /** ¿Púas en esta celda? Fuera del mapa, no. */
+  spikeCell(row: number, col: number): boolean {
+    if (row < 0 || row >= this.rows || col < 0 || col >= this.cols) return false;
+    return this.spike[row][col];
+  }
+
+  /**
+   * ¿La caja toca alguna púa? La caja de daño de cada púa es más
+   * chica que su celda (la mitad de abajo, con 1px de margen a los
+   * lados): rozar el borde de la celda no castiga, pisarla sí.
+   */
+  touchesSpike(box: Box): boolean {
+    const c0 = Math.max(0, Math.floor(box.x / TILE));
+    const c1 = Math.min(this.cols - 1, Math.floor((box.x + box.w) / TILE));
+    const r0 = Math.max(0, Math.floor(box.y / TILE));
+    const r1 = Math.min(this.rows - 1, Math.floor((box.y + box.h) / TILE));
+    for (let row = r0; row <= r1; row++) {
+      for (let col = c0; col <= c1; col++) {
+        if (!this.spike[row][col]) continue;
+        const hx = col * TILE + 1;
+        const hy = row * TILE + 4;
+        if (box.x < hx + TILE - 2 && box.x + box.w > hx && box.y < hy + 4 && box.y + box.h > hy) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   /** Devuelve las cajas de los tiles sólidos que tocan una caja dada. */

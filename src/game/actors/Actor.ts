@@ -1,19 +1,21 @@
 // ============================================================
 //  ACTOR — lo mínimo que es "una cosa que vive en una sala"
 // ------------------------------------------------------------
-//  Enemigos y objetos recogibles comparten esta forma: avanzar en
-//  el tiempo, dibujarse, decir qué caja ocupan y en qué CAPA de
+//  Enemigos, recogibles y aparatos comparten esta forma: avanzar
+//  en el tiempo, dibujarse, decir qué caja ocupan y en qué CAPA de
 //  colisión están. La capa decide qué regla se le aplica al tocar
-//  al jugador (dañar vs. recoger); sumar una capa nueva (p. ej.
-//  'trigger' o 'playerAttack') es agregar su regla en systems/,
-//  sin tocar a los actores existentes.
+//  al jugador (dañar vs. recoger vs. empujar); sumar una capa nueva
+//  (p. ej. 'trigger' o 'playerAttack') es agregar su regla en
+//  systems/, sin tocar a los actores existentes.
 // ============================================================
 
 import type { Box } from '../../engine/canvas';
 import type { Player } from './Player';
 import type { Particles } from '../effects/Particles';
 
-export type ActorLayer = 'enemy' | 'pickup';
+/** 'device' = aparatos del escenario (resortes, plataformas móviles):
+ *  no dañan ni se recogen; interactúan con la física del jugador. */
+export type ActorLayer = 'enemy' | 'pickup' | 'device';
 
 export interface Actor {
   readonly layer: ActorLayer;

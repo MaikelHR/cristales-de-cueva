@@ -11,13 +11,18 @@
 import { Camera } from './Camera';
 import type { Clock } from './clock';
 import { World } from './world/World';
+import type { LevelDef } from './world/LevelData';
+import { LEVELS } from './world/rooms';
 import { Player } from './actors/Player';
 import { Particles } from './effects/Particles';
 import { Popups } from './effects/Popups';
 import { initDust } from './art/atmosphere';
-import { loadSave, writeSave, type SaveData } from './save';
+import { loadSave, recordRun, writeSave, type RunFlags, type SaveData } from './save';
 import { ABILITY_NAMES } from './abilities';
 import { sfx } from './sfx';
+
+/** Cómo se juega un nivel: 'normal' o 'trial' (contrarreloj). */
+export type GameMode = 'normal' | 'trial';
 
 export class GameSession {
   /** Reloj global de animación: también avanza en los menús. */
@@ -34,9 +39,13 @@ export class GameSession {
   hitStop = 0;        // micro-pausa al pisar (impacto, sin muerte)
   score = 0;          // puntos por monstruos eliminados
   save: SaveData = loadSave(); // récords persistidos (localStorage)
-  newRecord = false;  // ¿la última corrida batió el mejor puntaje?
-  newBestTime = false;// ¿la última victoria batió el mejor tiempo?
+  /** Qué marcas batió la última corrida (para celebrarlas en pantalla). */
+  runFlags: RunFlags = { newBestScore: false, newBestTime: false, newBestTrial: false };
   runTime = 0;        // cronómetro de la partida actual (segundos)
+  /** El nivel que se está jugando (o el que se ve de fondo en el menú). */
+  level: LevelDef = LEVELS[0];
+  /** Modo de la corrida: normal o contrarreloj. */
+  mode: GameMode = 'normal';
   // Checkpoint: la sala y el punto donde reaparecés al morir.
   checkpoint = { roomId: '', x: 0, y: 0 };
   // Salas ya exploradas: son las que muestra el minimapa.
@@ -49,7 +58,7 @@ export class GameSession {
     readonly viewW: number,
     readonly viewH: number,
   ) {
-    this.world = new World(this.clock);
+    this.world = new World(this.clock, this.level.rooms);
     this.player = new Player(this.world.current.level, this.particles);
     this.spawnAtStart();
     this.saveCheckpoint();
@@ -114,24 +123,31 @@ export class GameSession {
     return this.collected === this.totalCrystals && !this.bossAlive;
   }
 
-  /** Empezar una corrida de cero: mundo nuevo, enemigos y cristales
-   *  frescos, habilidades apagadas, corazones al máximo. */
+  /** Arranca una corrida del nivel dado en el modo dado. */
+  startLevel(level: LevelDef, mode: GameMode): void {
+    this.level = level;
+    this.mode = mode;
+    this.reset();
+  }
+
+  /** Empezar la corrida de cero (mismo nivel y modo): salas frescas,
+   *  habilidades de arranque del nivel, corazones al máximo. */
   reset(): void {
-    this.world = new World(this.clock);
+    this.world = new World(this.clock, this.level.rooms);
     this.player.setLevel(this.world.current.level);
     this.spawnAtStart();
     this.player.health = this.player.maxHealth; // corazones al máximo
     this.pendingReset = false;
     this.saveCheckpoint();
     this.visited = new Set([this.world.current.data.id]);
-    // Un mundo nuevo también apaga las habilidades ganadas.
+    // Se apagan las habilidades y se prenden solo las que el nivel
+    // trae de fábrica (las "ya aprendidas" en niveles anteriores).
     for (const key of ABILITY_NAMES) {
-      this.player.abilities[key] = false;
+      this.player.abilities[key] = this.level.startAbilities.includes(key);
     }
     this.announceTimer = 0;
     this.score = 0;
-    this.newRecord = false;
-    this.newBestTime = false;
+    this.runFlags = { newBestScore: false, newBestTime: false, newBestTrial: false };
     this.runTime = 0;
     this.popups.clear();
     this.particles.clear();
@@ -174,18 +190,15 @@ export class GameSession {
     sfx.die();
   }
 
-  /** Cierre de una corrida (ganaste o game over): actualiza los récords
-   *  persistidos y marca si batiste el mejor puntaje. */
+  /** Cierre de una corrida (ganaste o game over): vuelca el resultado
+   *  sobre los récords del nivel y los persiste. */
   endRun(won: boolean): void {
-    this.newRecord = this.score > this.save.bestScore;
-    if (this.newRecord) this.save.bestScore = this.score;
-    if (won) {
-      this.save.victories++;
-      // Mejor tiempo: solo cuenta al ganar. El primer completado siempre
-      // es récord (bestTime arranca en 0 = "sin marca").
-      this.newBestTime = this.save.bestTime === 0 || this.runTime < this.save.bestTime;
-      if (this.newBestTime) this.save.bestTime = this.runTime;
-    }
+    this.runFlags = recordRun(this.save, this.level.id, {
+      won,
+      mode: this.mode,
+      score: this.score,
+      time: this.runTime,
+    });
     writeSave(this.save);
   }
 }

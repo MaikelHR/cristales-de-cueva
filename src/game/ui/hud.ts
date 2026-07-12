@@ -8,6 +8,7 @@
 
 import type { GameSession } from '../session';
 import { sprites } from '../art/sprites';
+import { levelRecord } from '../save';
 import { t } from '../i18n';
 import { font, formatTime } from './text';
 
@@ -30,9 +31,23 @@ export function drawHud(
   ctx.fillStyle = '#9b86c4';
   ctx.fillText(`${t('hud_points')} ${session.score}`, 6, 24);
   // Cronómetro de la partida, arriba al centro (estilo speedrun).
+  // En contrarreloj es EL protagonista: grande, dorado y con la
+  // marca a batir debajo.
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#c7b8e6';
-  ctx.fillText(formatTime(session.runTime), session.viewW / 2, 6);
+  if (session.mode === 'trial') {
+    ctx.fillStyle = '#ffe25a';
+    ctx.font = font(11);
+    ctx.fillText(formatTime(session.runTime), session.viewW / 2, 5);
+    ctx.font = font(7);
+    ctx.fillStyle = '#9b86c4';
+    const best = levelRecord(session.save, session.level.id).bestTrialTime;
+    const line = best > 0 ? t('trial_best', { t: formatTime(best) }) : t('hud_trial');
+    ctx.fillText(line, session.viewW / 2, 18);
+    ctx.font = font(8);
+  } else {
+    ctx.fillStyle = '#c7b8e6';
+    ctx.fillText(formatTime(session.runTime), session.viewW / 2, 6);
+  }
   ctx.textAlign = 'left';
   if (session.collected === session.totalCrystals && inGame) {
     if (session.bossAlive) {
@@ -54,4 +69,8 @@ export function drawHud(
     ctx.restore();
     ctx.textAlign = 'left';
   }
+  // Devolver la línea base por defecto: el HUD usa 'top' pero los
+  // overlays y el overworld dibujan con la base normal; si queda
+  // pegada, todos sus textos aparecen corridos 8px hacia abajo.
+  ctx.textBaseline = 'alphabetic';
 }

@@ -92,6 +92,7 @@ export class Player {
   private wallLockDir: 1 | -1 = 1;
   private wallSliding = false; // para elegir el sprite de pared
 
+  private launched = false; // impulso externo (resorte): sin recorte de salto
   private coyoteTimer = 0;
   private bufferTimer = 0;
   private animTime = 0;
@@ -119,6 +120,7 @@ export class Player {
     this.invulnTimer = 0;
     this.hurtLock = 0;
     this.stompGrace = 0;
+    this.launched = false;
   }
 
   box(): Box {
@@ -140,6 +142,18 @@ export class Player {
     this.stompGrace = 0.35;
   }
 
+  /** Lanzamiento de resorte: impulso vertical impuesto desde afuera.
+   *  Marca `launched` para que el recorte de salto variable (soltar la
+   *  tecla achica el brinco) NO se coma este impulso: el resorte manda
+   *  hasta el punto más alto. También recarga el salto aéreo. */
+  springLaunch(speed: number): void {
+    this.vy = -speed;
+    this.onGround = false;
+    this.launched = true;
+    this.airJumpsLeft = 1;
+    this.stretch = STRETCH_JUMP;
+  }
+
   /**
    * Recibir daño desde una fuente ubicada en fromX. Devuelve true si
    * el golpe conectó (false si estaba invulnerable). Quita un corazón,
@@ -151,6 +165,7 @@ export class Player {
     this.invulnTimer = HURT_INVULN;
     this.hurtLock = HURT_LOCK;
     this.dashTimer = 0; // un golpe corta el dash
+    this.launched = false; // y también el vuelo de resorte
     this.wallLock = 0;
     const away: 1 | -1 = this.x + this.w / 2 < fromX ? -1 : 1;
     this.vx = away * KNOCKBACK_X;
@@ -226,11 +241,13 @@ export class Player {
           this.onGround = false;
           this.bufferTimer = 0;
           this.coyoteTimer = 0;
+          this.launched = false;
           this.stretch = STRETCH_JUMP; // despega estirado
           sfx.jump();
         } else if (this.abilities.wallJump && wall !== 0) {
           // Wall jump: salto en diagonal, alejándose de la pared.
           this.vy = -JUMP_SPEED * WALL_JUMP_V;
+          this.launched = false;
           this.wallLock = WALL_LOCK;
           this.wallLockDir = -wall as 1 | -1;
           this.facing = this.wallLockDir;
@@ -244,6 +261,7 @@ export class Player {
           // Doble salto: un impulso extra en pleno aire.
           this.airJumpsLeft--;
           this.vy = -JUMP_SPEED * DOUBLE_JUMP;
+          this.launched = false;
           this.bufferTimer = 0;
           this.stretch = STRETCH_JUMP;
           // Nubecita bajo los pies: el "apoyo" invisible del segundo salto.
@@ -252,9 +270,13 @@ export class Player {
         }
       }
       // Salto variable: si soltás temprano, el brinco es más bajo.
-      if (!isDown('jump') && this.vy < 0) {
+      // Un lanzamiento de resorte no se recorta: el impulso es del
+      // resorte, no del dedo (el flag se limpia al pasar el punto
+      // más alto o cuando un salto propio retoma el control).
+      if (!isDown('jump') && this.vy < 0 && !this.launched) {
         this.vy *= JUMP_CUT;
       }
+      if (this.vy >= 0) this.launched = false;
 
       // ---- Gravedad ----
       this.vy = Math.min(this.vy + GRAVITY * dt, MAX_FALL);

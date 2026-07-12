@@ -1,13 +1,15 @@
 // ============================================================
-//  SELECTOR DE IDIOMA (ES / EN)
+//  SELECTOR DE IDIOMA (ES / EN) — solo táctil
 // ------------------------------------------------------------
 //  Un par de botones fijos (arriba a la izquierda) para cambiar
-//  entre español e inglés. En escritorio están siempre visibles;
-//  en móvil (táctil) solo aparecen en los menús o en pausa —nunca
-//  durante la partida, para no tapar el juego— y el CSS los oculta
-//  en retrato (ahí manda el aviso de rotar).
+//  entre español e inglés SIN teclado: solo existen para el modo
+//  táctil, y solo en los menús o en pausa —nunca durante la
+//  partida—. En escritorio/gamepad el idioma vive dentro de los
+//  menús del juego (título y pausa), como en un juego de verdad.
+//  El CSS además los oculta en retrato (ahí manda el aviso de rotar).
 // ============================================================
 
+import { isTouchMode } from '../engine/input';
 import { getLang, setLang, onLangChange, type Lang } from './i18n';
 
 let container: HTMLDivElement | null = null;
@@ -31,13 +33,14 @@ export function initLangSwitch(): void {
 }
 
 /**
- * En táctil, muestra el selector solo cuando NO se está jugando (menús)
- * o en pausa. En escritorio el CSS lo deja visible siempre. Barato: solo
- * toca el DOM cuando cambia el estado a mostrar.
+ * Muestra el selector solo en modo táctil y solo cuando NO se está
+ * jugando (menús) o en pausa. En escritorio nunca: ahí el idioma se
+ * cambia desde los menús del juego. Barato: solo toca el DOM cuando
+ * cambia el estado a mostrar.
  */
 export function syncLangSwitch(ui: { state: string; paused: boolean }): void {
   if (!container) return;
-  const show = ui.state !== 'playing' || ui.paused;
+  const show = isTouchMode() && (ui.state !== 'playing' || ui.paused);
   const val = show ? '1' : '0';
   if (container.dataset.show !== val) container.dataset.show = val;
 }

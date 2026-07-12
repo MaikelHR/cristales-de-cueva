@@ -24,6 +24,9 @@ export function drawWorld(ctx: CanvasRenderingContext2D, session: GameSession): 
 
   drawLevelTiles(ctx, room.level, camX, camY, viewW, viewH);
   drawDoor(ctx, session, camX, camY);
+  for (const d of room.devices) {
+    d.draw(ctx, camX, camY); // aparatos primero: se pisa SOBRE ellos
+  }
   for (const p of room.pickups) {
     if (!p.dead) p.draw(ctx, camX, camY);
   }
@@ -84,6 +87,7 @@ function drawHitboxes(
     outline(e.box(), '#ff3a5a');
     for (const hz of e.hazards?.() ?? []) outline(hz, '#ff9ad0');
   }
+  for (const d of room.devices) outline(d.box(), '#5ce06a');
   if (room.doorBox) outline(room.doorBox, '#b98bff');
   outline(session.player.box(), '#7ce0ff');
 }

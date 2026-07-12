@@ -1,4 +1,6 @@
-/* La página que contiene el juego: una "cabina" oscura estilo cueva. */
+/* La página es SOLO el marco del juego: fondo negro-violeta y el canvas
+   ocupando toda la pantalla (con bandas si la proporción no coincide),
+   como un juego de verdad. Todo el texto vive DENTRO del canvas. */
 /* Las fuentes (JetBrains Mono / Space Grotesk) se cargan desde index.html
    con <link ... display=swap>, no con @import, para no bloquear el render. */
 
@@ -8,11 +10,7 @@
 
 /* Anti-parpadeo de idioma: si el idioma detectado no es el español por
    defecto del HTML, un script en <head> pone .pre-i18n en <html> y ocultamos
-   el "chrome" hasta que main.ts lo traduzca (luego quita la clase). Usamos
-   visibility (no display) para reservar el espacio y no provocar saltos. */
-html.pre-i18n h1,
-html.pre-i18n .sub,
-html.pre-i18n .controles,
+   el aviso de rotar hasta que main.ts lo traduzca (luego quita la clase). */
 html.pre-i18n .rotate-hint {
   visibility: hidden;
 }
@@ -26,37 +24,26 @@ body {
 }
 
 body {
-  background:
-    radial-gradient(900px 500px at 50% 0%, rgba(122, 75, 214, 0.18), transparent 60%),
-    #11091a;
+  /* Bandas de letterbox mas oscuras que la cueva: el ojo va al juego. */
+  background: #0b0612;
   color: #d7c9ec;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 24px;
+  overflow: hidden;
+  /* 100dvh sigue en vivo a la barra del navegador (movil); fallback 100vh. */
+  height: 100vh;
+  height: 100dvh;
   user-select: none;
   -webkit-user-select: none;
 }
 
-h1 {
-  margin: 0;
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 22px;
-  letter-spacing: 3px;
-  color: #ffd36e;
-  text-shadow: 2px 2px 0 #5a2d82;
-}
-
-.sub {
-  margin: 0;
-  font-size: 12px;
-  color: #9b86c4;
-}
-
-/* El canvas se escala x3 sin difuminar: ese es el look pixel-art. */
+/* El canvas a pantalla completa conservando la proporcion interna 320x176,
+   escalado sin difuminar: ese es el look pixel-art. Primero el fallback en
+   vw/vh (navegadores viejos), luego dvw/dvh (siguen a la barra del
+   navegador). Sin el fallback, un navegador que no entiende dvw descarta
+   TODA la regla. */
 canvas {
   image-rendering: pixelated;
   /* Mismo degradado base que dibuja el juego (drawBackground): así, mientras
@@ -64,35 +51,19 @@ canvas {
      de una caja vacía. El juego pinta encima opaco, así que solo se ve antes
      del primer dibujado. */
   background: linear-gradient(180deg, #170c28, #2a1644);
-  width: 960px;
-  max-width: 94vw;
+  width: min(100vw, calc(100vh * 320 / 176));
+  width: min(100dvw, calc(100dvh * 320 / 176));
   height: auto;
-  border: 3px solid #3a2456;
-  border-radius: 4px;
-  box-shadow: 0 0 0 3px #1c1029, 0 18px 44px rgba(0, 0, 0, 0.6);
+  max-width: 100vw;
+  max-width: 100dvw;
+  max-height: 100vh;
+  max-height: 100dvh;
   touch-action: none;
   /* En tactil: sin flash azul al tocar, sin menu contextual, sin seleccion. */
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
-}
-
-.controles {
-  margin-top: 4px;
-  font-size: 11px;
-  color: #7d6aa6;
-  text-align: center;
-  line-height: 1.8;
-}
-
-kbd {
-  background: #2a1840;
-  border: 1px solid #4a2e70;
-  border-radius: 3px;
-  padding: 1px 6px;
-  color: #e8dcff;
-  font-size: 11px;
 }
 
 /* =========================================================================
@@ -166,45 +137,11 @@ body:not(.touch) .tc {
   display: none;
 }
 
-/* --- Layout a pantalla completa en modo tactil ------------------------- */
+/* --- Ajustes extra del modo tactil -------------------------------------- */
+/* El layout ya es a pantalla completa para todos; en tactil ademas
+   bloqueamos cualquier gesto de scroll que descoloque el canvas. */
 body.touch {
-  /* La cabina desaparece: el juego ocupa toda la pantalla. */
-  padding: 0;
-  gap: 0;
-  overflow: hidden;
-  /* 100dvh sigue en vivo a la barra del navegador; fallback a 100vh. */
-  height: 100vh;
-  height: 100dvh;
-  justify-content: center;
-  align-items: center;
-  /* Sin rebote/scroll accidental que descoloque el canvas. */
   touch-action: none;
-}
-
-/* En movil sobran los textos de la cabina y las instrucciones de teclado. */
-body.touch h1,
-body.touch .sub,
-body.touch .controles {
-  display: none;
-}
-
-/* Canvas a sangre completa, sin marco: se adapta a retrato y apaisado
-   conservando la proporcion interna 320x176. */
-body.touch canvas {
-  border: none;
-  border-radius: 0;
-  box-shadow: none;
-  /* Encaja el canvas en la pantalla conservando 320:176. Primero el
-     fallback en vw/vh (navegadores viejos), luego dvw/dvh (siguen a la
-     barra del navegador). Sin el fallback, un navegador que no entiende
-     dvw descarta TODA la regla y el canvas volvería al layout de escritorio. */
-  width: min(100vw, calc(100vh * 320 / 176));
-  width: min(100dvw, calc(100dvh * 320 / 176));
-  height: auto;
-  max-width: 100vw;
-  max-width: 100dvw;
-  max-height: 100vh;
-  max-height: 100dvh;
 }
 
 /* --- Contenedor de controles tactiles ---------------------------------- */
@@ -397,9 +334,10 @@ body.touch canvas {
 }
 
 /* =========================================================================
-   SELECTOR DE IDIOMA (ES / EN)
-   Botones fijos arriba a la izquierda. En escritorio siempre visibles; en
-   tactil los muestra langSwitch.ts (data-show) solo en menus/pausa, y en
+   SELECTOR DE IDIOMA (ES / EN) — solo tactil
+   Botones fijos arriba a la izquierda. Ocultos por defecto: langSwitch.ts
+   los enciende (data-show='1') SOLO en modo tactil y en menus/pausa. En
+   escritorio/gamepad el idioma se cambia en los menus del juego. En
    retrato se ocultan (ahi manda el aviso de rotar).
    ========================================================================= */
 .lang-switch {
@@ -407,12 +345,16 @@ body.touch canvas {
   top: 10px;
   left: 10px;
   z-index: 60; /* por encima del aviso de rotar (50) y los controles (10) */
-  display: flex;
+  display: none;
   gap: 4px;
   padding: 3px;
   background: rgba(30, 16, 41, 0.6);
   border: 1px solid #4a2e70;
   border-radius: 10px;
+}
+
+.lang-switch[data-show='1'] {
+  display: flex;
 }
 
 .lang-btn {
@@ -436,13 +378,6 @@ body.touch canvas {
   color: #ffe9b8;
 }
 
-/* En tactil arranca oculto; solo aparece en menus/pausa (data-show='1'). */
-body.touch .lang-switch {
-  display: none;
-}
-body.touch .lang-switch[data-show='1'] {
-  display: flex;
-}
 /* En retrato manda el aviso de rotar: nada de selector encima. */
 @media (orientation: portrait) {
   body.touch .lang-switch[data-show='1'] {

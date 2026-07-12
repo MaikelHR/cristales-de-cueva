@@ -60,4 +60,22 @@ describe('Level', () => {
     const boxes = level.oneWayTilesIn({ x: 2 * TILE, y: 2 * TILE, w: 4, h: 4 });
     expect(boxes).toEqual([{ x: 2 * TILE, y: 2 * TILE, w: TILE, h: TILE }]);
   });
+
+  it('las púas no son sólidas y tienen su propia grilla', () => {
+    const level = new Level(['#####', '#.^.#', '#####']);
+    expect(level.isSolidAt(2 * TILE + 1, TILE + 1)).toBe(false);
+    expect(level.spikeCell(1, 2)).toBe(true);
+    expect(level.spikeCell(1, 1)).toBe(false);
+    expect(level.spikeCell(-1, 2)).toBe(false); // fuera del mapa
+  });
+
+  it('touchesSpike castiga pisar la púa pero perdona rozar la celda', () => {
+    const level = new Level(['#####', '#.^.#', '#####']);
+    // Los pies dentro de la mitad de abajo de la celda de la púa: pincha.
+    expect(level.touchesSpike({ x: 2 * TILE + 2, y: TILE + 6, w: 6, h: 11 })).toBe(true);
+    // Pasar por la mitad de arriba de la celda (saltando): no pincha.
+    expect(level.touchesSpike({ x: 2 * TILE + 2, y: TILE - 11, w: 6, h: 11 })).toBe(false);
+    // En la celda de al lado, a la misma altura: no pincha.
+    expect(level.touchesSpike({ x: TILE + 1, y: TILE + 6, w: 6, h: 11 })).toBe(false);
+  });
 });

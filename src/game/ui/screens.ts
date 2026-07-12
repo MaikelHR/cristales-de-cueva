@@ -7,16 +7,76 @@
 // ============================================================
 
 import { frameAt } from '../../engine/animation';
-import { inputDevice } from '../../engine/input';
+import { inputDevice, padLabels } from '../../engine/input';
 import type { GameSession } from '../session';
+import { LEVELS } from '../world/rooms';
+import { levelRecord } from '../save';
 import { sprites } from '../art/sprites';
 import { drawGlow } from '../art/glow';
-import { t } from '../i18n';
+import { t, type StrKey } from '../i18n';
 import { font, formatTime } from './text';
+import { OW_NODES } from './overworld';
+
+/** Los ítems que pueden aparecer en los menús del juego; cada escena
+ *  arma su lista y este módulo solo los rotula y los pinta. */
+export type MenuItem = 'play' | 'resume' | 'restart' | 'fullscreen' | 'language' | 'exit';
+
+const MENU_LABEL: Record<MenuItem, StrKey> = {
+  play: 'menu_play',
+  resume: 'menu_resume',
+  restart: 'menu_restart',
+  fullscreen: 'menu_fullscreen',
+  language: 'menu_language',
+  exit: 'menu_exit',
+};
+
+/** Lista de menú vertical: el ítem elegido brilla en dorado con sus
+ *  flechitas; el resto queda en violeta apagado. */
+function drawMenuList(
+  ctx: CanvasRenderingContext2D,
+  session: GameSession,
+  items: readonly MenuItem[],
+  selected: number,
+  startY: number,
+  gap = 14,
+): void {
+  const cx = session.viewW / 2;
+  ctx.textAlign = 'center';
+  items.forEach((item, i) => {
+    const active = i === selected;
+    const y = startY + i * gap;
+    ctx.font = font(active ? 10 : 9);
+    ctx.fillStyle = active ? '#ffe25a' : '#8a76b4';
+    const label = t(MENU_LABEL[item]);
+    ctx.fillText(label, cx, y);
+    if (active) {
+      // Flechitas que respiran a los costados del ítem elegido.
+      const w = ctx.measureText(label).width;
+      const sway = Math.sin(session.time * 5) * 1.5;
+      ctx.fillText('▸', cx - w / 2 - 8 - sway, y);
+      ctx.fillText('◂', cx + w / 2 + 8 + sway, y);
+    }
+  });
+}
+
+/** La línea de "cómo se navega el menú", según teclado o gamepad. */
+function drawMenuNavHint(ctx: CanvasRenderingContext2D, session: GameSession, y: number): void {
+  const gp = inputDevice() === 'gamepad';
+  ctx.textAlign = 'center';
+  ctx.font = font(7);
+  ctx.fillStyle = '#6f5a94';
+  ctx.fillText(gp ? t('nav_gp', padLabels()) : t('nav_kb'), session.viewW / 2, y);
+}
 
 /** Menú de inicio: el título del juego sobre el mundo, con un cristal
- *  que flota y un aviso pulsante para empezar. */
-export function drawTitleOverlay(ctx: CanvasRenderingContext2D, session: GameSession): void {
+ *  que flota y el menú (jugar / pantalla completa / idioma). En táctil
+ *  no hay menú navegable: un tap arranca y el idioma va por su botón. */
+export function drawTitleOverlay(
+  ctx: CanvasRenderingContext2D,
+  session: GameSession,
+  items: readonly MenuItem[],
+  selected: number,
+): void {
   const { viewW, viewH, time, save } = session;
   ctx.fillStyle = 'rgba(17,9,26,0.72)';
   ctx.fillRect(0, 0, viewW, viewH);
@@ -26,7 +86,7 @@ export function drawTitleOverlay(ctx: CanvasRenderingContext2D, session: GameSes
   const bob = Math.sin(time * 2) * 2;
   const frames = [sprites.crystal, sprites.crystal2, sprites.crystal3, sprites.crystal4];
   const spr = frameAt(frames, 6, time);
-  const cy = viewH / 2 - 44 + bob;
+  const cy = viewH / 2 - 52 + bob;
   drawGlow(ctx, cx, cy, 20, '#ffe25a', 0.5 + Math.sin(time * 4) * 0.15);
   // Cristal al doble de tamaño, centrado en (cx, cy).
   spr.drawStretched(ctx, cx, cy + spr.h, 2, 2);
@@ -35,58 +95,52 @@ export function drawTitleOverlay(ctx: CanvasRenderingContext2D, session: GameSes
   // Título en dos líneas para que entre bien en 320px.
   ctx.fillStyle = '#e9d6ff';
   ctx.font = font(18);
-  ctx.fillText(t('title_line1'), cx, viewH / 2 - 8);
+  ctx.fillText(t('title_line1'), cx, viewH / 2 - 16);
   ctx.fillStyle = '#b98bff';
   ctx.font = font(11);
-  ctx.fillText(t('title_line2'), cx, viewH / 2 + 8);
+  ctx.fillText(t('title_line2'), cx, viewH / 2);
 
-  // Récords guardados (solo si ya jugaste alguna vez).
+  // Progreso guardado (solo si ya completaste algún nivel).
   ctx.font = font(8);
-  if (save.bestScore > 0 || save.victories > 0) {
-    ctx.fillStyle = '#ffd36e';
-    ctx.fillText(t('best_score', { n: save.bestScore }), cx, viewH / 2 + 20);
-    if (save.bestTime > 0) {
-      ctx.fillStyle = '#7ce0ff';
-      ctx.fillText(t('best_time', { t: formatTime(save.bestTime) }), cx, viewH / 2 + 30);
-    }
-    if (save.victories > 0) {
-      ctx.fillStyle = '#5ce06a';
-      const completed =
-        save.victories === 1
-          ? t('completed_once')
-          : t('completed_many', { n: save.victories });
-      ctx.fillText(completed, cx, viewH / 2 + 40);
-    }
+  const completed = LEVELS.filter((l) => levelRecord(save, l.id).completions > 0).length;
+  if (completed > 0) {
+    ctx.fillStyle = '#5ce06a';
+    ctx.fillText(t('title_progress', { n: completed, m: OW_NODES.length }), cx, viewH / 2 + 14);
   }
 
-  // Aviso pulsante para empezar (parpadeo suave con seno). Los textos
-  // se adaptan al último dispositivo usado (teclado, gamepad o táctil).
-  const dev = inputDevice();
-  const gp = dev === 'gamepad';
-  const touch = dev === 'touch';
-  const blink = 0.55 + Math.sin(time * 4) * 0.45;
-  ctx.globalAlpha = blink;
-  ctx.fillStyle = '#ffe25a';
-  ctx.fillText(
-    touch ? t('start_touch') : gp ? t('start_gp') : t('start_kb'),
-    cx,
-    viewH / 2 + 54,
-  );
-  ctx.globalAlpha = 1;
+  const touch = inputDevice() === 'touch';
+  if (touch) {
+    // En táctil: aviso pulsante para empezar (el canvas entero es el botón).
+    const blink = 0.55 + Math.sin(time * 4) * 0.45;
+    ctx.globalAlpha = blink;
+    ctx.fillStyle = '#ffe25a';
+    ctx.fillText(t('start_touch'), cx, viewH / 2 + 40);
+    ctx.globalAlpha = 1;
+  } else {
+    drawMenuList(ctx, session, items, selected, viewH / 2 + 32);
+    drawMenuNavHint(ctx, session, viewH - 8);
+  }
 
-  ctx.fillStyle = '#6f5a94';
+  // El recordatorio de controles del juego, chico y abajo.
+  const gp = inputDevice() === 'gamepad';
+  ctx.font = font(7);
+  ctx.fillStyle = '#57457a';
   ctx.fillText(
-    touch ? t('hint_touch') : gp ? t('hint_gp') : t('hint_kb'),
+    touch ? t('hint_touch') : gp ? t('hint_gp', padLabels()) : t('hint_kb'),
     cx,
-    viewH - 12,
+    viewH - 18,
   );
   ctx.textAlign = 'left';
 }
 
-/** Overlay de pausa: la partida queda congelada detrás. Texto a opacidad
- *  plena (el tiempo no avanza en pausa, así que un parpadeo quedaría
- *  clavado). Recuerda cómo seguir, reiniciar o volver al menú. */
-export function drawPauseOverlay(ctx: CanvasRenderingContext2D, session: GameSession): void {
+/** Menú de pausa: la partida queda congelada detrás. En táctil el menú
+ *  es de botones DOM (touch.ts); acá solo el velo y el título. */
+export function drawPauseOverlay(
+  ctx: CanvasRenderingContext2D,
+  session: GameSession,
+  items: readonly MenuItem[],
+  selected: number,
+): void {
   const { viewW, viewH } = session;
   ctx.fillStyle = 'rgba(17,9,26,0.68)';
   ctx.fillRect(0, 0, viewW, viewH);
@@ -94,53 +148,72 @@ export function drawPauseOverlay(ctx: CanvasRenderingContext2D, session: GameSes
   ctx.textAlign = 'center';
   ctx.fillStyle = '#e9d6ff';
   ctx.font = font(18);
-  ctx.fillText(t('pause_title'), cx, viewH / 2 - 10);
-  const dev = inputDevice();
-  const gp = dev === 'gamepad';
-  const touch = dev === 'touch';
-  ctx.fillStyle = '#9b86c4';
-  ctx.font = font(8);
-  ctx.fillText(
-    touch ? t('pause_resume_touch') : gp ? t('pause_resume_gp') : t('pause_resume_kb'),
-    cx,
-    viewH / 2 + 8,
-  );
-  if (!touch) {
-    ctx.fillStyle = '#6f5a94';
-    ctx.fillText(gp ? t('pause_restart_gp') : t('pause_restart_kb'), cx, viewH / 2 + 20);
+  ctx.fillText(t('pause_title'), cx, viewH / 2 - 42);
+  if (inputDevice() === 'touch') {
+    ctx.fillStyle = '#9b86c4';
+    ctx.font = font(8);
+    ctx.fillText(t('pause_resume_touch'), cx, viewH / 2 - 24);
+  } else {
+    drawMenuList(ctx, session, items, selected, viewH / 2 - 22);
+    drawMenuNavHint(ctx, session, viewH - 10);
   }
   ctx.textAlign = 'left';
 }
 
-/** Pantalla de victoria: puntaje, tiempo y récords sobre el mundo ganado. */
+/** Pantalla de victoria: el nivel completado, con puntaje y tiempo en
+ *  modo normal o el veredicto del cronómetro en contrarreloj. */
 export function drawWinOverlay(ctx: CanvasRenderingContext2D, session: GameSession): void {
-  const { viewW, viewH, time, save } = session;
+  const { viewW, viewH, time, save, runFlags } = session;
+  const rec = levelRecord(save, session.level.id);
   ctx.fillStyle = 'rgba(17,9,26,0.78)';
   ctx.fillRect(0, 0, viewW, viewH);
   const cx = viewW / 2;
   ctx.textAlign = 'center';
   ctx.fillStyle = '#ffd36e';
   ctx.font = font(16);
-  ctx.fillText(t('win_title'), cx, viewH / 2 - 30);
+  ctx.fillText(t('win_title'), cx, viewH / 2 - 36);
   ctx.font = font(8);
-  ctx.fillStyle = '#ffe25a';
-  ctx.fillText(t('win_points', { n: session.score }), cx, viewH / 2 - 14);
-  ctx.fillStyle = '#7ce0ff';
-  ctx.fillText(t('win_time', { t: formatTime(session.runTime) }), cx, viewH / 2 - 3);
-  // Récord de tiempo (la métrica de speedrun): si lo batiste, celebración
-  // pulsante; si no, tu mejor marca para comparar.
-  if (session.newBestTime) {
-    ctx.save();
-    ctx.globalAlpha = 0.6 + Math.sin(time * 8) * 0.4;
-    ctx.fillStyle = '#ffe25a';
-    ctx.fillText(t('win_new_best_time'), cx, viewH / 2 + 9);
-    ctx.restore();
+  ctx.fillStyle = '#b98bff';
+  ctx.fillText(t(session.level.nameKey), cx, viewH / 2 - 24);
+
+  if (session.mode === 'trial') {
+    // Contrarreloj: el tiempo ES el resultado.
+    ctx.fillStyle = '#7ce0ff';
+    ctx.font = font(12);
+    ctx.fillText(formatTime(session.runTime), cx, viewH / 2 - 6);
+    ctx.font = font(8);
+    if (runFlags.newBestTrial) {
+      ctx.save();
+      ctx.globalAlpha = 0.6 + Math.sin(time * 8) * 0.4;
+      ctx.fillStyle = '#ffe25a';
+      ctx.fillText(t('trial_new_best'), cx, viewH / 2 + 9);
+      ctx.restore();
+    } else {
+      ctx.fillStyle = '#ffd36e';
+      ctx.fillText(t('trial_best', { t: formatTime(rec.bestTrialTime) }), cx, viewH / 2 + 9);
+    }
   } else {
-    ctx.fillStyle = '#ffd36e';
-    ctx.fillText(t('best_time', { t: formatTime(save.bestTime) }), cx, viewH / 2 + 9);
+    ctx.fillStyle = '#ffe25a';
+    ctx.fillText(t('win_points', { n: session.score }), cx, viewH / 2 - 10);
+    ctx.fillStyle = '#7ce0ff';
+    ctx.fillText(t('win_time', { t: formatTime(session.runTime) }), cx, viewH / 2 + 1);
+    // Récord de tiempo (la métrica de speedrun): si lo batiste,
+    // celebración pulsante; si no, tu mejor marca para comparar.
+    if (runFlags.newBestTime) {
+      ctx.save();
+      ctx.globalAlpha = 0.6 + Math.sin(time * 8) * 0.4;
+      ctx.fillStyle = '#ffe25a';
+      ctx.fillText(t('win_new_best_time'), cx, viewH / 2 + 13);
+      ctx.restore();
+    } else {
+      ctx.fillStyle = '#ffd36e';
+      ctx.fillText(t('best_time', { t: formatTime(rec.bestTime) }), cx, viewH / 2 + 13);
+    }
   }
+
   ctx.fillStyle = '#9b86c4';
-  ctx.fillText(backToMenuText(), cx, viewH / 2 + 22);
+  ctx.font = font(8);
+  ctx.fillText(backToMenuText(), cx, viewH / 2 + 28);
   ctx.textAlign = 'left';
 }
 
@@ -167,15 +240,15 @@ export function drawGameOverOverlay(ctx: CanvasRenderingContext2D, session: Game
   ctx.textAlign = 'left';
 }
 
-/** El texto para volver al menú, según teclado, gamepad o táctil. */
+/** El texto para volver al mapa, según teclado, gamepad o táctil. */
 function backToMenuText(): string {
   const dev = inputDevice();
   if (dev === 'touch') return t('back_touch');
-  return dev === 'gamepad' ? t('back_gp') : t('back_kb');
+  return dev === 'gamepad' ? t('back_gp', padLabels()) : t('back_kb');
 }
 
-/** Línea de récord bajo el puntaje: si batiste tu marca, un "¡NUEVO
- *  RÉCORD!" pulsante; si no, tu mejor puntaje para comparar. */
+/** Línea de récord bajo el puntaje: si batiste tu marca del nivel, un
+ *  "¡NUEVO RÉCORD!" pulsante; si no, tu mejor puntaje para comparar. */
 function drawRecordLine(
   ctx: CanvasRenderingContext2D,
   session: GameSession,
@@ -183,14 +256,15 @@ function drawRecordLine(
   y: number,
 ): void {
   ctx.font = font(8);
-  if (session.newRecord) {
+  if (session.runFlags.newBestScore) {
     ctx.save();
     ctx.globalAlpha = 0.6 + Math.sin(session.time * 8) * 0.4;
     ctx.fillStyle = '#ffe25a';
     ctx.fillText(t('new_record'), cx, y);
     ctx.restore();
   } else {
+    const best = levelRecord(session.save, session.level.id).bestScore;
     ctx.fillStyle = '#ffd36e';
-    ctx.fillText(t('best_score_short', { n: session.save.bestScore }), cx, y);
+    ctx.fillText(t('best_score_short', { n: best }), cx, y);
   }
 }

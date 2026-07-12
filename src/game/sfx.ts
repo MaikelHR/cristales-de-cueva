@@ -30,6 +30,12 @@ export const sfx = {
     playTone({ freq: 520, freqEnd: 160, duration: 0.16, type: 'sawtooth', volume: 0.12 });
   },
 
+  /** Resorte: "boing" elástico que sube de golpe. */
+  spring(): void {
+    playTone({ freq: 140, freqEnd: 520, duration: 0.18, type: 'triangle', volume: 0.16 });
+    playTone({ freq: 90, duration: 0.05, type: 'square', volume: 0.08 });
+  },
+
   /** Recibir daño: un "ough" corto y grave. */
   hurt(): void {
     playTone({ freq: 200, freqEnd: 80, duration: 0.16, type: 'square', volume: 0.15 });

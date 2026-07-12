@@ -19,6 +19,8 @@ import { Chaser } from '../actors/enemies/Chaser';
 import { Boss } from '../actors/enemies/Boss';
 import { Crystal } from '../actors/pickups/Crystal';
 import { Relic } from '../actors/pickups/Relic';
+import { Spring } from '../actors/devices/Spring';
+import { MovingPlatform } from '../actors/devices/MovingPlatform';
 
 export class Room {
   readonly level: Level;
@@ -52,6 +54,12 @@ export class Room {
         case 'relic':
           this.actors.push(new Relic(px + 1, py + 1, e.ability, clock));
           break;
+        case 'spring':
+          this.actors.push(new Spring(px, py, clock));
+          break;
+        case 'platform':
+          this.actors.push(new MovingPlatform(px, py, e.axis, e.range, e.speed));
+          break;
         case 'playerSpawn':
           this.playerSpawn = { x: px, y: py };
           break;
@@ -68,6 +76,10 @@ export class Room {
 
   get pickups(): Pickup[] {
     return this.actors.filter((a): a is Pickup => a.layer === 'pickup');
+  }
+
+  get devices(): Actor[] {
+    return this.actors.filter((a) => a.layer === 'device');
   }
 
   get crystals(): Crystal[] {

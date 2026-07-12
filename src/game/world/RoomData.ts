@@ -2,11 +2,13 @@
 //  FORMATO DE SALA (datos, no código)
 // ------------------------------------------------------------
 //  Una sala son dos cosas separadas:
-//   - `tiles`: la geometría como texto. SOLO tres caracteres:
+//   - `tiles`: la geometría como texto. SOLO cuatro caracteres:
 //       '#' = bloque sólido   '.' = aire   '-' = tablón de un sentido
+//       '^' = púas (dañan al pisarlas; no son sólidas)
 //   - `entities`: lo que vive en la sala (enemigos, cristales,
-//     reliquias, el spawn del jugador, la puerta), cada uno con su
-//     celda y sus propiedades tipadas.
+//     reliquias, resortes, plataformas móviles, el spawn del
+//     jugador, la puerta), cada uno con su celda y sus propiedades
+//     tipadas.
 //  Separarlos permite que una entidad tenga datos propios (p. ej.
 //  qué habilidad da una reliquia) sin inventar más caracteres, y
 //  deja el camino listo para importar desde un editor (LDtk/Tiled):
@@ -29,12 +31,18 @@ export type EntitySpawn =
   | (Cell & { type: 'crystal' })
   | (Cell & { type: 'relic'; ability: AbilityName })
   | (Cell & { type: 'playerSpawn' })
-  | (Cell & { type: 'door' });
+  | (Cell & { type: 'door' })
+  // Resorte: pisarlo lanza al jugador hacia arriba, más alto que un salto.
+  | (Cell & { type: 'spring' })
+  // Plataforma móvil: viaja `range` celdas por `axis` (negativo = hacia
+  // la izquierda/arriba) y vuelve, en un vaivén constante. El jugador
+  // que va parado encima viaja con ella.
+  | (Cell & { type: 'platform'; axis: 'x' | 'y'; range: number; speed?: number });
 
 export interface RoomData {
   /** Nombre único; las salidas de otras salas apuntan a este id. */
   id: string;
-  /** La geometría: filas de '#', '.' y '-'. Todas del mismo largo. */
+  /** La geometría: filas de '#', '.', '-' y '^'. Todas del mismo largo. */
   tiles: string[];
   /** Lo que vive en la sala, en celdas del mapa. */
   entities: EntitySpawn[];
@@ -44,10 +52,10 @@ export interface RoomData {
   mapPos: Cell;
 }
 
-const TILE_CHARS = new Set(['#', '.', '-']);
+const TILE_CHARS = new Set(['#', '.', '-', '^']);
 
 /**
- * Revisa la integridad de un conjunto de salas y devuelve la lista de
+ * Revisa la integridad de las salas de UN NIVEL y devuelve la lista de
  * problemas (vacía = todo bien). La corren los tests y el arranque en
  * desarrollo: un mapa roto avisa con un mensaje claro, no con un bug raro.
  */
@@ -87,11 +95,11 @@ export function validateRooms(rooms: RoomData[]): string[] {
     }
   }
 
-  // Invariantes del mundo: hay dónde aparecer y hay una meta.
+  // Invariantes del nivel: hay dónde aparecer y hay una meta.
   const spawns = rooms.flatMap((r) => r.entities.filter((e) => e.type === 'playerSpawn'));
-  if (spawns.length !== 1) errors.push(`el mundo necesita exactamente 1 playerSpawn (hay ${spawns.length})`);
+  if (spawns.length !== 1) errors.push(`el nivel necesita exactamente 1 playerSpawn (hay ${spawns.length})`);
   const doors = rooms.flatMap((r) => r.entities.filter((e) => e.type === 'door'));
-  if (doors.length === 0) errors.push('el mundo no tiene ninguna puerta (meta)');
+  if (doors.length === 0) errors.push('el nivel no tiene ninguna puerta (meta)');
 
   return errors;
 }

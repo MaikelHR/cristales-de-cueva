@@ -61,18 +61,13 @@
     <title>Cristales de la Cueva</title>
   </head>
   <body>
-    <h1>CRISTALES DE LA CUEVA</h1>
-    <p class="sub">recoge los 5 cristales y llega a la puerta</p>
-    <!-- width/height fijados en el HTML (no solo por JS) para que el lienzo
+    <!-- La página es SOLO el marco del juego: sin título, subtítulo ni
+         instrucciones en HTML. Todo eso vive dentro del canvas (menús del
+         juego), como en un juego de verdad.
+         width/height fijados en el HTML (no solo por JS) para que el lienzo
          tenga su tamaño correcto desde la primera pintura: sin salto de
          layout ni caja vacía mientras carga el juego. -->
     <canvas id="game" width="320" height="176"></canvas>
-    <div class="controles" id="controles">
-      <kbd>←</kbd> <kbd>→</kbd> o <kbd>A</kbd> <kbd>D</kbd> para moverte &nbsp;·&nbsp;
-      <kbd>espacio</kbd> / <kbd>↑</kbd> / <kbd>W</kbd> para saltar (¡doble!) &nbsp;·&nbsp;
-      <kbd>shift</kbd> / <kbd>X</kbd> para dash &nbsp;·&nbsp;
-      <kbd>R</kbd> para reiniciar
-    </div>
     <!-- Aviso de rotar: la cueva es apaisada. En retrato el juego quedaría en
          una franja fina; este overlay (solo táctil + retrato, por CSS) pide
          girar el teléfono para jugar a pantalla completa. -->

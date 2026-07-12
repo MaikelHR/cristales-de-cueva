@@ -10,7 +10,7 @@
 // <head>) para que aplique en la primera pintura y no haya flash de
 // contenido sin estilo (FOUC) en desarrollo.
 import { setupContext } from './engine/canvas';
-import { initInput, endStep, pollGamepad, inputDevice, type InputDevice } from './engine/input';
+import { initInput, endStep, pollGamepad } from './engine/input';
 import { initAudio } from './engine/audio';
 import { startLoop } from './engine/loop';
 import { GameSession } from './game/session';
@@ -42,7 +42,9 @@ initTouchControls(canvas);
 
 // Ganchos de depuración: con la consola del navegador abierta (F12)
 // podés inspeccionar el juego en vivo, p. ej. `__game.player.vy`,
-// prender `__debug.hitboxes = true` o saltar con `__debug.warp('tunel')`.
+// prender `__debug.hitboxes = true`, saltar a una sala del nivel
+// actual con `__debug.warp('galeria')` o cargar otro nivel con
+// `__debug.level('corazon')`.
 // Solo existen en desarrollo: el build de producción no los incluye.
 if (import.meta.env.DEV) {
   const dev = window as unknown as Record<string, unknown>;
@@ -60,42 +62,27 @@ if (import.meta.env.DEV) {
       session.visited.add(id);
       session.saveCheckpoint();
     },
+    async level(id: string): Promise<void> {
+      const { LEVELS } = await import('./game/world/rooms');
+      const def = LEVELS.find((l) => l.id === id);
+      if (!def) throw new Error(`No existe el nivel "${id}"`);
+      session.startLevel(def, 'normal');
+      const { GameplayScene } = await import('./game/scenes/GameplayScene');
+      scenes.replace(new GameplayScene(session, scenes));
+    },
   });
 }
 
-// Footer de controles adaptativo: muestra teclas o botones según el
-// último dispositivo usado, y cambia al instante al detectar el otro.
-// El texto sale del diccionario de idiomas (i18n), no de literales.
-const controlsEl = document.getElementById('controles');
-function controlsHtml(dev: InputDevice): string {
-  // En móvil el footer queda oculto (se juega con los botones en pantalla),
-  // pero devolvemos igual el texto por si acaso.
-  return dev === 'gamepad' ? t('ctl_gp') : dev === 'touch' ? t('ctl_touch') : t('ctl_kb');
-}
-let shownDevice: InputDevice | null = null;
-function syncControls(): void {
-  const dev = inputDevice();
-  if (dev === shownDevice || !controlsEl) return;
-  shownDevice = dev;
-  controlsEl.innerHTML = controlsHtml(dev);
-}
-
-// Textos estáticos de la página (título, subtítulo, aviso de rotar y footer)
-// en el idioma activo. Se llama al arrancar y cada vez que cambia el idioma.
+// Textos estáticos de la página (el <title> y el aviso de rotar) en el
+// idioma activo. Todo lo demás vive DENTRO del canvas: la página es solo
+// el marco negro del juego, como en un juego de verdad.
 function localizeChrome(): void {
   document.documentElement.lang = getLang();
   document.title = t('page_title');
-  const h1 = document.querySelector('h1');
-  if (h1) h1.textContent = t('page_title');
-  const sub = document.querySelector('.sub');
-  if (sub) sub.textContent = t('page_sub');
   const rTitle = document.querySelector('.rotate-title');
   if (rTitle) rTitle.textContent = t('rotate_title');
   const rSub = document.querySelector('.rotate-sub');
   if (rSub) rSub.textContent = t('rotate_sub');
-  // Forzar el re-render del footer de controles en el nuevo idioma.
-  shownDevice = null;
-  syncControls();
   // Ya está el chrome en el idioma correcto: quitamos el velo anti-parpadeo
   // que puso el script de <head> (no-op si nunca se aplicó).
   document.documentElement.classList.remove('pre-i18n');
@@ -105,9 +92,12 @@ initLangSwitch();
 localizeChrome();
 onLangChange(localizeChrome);
 
-/** El estado de la escena activa más lo que la UI táctil necesita saber. */
+/** El estado de la escena activa más lo que la UI táctil necesita saber.
+ *  El botón de dash solo aplica jugando: en el overworld el mando sirve
+ *  para navegar el mapa y el dash no existe ahí. */
 function uiState() {
-  return { ...scenes.ui, hasDash: session.player.abilities.dash };
+  const ui = scenes.ui;
+  return { ...ui, hasDash: ui.state === 'playing' && session.player.abilities.dash };
 }
 
 // Primer frame ya pintado antes de arrancar el bucle: el canvas nunca se
@@ -118,7 +108,6 @@ startLoop(
   (dt) => {
     pollGamepad(); // leer el estado del control antes de actualizar el juego
     scenes.update(dt);
-    syncControls();
     endStep(); // limpiar "recién presionado" después de cada paso de lógica
   },
   () => {

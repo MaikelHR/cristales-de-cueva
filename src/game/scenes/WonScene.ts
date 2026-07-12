@@ -1,8 +1,9 @@
 // ============================================================
-//  ESCENA: VICTORIA
+//  ESCENA: VICTORIA (nivel completado)
 // ------------------------------------------------------------
-//  El mundo ganado sigue animándose de fondo (partículas y popups
-//  terminan su vida). Una tecla vuelve al menú de inicio.
+//  El nivel ganado sigue animándose de fondo (partículas y popups
+//  terminan su vida). Una tecla vuelve al mapa de niveles, donde
+//  la victoria ya dejó su marca (y quizás un nodo nuevo abierto).
 // ============================================================
 
 import { justPressed } from '../../engine/input';
@@ -12,7 +13,7 @@ import { drawHud } from '../ui/hud';
 import { drawMinimap } from '../ui/minimap';
 import { drawWinOverlay } from '../ui/screens';
 import type { Scene, SceneManager, UiState } from './Scene';
-import { TitleScene } from './TitleScene';
+import { OverworldScene } from './OverworldScene';
 
 export class WonScene implements Scene {
   readonly ui: UiState = { state: 'won', paused: false };
@@ -25,7 +26,7 @@ export class WonScene implements Scene {
   update(dt: number): void {
     this.session.ambientUpdate(dt, true);
     if (justPressed('confirm') || justPressed('restart') || justPressed('jump')) {
-      this.scenes.replace(new TitleScene(this.session, this.scenes));
+      this.scenes.replace(new OverworldScene(this.session, this.scenes));
     }
   }
 

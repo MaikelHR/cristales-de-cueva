@@ -46,7 +46,15 @@ let currentHasDash = false;
 const holdResetters: Array<() => void> = [];
 
 /** Acciones que el módulo táctil sabe emitir. */
-type TouchAction = 'left' | 'right' | 'jump' | 'dash' | 'confirm' | 'pause' | 'restart';
+type TouchAction =
+  | 'left'
+  | 'right'
+  | 'jump'
+  | 'dash'
+  | 'confirm'
+  | 'pause'
+  | 'restart'
+  | 'quit';
 
 /**
  * Construye el mando táctil y cablea sus eventos. Es idempotente en
@@ -122,7 +130,8 @@ function buildTouchControls(canvas: HTMLCanvasElement): void {
   const btnResume = makeButton('tc-btn tc-mbtn tc-resume', t('tc_resume'), t('tc_resume'));
   const btnFs = makeButton('tc-btn tc-mbtn tc-fs', t('tc_fs'), t('tc_fs'));
   const btnRestart = makeButton('tc-btn tc-mbtn tc-restart', t('tc_restart'), t('tc_restart'));
-  menu.append(btnResume, btnFs, btnRestart);
+  const btnMap = makeButton('tc-btn tc-mbtn tc-map', t('tc_map'), t('tc_map'));
+  menu.append(btnResume, btnFs, btnRestart, btnMap);
 
   // Al cambiar de idioma, re-aplicar rótulos y aria-labels de cada botón.
   const relocalize = (): void => {
@@ -134,6 +143,7 @@ function buildTouchControls(canvas: HTMLCanvasElement): void {
     setLabel(btnResume, t('tc_resume'), t('tc_resume'));
     setLabel(btnFs, t('tc_fs'), t('tc_fs'));
     setLabel(btnRestart, t('tc_restart'), t('tc_restart'));
+    setLabel(btnMap, t('tc_map'), t('tc_map'));
   };
   onLangChange(relocalize);
 
@@ -152,6 +162,7 @@ function buildTouchControls(canvas: HTMLCanvasElement): void {
   bindTap(btnPause, 'pause');
   bindTap(btnResume, 'pause'); // "Continuar" alterna la misma pausa.
   bindTap(btnRestart, 'restart');
+  bindTap(btnMap, 'quit'); // "Salir al mapa": la pausa la convierte en escena.
 
   // Pantalla completa: sólo si el navegador la soporta para elementos.
   bindFullscreen(btnFs);
@@ -178,11 +189,19 @@ function buildTouchControls(canvas: HTMLCanvasElement): void {
 /**
  * Sincroniza qué parte del mando se ve según el estado del juego.
  * Sólo toca el DOM si el modo cambió (evita trabajo por frame).
+ * El overworld usa el mando de juego (mover + saltar para navegar
+ * el mapa), no el modo menú.
  */
 export function syncTouchUI(ui: TouchUI): void {
   currentUi = ui;
   const mode: TouchMode =
-    ui.state === 'playing' ? (ui.paused ? 'paused' : 'play') : 'menu';
+    ui.state === 'playing'
+      ? ui.paused
+        ? 'paused'
+        : 'play'
+      : ui.state === 'overworld'
+        ? 'play'
+        : 'menu';
   if (mode !== currentMode) {
     currentMode = mode;
     if (container) container.dataset.mode = mode;
@@ -296,11 +315,13 @@ function bindFullscreen(el: HTMLButtonElement): void {
 /**
  * Tap sobre el canvas cuando NO estamos jugando (title/won/gameover):
  * cuenta como "confirmar". Escuchamos el "up" a nivel window para
- * soltar aunque el dedo se levante fuera del canvas.
+ * soltar aunque el dedo se levante fuera del canvas. En el overworld
+ * tampoco confirma: ahí se navega con el mando (un tap descuidado no
+ * debe meterte a un nivel).
  */
 function bindCanvasConfirm(canvas: HTMLCanvasElement): void {
   canvas.addEventListener('pointerdown', (e) => {
-    if (currentUi.state === 'playing') return; // jugando: el canvas no confirma.
+    if (currentUi.state === 'playing' || currentUi.state === 'overworld') return;
     e.preventDefault();
     touchButton('confirm', true);
   });

@@ -2,7 +2,8 @@
 //  ESCENA: GAME OVER
 // ------------------------------------------------------------
 //  El mundo congelado tras la muerte queda de fondo, oscurecido.
-//  Una tecla vuelve al menú de inicio.
+//  Confirmar/saltar vuelve al mapa de niveles; R reintenta el
+//  nivel al instante (que reintentar sea lo más barato posible).
 // ============================================================
 
 import { justPressed } from '../../engine/input';
@@ -12,7 +13,8 @@ import { drawHud } from '../ui/hud';
 import { drawMinimap } from '../ui/minimap';
 import { drawGameOverOverlay } from '../ui/screens';
 import type { Scene, SceneManager, UiState } from './Scene';
-import { TitleScene } from './TitleScene';
+import { OverworldScene } from './OverworldScene';
+import { GameplayScene } from './GameplayScene';
 
 export class GameOverScene implements Scene {
   readonly ui: UiState = { state: 'gameover', paused: false };
@@ -24,8 +26,13 @@ export class GameOverScene implements Scene {
 
   update(dt: number): void {
     this.session.ambientUpdate(dt, true);
-    if (justPressed('confirm') || justPressed('restart') || justPressed('jump')) {
-      this.scenes.replace(new TitleScene(this.session, this.scenes));
+    if (justPressed('restart')) {
+      this.session.reset(); // mismo nivel y modo, de cero
+      this.scenes.replace(new GameplayScene(this.session, this.scenes));
+      return;
+    }
+    if (justPressed('confirm') || justPressed('jump')) {
+      this.scenes.replace(new OverworldScene(this.session, this.scenes));
     }
   }
 

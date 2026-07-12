@@ -13,6 +13,7 @@ import { overlaps } from '../../engine/canvas';
 import { handleRoomTransition } from '../systems/transitions';
 import { collectPickups } from '../systems/pickups';
 import { resolveEnemyContacts } from '../systems/combat';
+import { carryAndAdvanceDevices, resolveDeviceContacts } from '../systems/devices';
 import { drawWorld } from '../render/drawWorld';
 import { drawHud } from '../ui/hud';
 import { drawMinimap } from '../ui/minimap';
@@ -76,10 +77,15 @@ export class GameplayScene implements Scene {
     s.particles.update(dt);
     s.popups.update(dt);
 
+    // Los aparatos van ANTES del jugador (la plataforma arrastra a su
+    // pasajero) y sus contactos DESPUÉS (aterrizar, pisar un resorte).
+    carryAndAdvanceDevices(s, dt);
     s.player.update(dt);
 
     // ¿Cruzó un borde hacia otra sala?
     handleRoomTransition(s);
+
+    resolveDeviceContacts(s, dt);
 
     const room = s.world.current;
     for (const e of room.enemies) {
@@ -88,6 +94,11 @@ export class GameplayScene implements Scene {
 
     collectPickups(s);
     resolveEnemyContacts(s, dt);
+
+    // Pisar púas -> perder un corazón y reaparecer en el checkpoint
+    if (room.level.touchesSpike(s.player.box())) {
+      s.loseLifeAndRespawn();
+    }
 
     // Caer fuera del mundo -> perder un corazón y reaparecer
     if (s.player.y > room.level.heightPx + 24) {

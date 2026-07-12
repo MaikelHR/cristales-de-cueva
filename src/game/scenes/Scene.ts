@@ -11,9 +11,11 @@
 // ============================================================
 
 /** Estado observable para la UI de fuera del canvas (mando táctil,
- *  selector de idioma): qué pantalla se muestra y si está en pausa. */
+ *  selector de idioma): qué pantalla se muestra y si está en pausa.
+ *  'overworld' es el mapa de niveles: se navega con el mando (los
+ *  botones táctiles de mover/saltar se muestran como jugando). */
 export interface UiState {
-  state: 'title' | 'playing' | 'won' | 'gameover';
+  state: 'title' | 'overworld' | 'playing' | 'won' | 'gameover';
   paused: boolean;
 }
 
