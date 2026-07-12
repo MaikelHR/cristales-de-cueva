@@ -17,13 +17,14 @@ import { fullscreenAvailable, toggleFullscreen } from '../fullscreen';
 import { sfx } from '../sfx';
 import type { Scene, SceneManager, UiState } from './Scene';
 import { OverworldScene } from './OverworldScene';
+import { CharacterScene } from './CharacterScene';
 
 export class TitleScene implements Scene {
   readonly ui: UiState = { state: 'title', paused: false };
 
   private readonly items: MenuItem[] = fullscreenAvailable()
-    ? ['play', 'fullscreen', 'language']
-    : ['play', 'language'];
+    ? ['play', 'character', 'fullscreen', 'language']
+    : ['play', 'character', 'language'];
   private selected = 0;
 
   constructor(
@@ -53,6 +54,11 @@ export class TitleScene implements Scene {
     switch (item) {
       case 'play':
         this.scenes.replace(new OverworldScene(this.session, this.scenes));
+        sfx.pickup();
+        break;
+      case 'character':
+        // La personalización tiene su propia pantalla (color + accesorio).
+        this.scenes.replace(new CharacterScene(this.session, this.scenes));
         sfx.pickup();
         break;
       case 'fullscreen':

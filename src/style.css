@@ -378,9 +378,60 @@ body.touch {
   color: #ffe9b8;
 }
 
+/* Selector de skin (tactil): un boton-muestra del color del personaje,
+   debajo del selector de idioma. Recorre las skins con cada toque. */
+.skin-switch {
+  position: fixed;
+  top: 52px;
+  left: 10px;
+  z-index: 60;
+  display: none;
+  gap: 4px;
+  padding: 3px;
+  background: rgba(30, 16, 41, 0.6);
+  border: 1px solid #4a2e70;
+  border-radius: 10px;
+}
+
+.skin-switch[data-show='1'] {
+  display: flex;
+}
+
+.skin-btn {
+  cursor: pointer;
+  width: 26px;
+  height: 26px;
+  border: 2px solid transparent; /* el color real lo pinta skinSwitch.ts */
+  border-radius: 7px;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Botón de accesorio: un canvas pixelado con el accesorio activo. */
+.acc-btn {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 26px;
+  border: 0;
+  border-radius: 7px;
+  background: #241638;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.acc-btn canvas {
+  image-rendering: pixelated;
+}
+
 /* En retrato manda el aviso de rotar: nada de selector encima. */
 @media (orientation: portrait) {
-  body.touch .lang-switch[data-show='1'] {
+  body.touch .lang-switch[data-show='1'],
+  body.touch .skin-switch[data-show='1'] {
     display: none;
   }
 }

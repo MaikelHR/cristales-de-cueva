@@ -18,7 +18,8 @@ import { frameAt } from '../../engine/animation';
 import { Level } from '../world/Level';
 import type { AbilityName } from '../abilities';
 import { Particles } from '../effects/Particles';
-import { sprites } from '../art/sprites';
+import { playerSprites } from '../art/playerSkins';
+import { currentSkin } from '../skins';
 import { drawGlow } from '../art/glow';
 import { sfx } from '../sfx';
 
@@ -395,8 +396,8 @@ export class Player {
 
     const sprite = this.currentSprite();
 
-    // Brillo tenue de cristal detrás del jugador
-    drawGlow(ctx, this.x + this.w / 2 - camX, this.y + this.h / 2 - camY, 16, '#3aa6d6', 0.35);
+    // Brillo tenue de cristal detrás del jugador, del color de su skin
+    drawGlow(ctx, this.x + this.w / 2 - camX, this.y + this.h / 2 - camY, 16, currentSkin().glow, 0.35);
 
     // Anclado a los pies y deformado: al estirarse pierde ancho y al
     // aplastarse lo gana (conservación aproximada del "volumen").
@@ -411,16 +412,16 @@ export class Player {
   }
 
   private currentSprite() {
+    const s = playerSprites(); // los sprites de la skin activa
     if (!this.onGround) {
-      if (this.wallSliding) return sprites.playerWall;
-      return this.vy < 0 ? sprites.playerJump : sprites.playerFall;
+      if (this.wallSliding) return s.wall;
+      return this.vy < 0 ? s.jump : s.fall;
     }
     if (this.vx !== 0) {
-      const run = [sprites.playerRun1, sprites.playerRun2, sprites.playerRun3, sprites.playerRun4];
-      return frameAt(run, 12, this.animTime);
+      return frameAt(s.run, 12, this.animTime);
     }
     // Idle vivo: parpadea cada tanto y "respira" despacio.
-    if (this.animTime % 3.3 < 0.15) return sprites.playerBlink;
-    return frameAt([sprites.playerIdle, sprites.playerIdle2], 1.6, this.animTime);
+    if (this.animTime % 3.3 < 0.15) return s.blink;
+    return frameAt([s.idle, s.idle2], 1.6, this.animTime);
   }
 }

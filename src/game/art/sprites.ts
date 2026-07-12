@@ -9,76 +9,6 @@
 import { Sprite } from '../../engine/Sprite';
 import { PALETTE } from './palette';
 
-// ---- Jugador (ser de cristal) — 14x16 ----
-// Rampa fría con hue shift: W>H>B>b>d>K (luz cenital). Contorno sel-out:
-// claro (C) arriba donde pega la luz, oscuro (K) abajo. Cabeza redonda con
-// corona brillante y ojos de pupila oscura; cuerpo con panza en sombra (d);
-// manitas (B) a los lados. Cabeza (0-8), torso (9-11), piernas (12-15).
-const PLAYER_IDLE = [
-  '.....CCCC.....', '...CCWWWWCC...', '..CWWHHHHWWC..', '.CWHHBBBBHHWC.',
-  '.CHBBBBBBBBHC.', 'CHBBBBBBBBBBHC', 'CHBWPBBBBPWBHC', 'CKBBBBBBBBBBKC',
-  '..KBBbbbbBBK..', '.BKBBbbbbBBKB.', '..KBbbbbbbBK..', '..KBbdddbBK...',
-  '...KBb..bBK...', '...KB....BK...', '...KK....KK...', '..............',
-];
-// Respiración: cuerpo bajado un pixel (los pies quedan fijos abajo).
-const PLAYER_IDLE2 = [
-  '..............', '.....CCCC.....', '...CCWWWWCC...', '..CWWHHHHWWC..',
-  '.CWHHBBBBHHWC.', '.CHBBBBBBBBHC.', 'CHBBBBBBBBBBHC', 'CHBWPBBBBPWBHC',
-  'CKBBBBBBBBBBKC', '..KBBbbbbBBK..', '.BKBBbbbbBBKB.', '..KBbbbbbbBK..',
-  '..KBbdddbBK...', '...KBb..bBK...', '...KB....BK...', '...KK....KK...',
-];
-// Parpadeo: ojos cerrados en dos rayitas.
-const PLAYER_BLINK = [
-  '.....CCCC.....', '...CCWWWWCC...', '..CWWHHHHWWC..', '.CWHHBBBBHHWC.',
-  '.CHBBBBBBBBHC.', 'CHBBBBBBBBBBHC', 'CHBBKKBBKKBBHC', 'CKBBBBBBBBBBKC',
-  '..KBBbbbbBBK..', '.BKBBbbbbBBKB.', '..KBbbbbbbBK..', '..KBbdddbBK...',
-  '...KBb..bBK...', '...KB....BK...', '...KK....KK...', '..............',
-];
-// Correr: 4 frames. Piernas alternan apoyo (abiertas) y paso (juntas).
-// run1/run3 = contacto, run2/run4 = pasada. Todos a 16 filas.
-const PLAYER_RUN1 = [
-  '.....CCCC.....', '...CCWWWWCC...', '..CWWHHHHWWC..', '.CWHHBBBBHHWC.',
-  '.CHBBBBBBBBHC.', 'CHBBBBBBBBBBHC', 'CHBWPBBBBPWBHC', 'CKBBBBBBBBBBKC',
-  '..KBBbbbbBBK..', '.BKBBbbbbBBKB.', '..KBbbbbbbBK..', '..KBbdddbBK...',
-  '..KBb...bBK...', '.KKB.....BK...', '.KK......KK...', '..............',
-];
-const PLAYER_RUN2 = [
-  '.....CCCC.....', '...CCWWWWCC...', '..CWWHHHHWWC..', '.CWHHBBBBHHWC.',
-  '.CHBBBBBBBBHC.', 'CHBBBBBBBBBBHC', 'CHBWPBBBBPWBHC', 'CKBBBBBBBBBBKC',
-  '..KBBbbbbBBK..', '.BKBBbbbbBBKB.', '..KBbbbbbbBK..', '..KBbdddbBK...',
-  '...KBbbBK.....', '...KBBBK......', '...KKKK.......', '..............',
-];
-const PLAYER_RUN3 = [
-  '.....CCCC.....', '...CCWWWWCC...', '..CWWHHHHWWC..', '.CWHHBBBBHHWC.',
-  '.CHBBBBBBBBHC.', 'CHBBBBBBBBBBHC', 'CHBWPBBBBPWBHC', 'CKBBBBBBBBBBKC',
-  '..KBBbbbbBBK..', '.BKBBbbbbBBKB.', '..KBbbbbbbBK..', '..KBbdddbBK...',
-  '...KBb...bBK..', '...KB.....BKK.', '...KK......KK.', '..............',
-];
-const PLAYER_RUN4 = [
-  '.....CCCC.....', '...CCWWWWCC...', '..CWWHHHHWWC..', '.CWHHBBBBHHWC.',
-  '.CHBBBBBBBBHC.', 'CHBBBBBBBBBBHC', 'CHBWPBBBBPWBHC', 'CKBBBBBBBBBBKC',
-  '..KBBbbbbBBK..', '.BKBBbbbbBBKB.', '..KBbbbbbbBK..', '..KBbdddbBK...',
-  '...KBbbBK.....', '...KBBBK......', '...KKKK.......', '..............',
-];
-const PLAYER_JUMP = [
-  '.....CCCC.....', '...CCWWWWCC...', '..CWWHHHHWWC..', '.CWHHBBBBHHWC.',
-  '.CHBBBBBBBBHC.', 'CHBBBBBBBBBBHC', 'CHBWPBBBBPWBHC', 'CKBBBBBBBBBBKC',
-  '.BKBBbbbbBBKB.', '.BKBBbbbbBBKB.', '..KBbbbbbbBK..', '..KBbdddbBK...',
-  '...KBb..bBK...', '....KddddK....', '....KKKK......', '..............',
-];
-const PLAYER_FALL = [
-  '.....CCCC.....', '...CCWWWWCC...', '..CWWHHHHWWC..', '.CWHHBBBBHHWC.',
-  '.CHBBBBBBBBHC.', 'CHBBBBBBBBBBHC', 'CHBWPBBBBPWBHC', 'CKBBBBBBBBBBKC',
-  'BKBBbbbbBBKB.', '.BKBBbbbbBBKB.', '..KBbbbbbbBK..', '..KBbdddbBK...',
-  '..KBb...bBK...', '.Kd.......dK..', '.KK.......KK..', '..............',
-];
-// Deslizando por la pared: mira a la derecha; el flip lo invierte.
-const PLAYER_WALL = [
-  '.....CCCC.....', '...CCWWWWCC...', '..CWWHHHHWWC..', '.CWHHBBBBHHWC.',
-  '.CHBBBBBBBBHC.', 'CHBBBBBBBBBBHC', 'CHBWPBBBBPWBHC', 'CKBBBBBBBBBBKC',
-  '..KBBbbbbBBKB', '..KBbbbbbbBKd', '..KBbbbbbbBK..', '..KBbdddbBK...',
-  '..KBb..bBK...', '..Kd...dK....', '..KK...KK....', '..............',
-];
 // Slime: gel translúcido con cúpula glossy (WW), cuerpo verde con
 // sombra azulada abajo y ojos brillantes. 2 frames (parpadeo). 11x8.
 const SLIME_1 = [
@@ -194,17 +124,9 @@ const TILE_PLANK = [
   '.s....s.',
 ];
 
+// Los sprites del jugador NO están acá: viven en playerSkins.ts
+// (horneados por skin). Dibujar al personaje = playerSprites().
 export const sprites = {
-  playerIdle: new Sprite(PLAYER_IDLE, PALETTE),
-  playerIdle2: new Sprite(PLAYER_IDLE2, PALETTE),
-  playerBlink: new Sprite(PLAYER_BLINK, PALETTE),
-  playerRun1: new Sprite(PLAYER_RUN1, PALETTE),
-  playerRun2: new Sprite(PLAYER_RUN2, PALETTE),
-  playerRun3: new Sprite(PLAYER_RUN3, PALETTE),
-  playerRun4: new Sprite(PLAYER_RUN4, PALETTE),
-  playerJump: new Sprite(PLAYER_JUMP, PALETTE),
-  playerFall: new Sprite(PLAYER_FALL, PALETTE),
-  playerWall: new Sprite(PLAYER_WALL, PALETTE),
   slime1: new Sprite(SLIME_1, PALETTE),
   slime2: new Sprite(SLIME_2, PALETTE),
   flyer1: new Sprite(FLYER_1, PALETTE),

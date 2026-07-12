@@ -36,6 +36,8 @@ export class OverworldScene implements Scene {
   y: number;
   facing: 1 | -1 = 1;
   walkTime = 0;
+  /** Segundos desde que llegó a un nodo (para el "plof" al aterrizar). */
+  settleTime = 1;
   /** Elegidor de modo (solo sobre niveles ya completados). */
   choosing = false;
   choice: GameMode = 'normal';
@@ -63,6 +65,7 @@ export class OverworldScene implements Scene {
 
   update(dt: number): void {
     this.session.ambientUpdate(dt); // el reloj compartido sigue latiendo
+    this.settleTime += dt;
 
     // --- Caminando: avanzar hacia el nodo destino ---
     if (this.target !== null) {
@@ -78,6 +81,7 @@ export class OverworldScene implements Scene {
         this.node = this.target;
         this.target = null;
         lastNode = this.node;
+        this.settleTime = 0; // recién aterrizado: el dibujo lo aplasta un toque
       } else {
         this.x += (dx / dist) * step;
         this.y += (dy / dist) * step;

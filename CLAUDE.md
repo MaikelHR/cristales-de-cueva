@@ -19,7 +19,10 @@ Before considering a change done: `npm test` and `npm run build` must both pass.
 - `src/engine/` — reusable, game-agnostic: fixed-step loop, input (keyboard/gamepad/touch
   → actions; gamepad UI strings use `{j}/{d}/{r}/{p}` placeholders filled by `padLabels()`
   so PlayStation pads show ✕/□/△/OPTIONS), canvas/AABB, `Sprite`, `frameAt` animation,
-  audio with channels (sfx/music). Must never import from `src/game/`.
+  audio with channels (sfx/music; tone types = 4 oscillators + 'noise', filtered white
+  noise — the drum kit) + `music.ts` step-sequencer (a `Song` = bpm + notes in beats,
+  scheduled with lookahead against the audio clock; `validateSong` for tests).
+  Must never import from `src/game/`.
 - `src/game/session.ts` — `GameSession`: ALL run state (world, player, camera, score,
   checkpoint, records) + lifecycle ops (startLevel, reset, respawn, endRun). Carries the
   current `level` (LevelDef) and `mode` ('normal' | 'trial'). No flow, no rendering.
@@ -45,6 +48,13 @@ Before considering a change done: `npm test` and `npm run build` must both pass.
   auto-tiling, HUD, minimap, screen overlays, `overworld.ts` (level map + `OW_NODES`).
   Logic modules never draw.
 - `src/game/art/` — palette, sprite pixel-grids, glow, atmosphere (parallax/fog/dust).
+- `src/game/sfx.ts` + `src/game/music.ts` — the game's sound. Sfx are tone recipes; the
+  soundtrack is `Song` data: one theme per screen (title/overworld) and per level
+  (`LEVEL_SONGS` by level id). ALL themes quote one leitmotif ("el tema del cristal",
+  a root→♭3→5 rise) — `music.test.ts` enforces the quote, that every level has a theme,
+  and that note volumes stay ≤ 0.08 so music sits UNDER the sfx. `syncMusic(scenes.ui,
+  level.id)` runs each frame from `main.ts`: picks the track, ducks on pause, goes silent
+  on won/gameover (the sfx stingers own those moments), and ticks the sequencer.
 
 ## Levels and rooms are data
 
@@ -63,8 +73,7 @@ dash, comfortable with it). Level 1 id ('cavernas') is pinned in save.ts for mig
 
 ## Conventions
 
-- Code comments and identifiers-facing docs are in **Spanish** (intent-explaining style —
-  keep matching it). Player-facing text is **neutral LatAm Spanish (tuteo)** + English,
+Player-facing text is **neutral LatAm Spanish (tuteo)** + English,
   ALWAYS via `src/game/i18n.ts` (`t(key)`) — never hardcode player-visible strings.
 - The page is ONLY the game's frame: fullscreen letterboxed canvas, no HTML title/
   footer/chrome. Everything player-facing lives in-canvas — Title menu (play/fullscreen/
@@ -77,6 +86,14 @@ dash, comfortable with it). Level 1 id ('cavernas') is pinned in save.ts for mig
   hit-stop, the shared animation `Clock` also ticking on menus. Don't "simplify" them away.
 - Touch UI: ability buttons (dash) only appear once unlocked (`syncTouchUI` via
   `scenes.ui` + `hasDash`). Keep the `UiState` shape stable — touch.ts/langSwitch depend on it.
+- Character customization has two axes, both pure-data modules with their own
+  localStorage preference (like the language): `skins.ts` (palette tints over the player
+  ramp only) and `accessories.ts` (small grids overlaid per-frame anchored to the head
+  top — `overlayGrid`, tested against the real frames in `art/playerGrids.ts`).
+  `art/playerSkins.ts` composes+bakes per (skin, accessory). Draw the player ONLY via
+  `playerSprites()` and `currentSkin().glow` (never `sprites.player*` — those are gone).
+  Selection: Title → CHARACTER opens `CharacterScene` (keyboard/gamepad); on touch, the
+  two chips in skinSwitch.ts follow the same rules as the ES/EN chip.
 - Saves are versioned (`save.ts`, v2 = per-level records incl. best time-trial time):
   change the format only via `parseSave` migration, never by breaking old localStorage
   data. Record/unlock logic (`recordRun`, `unlockedLevels`) is pure and tested.

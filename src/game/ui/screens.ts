@@ -12,6 +12,9 @@ import type { GameSession } from '../session';
 import { LEVELS } from '../world/rooms';
 import { levelRecord } from '../save';
 import { sprites } from '../art/sprites';
+import { playerSprites } from '../art/playerSkins';
+import { currentSkin } from '../skins';
+import { currentAccessory } from '../accessories';
 import { drawGlow } from '../art/glow';
 import { t, type StrKey } from '../i18n';
 import { font, formatTime } from './text';
@@ -19,16 +22,25 @@ import { OW_NODES } from './overworld';
 
 /** Los ítems que pueden aparecer en los menús del juego; cada escena
  *  arma su lista y este módulo solo los rotula y los pinta. */
-export type MenuItem = 'play' | 'resume' | 'restart' | 'fullscreen' | 'language' | 'exit';
+export type MenuItem =
+  | 'play'
+  | 'resume'
+  | 'restart'
+  | 'character'
+  | 'fullscreen'
+  | 'language'
+  | 'exit';
 
 const MENU_LABEL: Record<MenuItem, StrKey> = {
   play: 'menu_play',
   resume: 'menu_resume',
   restart: 'menu_restart',
+  character: 'menu_character',
   fullscreen: 'menu_fullscreen',
   language: 'menu_language',
   exit: 'menu_exit',
 };
+
 
 /** Lista de menú vertical: el ítem elegido brilla en dorado con sus
  *  flechitas; el resto queda en violeta apagado. */
@@ -91,6 +103,14 @@ export function drawTitleOverlay(
   // Cristal al doble de tamaño, centrado en (cx, cy).
   spr.drawStretched(ctx, cx, cy + spr.h, 2, 2);
 
+  // El personaje (con su skin) admirando el cristal: la vista previa
+  // viva de la personalización — cambiar de skin se ve al instante.
+  const skin = playerSprites();
+  const hero = time % 3.3 < 0.15 ? skin.blink : frameAt([skin.idle, skin.idle2], 1.6, time);
+  const heroFeet = viewH / 2 - 52 + spr.h; // el piso del cristal, sin flotar
+  drawGlow(ctx, cx - 34, heroFeet - 16, 14, currentSkin().glow, 0.3);
+  hero.drawStretched(ctx, cx - 34, heroFeet, 2, 2);
+
   ctx.textAlign = 'center';
   // Título en dos líneas para que entre bien en 320px.
   ctx.fillStyle = '#e9d6ff';
@@ -117,7 +137,9 @@ export function drawTitleOverlay(
     ctx.fillText(t('start_touch'), cx, viewH / 2 + 40);
     ctx.globalAlpha = 1;
   } else {
-    drawMenuList(ctx, session, items, selected, viewH / 2 + 32);
+    // Con 4+ ítems el menú sube y se compacta para no pisar los avisos.
+    const four = items.length > 3;
+    drawMenuList(ctx, session, items, selected, viewH / 2 + (four ? 26 : 32), four ? 12 : 14);
     drawMenuNavHint(ctx, session, viewH - 8);
   }
 
@@ -237,6 +259,58 @@ export function drawGameOverOverlay(ctx: CanvasRenderingContext2D, session: Game
   ctx.fillStyle = '#9b86c4';
   ctx.fillText(backToMenuText(), cx, viewH / 2 + 22);
   ctx.globalAlpha = 1;
+  ctx.textAlign = 'left';
+}
+
+/** Las filas de la pantalla de personaje: cada una es un eje de
+ *  personalización (o la salida); la escena navega, acá se pintan. */
+export type CharacterRow = 'color' | 'accessory' | 'back';
+
+/** Pantalla de personaje: el look elegido en grande (respirando, con
+ *  su halo) y las filas COLOR / ACCESORIO / VOLVER. Los cambios se
+ *  ven al instante en la vista previa: ESA es la gracia. */
+export function drawCharacterOverlay(
+  ctx: CanvasRenderingContext2D,
+  session: GameSession,
+  rows: readonly CharacterRow[],
+  selected: number,
+): void {
+  const { viewW, viewH, time } = session;
+  ctx.fillStyle = 'rgba(17,9,26,0.78)';
+  ctx.fillRect(0, 0, viewW, viewH);
+  const cx = viewW / 2;
+  ctx.textAlign = 'center';
+
+  ctx.fillStyle = '#e9d6ff';
+  ctx.font = font(16);
+  ctx.fillText(t('cust_title'), cx, 24);
+
+  // La vista previa: el personaje al triple, vivo (respira y parpadea).
+  const s = playerSprites();
+  const spr = time % 3.3 < 0.15 ? s.blink : frameAt([s.idle, s.idle2], 1.6, time);
+  drawGlow(ctx, cx, 78, 24, currentSkin().glow, 0.4 + Math.sin(time * 3) * 0.08);
+  spr.drawStretched(ctx, cx, 98, 3, 3);
+
+  const label: Record<CharacterRow, string> = {
+    color: t('cust_color', { s: t(currentSkin().nameKey) }),
+    accessory: t('cust_accessory', { s: t(currentAccessory().nameKey) }),
+    back: t('cust_back'),
+  };
+  rows.forEach((row, i) => {
+    const active = i === selected;
+    const y = 120 + i * 14;
+    ctx.font = font(active ? 10 : 9);
+    ctx.fillStyle = active ? '#ffe25a' : '#8a76b4';
+    ctx.fillText(label[row], cx, y);
+    if (active) {
+      const w = ctx.measureText(label[row]).width;
+      const sway = Math.sin(time * 5) * 1.5;
+      ctx.fillText('▸', cx - w / 2 - 8 - sway, y);
+      ctx.fillText('◂', cx + w / 2 + 8 + sway, y);
+    }
+  });
+
+  drawMenuNavHint(ctx, session, viewH - 8);
   ctx.textAlign = 'left';
 }
 

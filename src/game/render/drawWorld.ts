@@ -20,7 +20,11 @@ export function drawWorld(ctx: CanvasRenderingContext2D, session: GameSession): 
   const room = session.world.current;
   const { viewW, viewH, time } = session;
 
-  drawBackground(ctx, camX, camY, viewW, viewH, room.level.widthPx, room.data.mapPos.x, time);
+  drawBackground(
+    ctx, camX, camY, viewW, viewH,
+    room.level.widthPx, room.data.mapPos.x, time,
+    session.level.id, // cada nivel tiene su propio tema de color
+  );
 
   drawLevelTiles(ctx, room.level, camX, camY, viewW, viewH);
   drawDoor(ctx, session, camX, camY);
@@ -37,7 +41,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, session: GameSession): 
   session.particles.draw(ctx, camX, camY);
   session.popups.draw(ctx, camX, camY);
 
-  drawFog(ctx, camX, viewW, viewH, time);
+  drawFog(ctx, camX, viewW, viewH, time, session.level.id);
   drawDust(ctx, viewW, viewH, time, 1 / 60);
   drawVignette(ctx, viewW, viewH);
 

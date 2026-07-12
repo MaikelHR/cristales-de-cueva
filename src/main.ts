@@ -19,8 +19,10 @@ import { TitleScene } from './game/scenes/TitleScene';
 import { sprites } from './game/art/sprites';
 import { debug } from './game/debug';
 import { initTouchControls, syncTouchUI } from './game/touch';
+import { syncMusic } from './game/music';
 import { t, getLang, onLangChange } from './game/i18n';
 import { initLangSwitch, syncLangSwitch } from './game/langSwitch';
+import { initSkinSwitch, syncSkinSwitch } from './game/skinSwitch';
 
 const VIEW_W = 320;
 const VIEW_H = 176;
@@ -89,6 +91,7 @@ function localizeChrome(): void {
 }
 
 initLangSwitch();
+initSkinSwitch();
 localizeChrome();
 onLangChange(localizeChrome);
 
@@ -115,5 +118,7 @@ startLoop(
     const ui = uiState();
     syncTouchUI(ui); // reflejar el estado del juego en la UI táctil
     syncLangSwitch(ui); // mostrar/ocultar el selector de idioma según el estado
+    syncSkinSwitch(ui); // ídem el selector de skin del personaje
+    syncMusic(scenes.ui, session.level.id); // la canción que le toca a esta pantalla
   },
 );
