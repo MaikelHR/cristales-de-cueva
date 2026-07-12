@@ -1,15 +1,15 @@
 import type { RoomData } from '../../RoomData';
 
-/** Nivel 6, sala 1 — El crisol: aprender a leer el fuego.
- *  Primero un repaso amable: un bolsillo agrietado con cristal (el
- *  azotón no se olvida). Después los GÉISERES: tres bocas desfasadas
- *  que chisporrotean antes de entrar en erupción — se pasa leyendo
- *  el ritmo por abajo (rápido) o por el camino de tablones por
- *  arriba (lento y seguro, con un volador rondando): dos lecturas.
- *  El cristal sobre el segundo géiser se roba entre erupciones — o
- *  bajando del tablón con abajo + saltar. El anzuelo del nivel: una
- *  cámara flotante con cara agrietada de costado que ninguna picada
- *  abre — la EMBESTIDA se gana en la sala siguiente. */
+/** Level 6, room 1 — El crisol: learn to read the fire.
+ *  First a gentle refresher: a cracked pocket with a crystal (the
+ *  pound isn't forgotten). Then the GEYSERS: three staggered mouths
+ *  that sputter before erupting — you pass by reading
+ *  the rhythm down low (fast) or via the plank path up
+ *  top (slow and safe, with a flyer prowling): two readings.
+ *  The crystal above the second geyser is stolen between eruptions — or
+ *  by dropping off the plank with down + jump. The level's bait: a
+ *  floating chamber with a side-facing cracked face that no pound
+ *  opens — the RAM is earned in the next room. */
 export const crisol: RoomData = {
   id: 'crisol',
   mapPos: { x: 0, y: 0 },

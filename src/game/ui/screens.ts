@@ -1,9 +1,9 @@
 // ============================================================
-//  PANTALLAS — los overlays de cada escena
+//  SCREENS — the overlays for each scene
 // ------------------------------------------------------------
-//  Título, pausa, victoria y game over: cada una oscurece el mundo
-//  (que sigue dibujándose detrás) y escribe encima. Son funciones
-//  puras de dibujo: el flujo entre pantallas vive en scenes/.
+//  Title, pause, win and game over: each darkens the world
+//  (which keeps drawing behind) and writes on top. They're pure
+//  drawing functions: the flow between screens lives in scenes/.
 // ============================================================
 
 import { frameAt } from '../../engine/animation';
@@ -20,8 +20,8 @@ import { t, type StrKey } from '../i18n';
 import { font, formatTime } from './text';
 import { OW_NODES } from './overworld';
 
-/** Los ítems que pueden aparecer en los menús del juego; cada escena
- *  arma su lista y este módulo solo los rotula y los pinta. */
+/** The items that can appear in the game's menus; each scene
+ *  builds its own list and this module only labels and paints them. */
 export type MenuItem =
   | 'play'
   | 'resume'
@@ -42,8 +42,8 @@ const MENU_LABEL: Record<MenuItem, StrKey> = {
 };
 
 
-/** Lista de menú vertical: el ítem elegido brilla en dorado con sus
- *  flechitas; el resto queda en violeta apagado. */
+/** Vertical menu list: the selected item glows gold with its
+ *  little arrows; the rest stays dim violet. */
 function drawMenuList(
   ctx: CanvasRenderingContext2D,
   session: GameSession,
@@ -62,7 +62,7 @@ function drawMenuList(
     const label = t(MENU_LABEL[item]);
     ctx.fillText(label, cx, y);
     if (active) {
-      // Flechitas que respiran a los costados del ítem elegido.
+      // Little arrows that breathe on either side of the selected item.
       const w = ctx.measureText(label).width;
       const sway = Math.sin(session.time * 5) * 1.5;
       ctx.fillText('▸', cx - w / 2 - 8 - sway, y);
@@ -71,7 +71,7 @@ function drawMenuList(
   });
 }
 
-/** La línea de "cómo se navega el menú", según teclado o gamepad. */
+/** The "how to navigate the menu" line, based on keyboard or gamepad. */
 function drawMenuNavHint(ctx: CanvasRenderingContext2D, session: GameSession, y: number): void {
   const gp = inputDevice() === 'gamepad';
   ctx.textAlign = 'center';
@@ -80,9 +80,9 @@ function drawMenuNavHint(ctx: CanvasRenderingContext2D, session: GameSession, y:
   ctx.fillText(gp ? t('nav_gp', padLabels()) : t('nav_kb'), session.viewW / 2, y);
 }
 
-/** Menú de inicio: el título del juego sobre el mundo, con un cristal
- *  que flota y el menú (jugar / pantalla completa / idioma). En táctil
- *  no hay menú navegable: un tap arranca y el idioma va por su botón. */
+/** Start menu: the game title over the world, with a floating crystal
+ *  and the menu (play / fullscreen / language). On touch there's no
+ *  navigable menu: a tap starts and language goes through its button. */
 export function drawTitleOverlay(
   ctx: CanvasRenderingContext2D,
   session: GameSession,
@@ -94,25 +94,25 @@ export function drawTitleOverlay(
   ctx.fillRect(0, 0, viewW, viewH);
   const cx = viewW / 2;
 
-  // Un cristal grande flotando sobre el título, con su halo.
+  // A big crystal floating above the title, with its halo.
   const bob = Math.sin(time * 2) * 2;
   const frames = [sprites.crystal, sprites.crystal2, sprites.crystal3, sprites.crystal4];
   const spr = frameAt(frames, 6, time);
   const cy = viewH / 2 - 52 + bob;
   drawGlow(ctx, cx, cy, 20, '#ffe25a', 0.5 + Math.sin(time * 4) * 0.15);
-  // Cristal al doble de tamaño, centrado en (cx, cy).
+  // Crystal at double size, centered on (cx, cy).
   spr.drawStretched(ctx, cx, cy + spr.h, 2, 2);
 
-  // El personaje (con su skin) admirando el cristal: la vista previa
-  // viva de la personalización — cambiar de skin se ve al instante.
+  // The character (with its skin) admiring the crystal: the live
+  // customization preview — switching skins shows up instantly.
   const skin = playerSprites();
   const hero = time % 3.3 < 0.15 ? skin.blink : frameAt([skin.idle, skin.idle2], 1.6, time);
-  const heroFeet = viewH / 2 - 52 + spr.h; // el piso del cristal, sin flotar
+  const heroFeet = viewH / 2 - 52 + spr.h; // the crystal's floor, without the bob
   drawGlow(ctx, cx - 34, heroFeet - 16, 14, currentSkin().glow, 0.3);
   hero.drawStretched(ctx, cx - 34, heroFeet, 2, 2);
 
   ctx.textAlign = 'center';
-  // Título en dos líneas para que entre bien en 320px.
+  // Title in two lines so it fits nicely in 320px.
   ctx.fillStyle = '#e9d6ff';
   ctx.font = font(18);
   ctx.fillText(t('title_line1'), cx, viewH / 2 - 16);
@@ -120,7 +120,7 @@ export function drawTitleOverlay(
   ctx.font = font(11);
   ctx.fillText(t('title_line2'), cx, viewH / 2);
 
-  // Progreso guardado (solo si ya completaste algún nivel).
+  // Saved progress (only if you've already completed a level).
   ctx.font = font(8);
   const completed = LEVELS.filter((l) => levelRecord(save, l.id).completions > 0).length;
   if (completed > 0) {
@@ -130,20 +130,20 @@ export function drawTitleOverlay(
 
   const touch = inputDevice() === 'touch';
   if (touch) {
-    // En táctil: aviso pulsante para empezar (el canvas entero es el botón).
+    // On touch: pulsing prompt to start (the whole canvas is the button).
     const blink = 0.55 + Math.sin(time * 4) * 0.45;
     ctx.globalAlpha = blink;
     ctx.fillStyle = '#ffe25a';
     ctx.fillText(t('start_touch'), cx, viewH / 2 + 40);
     ctx.globalAlpha = 1;
   } else {
-    // Con 4+ ítems el menú sube y se compacta para no pisar los avisos.
+    // With 4+ items the menu moves up and compacts so it doesn't overlap the prompts.
     const four = items.length > 3;
     drawMenuList(ctx, session, items, selected, viewH / 2 + (four ? 26 : 32), four ? 12 : 14);
     drawMenuNavHint(ctx, session, viewH - 8);
   }
 
-  // El recordatorio de controles del juego, chico y abajo.
+  // The game's controls reminder, small and at the bottom.
   const gp = inputDevice() === 'gamepad';
   ctx.font = font(7);
   ctx.fillStyle = '#57457a';
@@ -155,8 +155,8 @@ export function drawTitleOverlay(
   ctx.textAlign = 'left';
 }
 
-/** Menú de pausa: la partida queda congelada detrás. En táctil el menú
- *  es de botones DOM (touch.ts); acá solo el velo y el título. */
+/** Pause menu: the run stays frozen behind. On touch the menu is
+ *  DOM buttons (touch.ts); here just the veil and the title. */
 export function drawPauseOverlay(
   ctx: CanvasRenderingContext2D,
   session: GameSession,
@@ -182,8 +182,8 @@ export function drawPauseOverlay(
   ctx.textAlign = 'left';
 }
 
-/** Pantalla de victoria: el nivel completado, con puntaje y tiempo en
- *  modo normal o el veredicto del cronómetro en contrarreloj. */
+/** Win screen: the completed level, with score and time in normal
+ *  mode or the stopwatch verdict in time-trial. */
 export function drawWinOverlay(ctx: CanvasRenderingContext2D, session: GameSession): void {
   const { viewW, viewH, time, save, runFlags } = session;
   const rec = levelRecord(save, session.level.id);
@@ -199,7 +199,7 @@ export function drawWinOverlay(ctx: CanvasRenderingContext2D, session: GameSessi
   ctx.fillText(t(session.level.nameKey), cx, viewH / 2 - 24);
 
   if (session.mode === 'trial') {
-    // Contrarreloj: el tiempo ES el resultado.
+    // Time-trial: the time IS the result.
     ctx.fillStyle = '#7ce0ff';
     ctx.font = font(12);
     ctx.fillText(formatTime(session.runTime), cx, viewH / 2 - 6);
@@ -219,8 +219,8 @@ export function drawWinOverlay(ctx: CanvasRenderingContext2D, session: GameSessi
     ctx.fillText(t('win_points', { n: session.score }), cx, viewH / 2 - 10);
     ctx.fillStyle = '#7ce0ff';
     ctx.fillText(t('win_time', { t: formatTime(session.runTime) }), cx, viewH / 2 + 1);
-    // Récord de tiempo (la métrica de speedrun): si lo batiste,
-    // celebración pulsante; si no, tu mejor marca para comparar.
+    // Time record (the speedrun metric): if you beat it, a pulsing
+    // celebration; if not, your best mark to compare against.
     if (runFlags.newBestTime) {
       ctx.save();
       ctx.globalAlpha = 0.6 + Math.sin(time * 8) * 0.4;
@@ -239,8 +239,8 @@ export function drawWinOverlay(ctx: CanvasRenderingContext2D, session: GameSessi
   ctx.textAlign = 'left';
 }
 
-/** Pantalla de game over: el mundo congelado tras la muerte, oscurecido,
- *  con el puntaje logrado y el aviso para reintentar. */
+/** Game over screen: the world frozen after death, darkened, with
+ *  the score achieved and the prompt to retry. */
 export function drawGameOverOverlay(ctx: CanvasRenderingContext2D, session: GameSession): void {
   const { viewW, viewH, time } = session;
   ctx.fillStyle = 'rgba(26,6,10,0.8)';
@@ -262,13 +262,13 @@ export function drawGameOverOverlay(ctx: CanvasRenderingContext2D, session: Game
   ctx.textAlign = 'left';
 }
 
-/** Las filas de la pantalla de personaje: cada una es un eje de
- *  personalización (o la salida); la escena navega, acá se pintan. */
+/** The rows of the character screen: each is a customization axis
+ *  (or the exit); the scene navigates, here they're painted. */
 export type CharacterRow = 'color' | 'accessory' | 'back';
 
-/** Pantalla de personaje: el look elegido en grande (respirando, con
- *  su halo) y las filas COLOR / ACCESORIO / VOLVER. Los cambios se
- *  ven al instante en la vista previa: ESA es la gracia. */
+/** Character screen: the chosen look at large size (breathing, with
+ *  its halo) and the COLOR / ACCESSORY / BACK rows. Changes show up
+ *  instantly in the preview: THAT'S the whole point. */
 export function drawCharacterOverlay(
   ctx: CanvasRenderingContext2D,
   session: GameSession,
@@ -285,7 +285,7 @@ export function drawCharacterOverlay(
   ctx.font = font(16);
   ctx.fillText(t('cust_title'), cx, 24);
 
-  // La vista previa: el personaje al triple, vivo (respira y parpadea).
+  // The preview: the character at triple size, alive (breathes and blinks).
   const s = playerSprites();
   const spr = time % 3.3 < 0.15 ? s.blink : frameAt([s.idle, s.idle2], 1.6, time);
   drawGlow(ctx, cx, 78, 24, currentSkin().glow, 0.4 + Math.sin(time * 3) * 0.08);
@@ -314,15 +314,15 @@ export function drawCharacterOverlay(
   ctx.textAlign = 'left';
 }
 
-/** El texto para volver al mapa, según teclado, gamepad o táctil. */
+/** The text to return to the map, based on keyboard, gamepad or touch. */
 function backToMenuText(): string {
   const dev = inputDevice();
   if (dev === 'touch') return t('back_touch');
   return dev === 'gamepad' ? t('back_gp', padLabels()) : t('back_kb');
 }
 
-/** Línea de récord bajo el puntaje: si batiste tu marca del nivel, un
- *  "¡NUEVO RÉCORD!" pulsante; si no, tu mejor puntaje para comparar. */
+/** Record line under the score: if you beat your level mark, a pulsing
+ *  "NEW RECORD!"; if not, your best score to compare against. */
 function drawRecordLine(
   ctx: CanvasRenderingContext2D,
   session: GameSession,

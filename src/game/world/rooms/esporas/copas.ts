@@ -1,16 +1,16 @@
 import type { RoomData } from '../../RoomData';
 
-/** Nivel 4, sala 3 — Las copas: el examen del planeo.
- *  Se entra por lo ALTO. La garganta entera es cama de púas; la línea
- *  maestra es un vuelo con dos relevos: planear desde la repisa hasta
- *  la primera corriente, subir, volver a planear hasta la segunda y
- *  bajar en la meseta de la puerta (un cristal flota en plena línea).
- *  La segunda lectura, para el contrarreloj: los dientes al ras de
- *  las púas se encadenan con dash — más rápida, sin red, con su
- *  propio cristal y un esporero que la vigila. Caer sobre limpio
- *  (bajo la meseta) tiene rescate: se escala su pared. Detrás de la
- *  puerta, un pozo esconde el último cristal — se baja caminando y
- *  se vuelve a salto de pared (el examen cita al nivel 2). */
+/** Level 4, room 3 — The chalices: the glide exam.
+ *  You enter from up HIGH. The whole gorge is a bed of spikes; the
+ *  master line is a flight with two relays: glide from the ledge to
+ *  the first updraft, rise, glide again to the second and drop onto
+ *  the door's plateau (a crystal floats right on the line). The
+ *  second reading, for the time trial: the teeth flush with the
+ *  spikes chain together with dash — faster, no net, with its own
+ *  crystal and a spitter watching it. Falling onto clear ground
+ *  (below the plateau) has a rescue: you climb its wall. Behind the
+ *  door, a pit hides the last crystal — you walk down and come back
+ *  up by wall-jumping (the exam quotes level 2). */
 export const copas: RoomData = {
   id: 'copas',
   mapPos: { x: 2, y: 0 },

@@ -1,12 +1,12 @@
 // ============================================================
-//  DIBUJO DE TILES (la cara visible de Level)
+//  TILE DRAWING (the visible face of Level)
 // ------------------------------------------------------------
-//  Level es lógica pura; acá vive su dibujo: culling de lo visible
-//  y auto-tiling de los bloques sólidos (relleno base más bordes
-//  biselados en las caras que dan al vacío). Luz desde arriba-
-//  izquierda: tope y lado izquierdo iluminados, derecha y base en
-//  sombra. La roca se dibuja con el TileSet del bioma (tileSets.ts);
-//  los tiles-lenguaje (tablón, púas, '%', '~') son iguales en todos.
+//  Level is pure logic; here lives its drawing: culling of the
+//  visible tiles and auto-tiling of the solid blocks (base fill plus
+//  beveled edges on the faces that meet the void). Light from the
+//  top-left: top and left side lit, right and bottom in shadow. Rock
+//  is drawn with the biome's TileSet (tileSets.ts); the language
+//  tiles (plank, spikes, '%', '~') are the same across all of them.
 // ============================================================
 
 import { Level, TILE } from '../world/Level';
@@ -23,7 +23,7 @@ export function drawLevelTiles(
   levelId = 'cavernas',
 ): void {
   const set = tileSetFor(levelId);
-  // Solo dibujamos los tiles visibles (culling) para que rinda bien.
+  // Only draw the visible tiles (culling) so it performs well.
   const c0 = Math.max(0, Math.floor(camX / TILE));
   const c1 = Math.min(level.cols - 1, Math.floor((camX + viewW) / TILE));
   const r0 = Math.max(0, Math.floor(camY / TILE));
@@ -46,9 +46,9 @@ export function drawLevelTiles(
   }
 }
 
-/** Bloque agrietado: roca con una fisura pálida en Y — se lee de un
- *  vistazo como "esto se rompe" (azotón desde arriba, embestida de
- *  costado). El mismo dibujo en todos los biomas: es un lenguaje. */
+/** Cracked block: rock with a pale Y-shaped fissure — reads at a
+ *  glance as "this breaks" (pound from above, charge from the side).
+ *  The same drawing across all biomes: it's a language. */
 function drawCrackTile(ctx: CanvasRenderingContext2D, px: number, py: number): void {
   ctx.fillStyle = '#241638';
   ctx.fillRect(px, py, TILE, TILE);
@@ -58,7 +58,7 @@ function drawCrackTile(ctx: CanvasRenderingContext2D, px: number, py: number): v
   ctx.fillStyle = '#160b24';
   ctx.fillRect(px, py + TILE - 1, TILE, 1);
   ctx.fillRect(px + TILE - 1, py, 1, TILE);
-  // La fisura: una Y de píxeles claros con su núcleo brillante.
+  // The fissure: a Y of light pixels with its bright core.
   ctx.fillStyle = '#8064b0';
   ctx.fillRect(px + 3, py + 1, 1, 2);
   ctx.fillRect(px + 4, py + 3, 1, 2);
@@ -69,8 +69,8 @@ function drawCrackTile(ctx: CanvasRenderingContext2D, px: number, py: number): v
   ctx.fillRect(px + 4, py + 4, 1, 1);
 }
 
-/** Hielo: bloque pálido con destello en el tope (donde se patina)
- *  y la panza en azul hondo. */
+/** Ice: pale block with a gleam on top (where you slip) and its
+ *  underside in deep blue. */
 function drawIceTile(
   ctx: CanvasRenderingContext2D,
   level: Level,
@@ -85,7 +85,7 @@ function drawIceTile(
   ctx.fillStyle = '#7ab0d8';
   ctx.fillRect(px + 1, py + 1, TILE - 2, 3);
   if (up) {
-    // Tope pulido: la franja clara que dice "acá se resbala".
+    // Polished top: the light band that says "you slip here".
     ctx.fillStyle = '#d6f7ff';
     ctx.fillRect(px, py, TILE, 1);
     ctx.fillStyle = '#eafaff';
@@ -93,27 +93,27 @@ function drawIceTile(
   }
   ctx.fillStyle = '#2e5878';
   ctx.fillRect(px, py + TILE - 2, TILE, 2);
-  // Un reflejo interior en diagonal, distinto por celda.
+  // An interior diagonal reflection, different per cell.
   ctx.fillStyle = '#a8d8f0';
   const dx = (col * 7 + row * 11) % 4;
   ctx.fillRect(px + 2 + dx, py + 3, 1, 2);
   ctx.fillRect(px + 3 + dx, py + 5, 1, 1);
 }
 
-/** Púas: dos agujas de roca clavadas en el piso, con la punta clara.
- *  El dibujo llena la celda pero la caja de daño (Level.touchesSpike)
- *  es más chica: lo que se ve amenaza un poco más de lo que pincha. */
+/** Spikes: two rock needles driven into the floor, with light tips.
+ *  The drawing fills the cell but the hurt box (Level.touchesSpike)
+ *  is smaller: what you see threatens a bit more than it pricks. */
 function drawSpikeTile(ctx: CanvasRenderingContext2D, px: number, py: number): void {
   ctx.fillStyle = '#5f4790';
   for (const base of [0, 4]) {
-    // Triángulo en escalera: ancho 4 en la base, 2 al medio, 1 en la punta.
+    // Stair-stepped triangle: width 4 at the base, 2 mid, 1 at the tip.
     ctx.fillRect(px + base, py + 6, 4, 2);
     ctx.fillRect(px + base + 1, py + 3, 2, 3);
     ctx.fillStyle = '#8064b0';
     ctx.fillRect(px + base + 1, py + 1, 1, 2);
     ctx.fillStyle = '#5f4790';
   }
-  // Puntas iluminadas: se leen de un vistazo como "esto pincha".
+  // Lit tips: read at a glance as "this pricks".
   ctx.fillStyle = '#d7c9ec';
   ctx.fillRect(px + 1, py + 1, 1, 1);
   ctx.fillRect(px + 5, py + 1, 1, 1);
@@ -128,13 +128,13 @@ function drawSolidTile(
   px: number,
   py: number,
 ): void {
-  // Fuera del mapa cuenta como sólido (no dibuja borde afuera).
+  // Outside the map counts as solid (draws no border out there).
   const up = !level.solidCell(row - 1, col);
   const down = !level.solidCell(row + 1, col);
   const left = !level.solidCell(row, col - 1);
   const right = !level.solidCell(row, col + 1);
 
-  // Base: tope tallado si mira al vacío arriba; si no, relleno con variante.
+  // Base: carved top if it faces the void above; otherwise fill with a variant.
   if (up) {
     set.top.draw(ctx, px, py);
   } else {
@@ -143,9 +143,9 @@ function drawSolidTile(
     fill.draw(ctx, px, py);
   }
 
-  // Rim-light: las caras expuestas llevan un borde iluminado que las
-  // hace resaltar contra la cueva oscura (izquierda más brillante que
-  // la derecha por la luz de arriba-izquierda). La base queda en sombra.
+  // Rim-light: the exposed faces get a lit edge that makes them stand
+  // out against the dark cave (left brighter than right due to the
+  // top-left light). The bottom stays in shadow.
   if (left) {
     ctx.fillStyle = set.rimL;
     ctx.fillRect(px, py, 1, TILE);
@@ -158,7 +158,7 @@ function drawSolidTile(
     ctx.fillStyle = set.shadow;
     ctx.fillRect(px, py + TILE - 2, TILE, 2);
   }
-  // Esquinas exteriores redondeadas (chaflán oscuro).
+  // Rounded outer corners (dark chamfer).
   ctx.fillStyle = set.shadow;
   if (up && left) ctx.fillRect(px, py, 1, 1);
   if (up && right) ctx.fillRect(px + TILE - 1, py, 1, 1);

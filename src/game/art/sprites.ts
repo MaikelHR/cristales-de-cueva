@@ -1,16 +1,16 @@
 // ============================================================
-//  SPRITES del juego
+//  Game SPRITES
 // ------------------------------------------------------------
-//  Todos los sprites como grillas de pixeles (editables como texto).
-//  Tocá los colores (en palette.ts) o las grillas para cambiar el
-//  look sin tocar la lógica.
+//  All sprites as pixel grids (editable as text).
+//  Tweak the colors (in palette.ts) or the grids to change the
+//  look without touching the logic.
 // ============================================================
 
 import { Sprite } from '../../engine/Sprite';
 import { PALETTE } from './palette';
 
-// Slime: gel translúcido con cúpula glossy (WW), cuerpo verde con
-// sombra azulada abajo y ojos brillantes. 2 frames (parpadeo). 11x8.
+// Slime: translucent gel with a glossy dome (WW), green body with a
+// bluish shadow below and bright eyes. 2 frames (blink). 11x8.
 const SLIME_1 = [
   '...EEEEE...', '..ELLLLLE..', '.ELWWLGGGE.', 'EGLGGGGGGGJ',
   'EGWPGGWPGGJ', 'JGGGGGGGGGJ', '.JgggggggJ.', '..JJJJJJJ..',
@@ -19,8 +19,8 @@ const SLIME_2 = [
   '...EEEEE...', '..ELLLLLE..', '.ELWWLGGGE.', 'EGLGGGGGGGJ',
   'EGddGGddGGJ', 'JGGGGGGGGGJ', '.JgggggggJ.', '..JJJJJJJ..',
 ];
-// Volador (murciélago de cristal): cuerpo cian con destello, ojos y
-// alas moradas (M vivo, m sombra) que baten. 9x7.
+// Flyer (crystal bat): cyan body with a sparkle, eyes and purple
+// wings (M bright, m shadow) that flap. 9x7.
 const FLYER_1 = [
   'MM.....MM', '.Mm...mM.', '..mBWBm..', '..bBBBb..',
   '..KPBPK..', '...KKK...', '.........',
@@ -29,8 +29,8 @@ const FLYER_2 = [
   '.........', 'M.......M', '.Mm...mM.', '..mBWBm..',
   '..bBBBb..', '.MKPBPKM.', '.M.....M.',
 ];
-// Cazador (bola con púas): rojo amenazante con brillo arriba, sombra
-// abajo, ojos oscuros y patitas que ruedan. 9x7.
+// Chaser (spiked ball): menacing red with a highlight on top, shadow
+// below, dark eyes and little legs that roll. 9x7.
 const CHASER_1 = [
   '.v.v.v.v.', '.vVWVVVv.', 'vVVVVVVVv', 'vVPVVVPVv',
   'vVVVVVVVv', '.vvvvvvv.', '.K.K.K.K.',
@@ -39,8 +39,8 @@ const CHASER_2 = [
   '.v.v.v.v.', '.vVWVVVv.', 'vVVVVVVVv', 'vVPVVVPVv',
   'vVVVVVVVv', '.vvvvvvv.', 'K.K.K.K.K',
 ];
-// Cristal facetado: 4 frames de brillo que barre las facetas (destello
-// izq -> arriba -> der -> reposo). Sombra rojiza abajo-derecha.
+// Faceted crystal: 4 frames of a highlight sweeping the facets (sparkle
+// left -> top -> right -> rest). Reddish shadow bottom-right.
 const CRYSTAL_1 = [
   '...hh...', '..hWYy..', '.hWYYYy.', 'hWYYYYyu',
   'hYYYYYyu', 'yYYYYYyu', '.yYYYyu.', '..yYyu..', '...yu...',
@@ -57,7 +57,7 @@ const CRYSTAL_4 = [
   '...hh...', '..hYYy..', '.hYYYYy.', 'hYYYYYyu',
   'hYYYYYyu', 'yYYYYYyu', '.yYYYyu.', '..yYyu..', '...yu...',
 ];
-// Reliquia: orbe blanco-celeste que respira luz (2 frames).
+// Relic: white-sky-blue orb that breathes light (2 frames).
 const RELIC_1 = [
   '...WW...', '..WHHW..', '.WHHHHW.', 'WHHWWHHW',
   '.WHbbHW.', '..WbbW..', '...bb...',
@@ -66,14 +66,14 @@ const RELIC_2 = [
   '...WW...', '..WWWW..', '.WWWWWW.', 'WWWWWWWW',
   '.WWbbWW.', '..WbbW..', '...bb...',
 ];
-// Corazones del HUD: lleno (con destello W) y vacío (contorno hueco).
+// HUD hearts: full (with a W sparkle) and empty (hollow outline).
 const HEART_FULL = [
   '.VV.VV.', 'VWVVVVV', 'VVVVVVV', '.VVVVv.', '..VVv..', '...v...',
 ];
 const HEART_EMPTY = [
   '.vv.vv.', 'v..v..v', 'v.....v', '.v...v.', '..v.v..', '...v...',
 ];
-// Puertas: el interior se aclara arriba (i) y se hunde abajo (I).
+// Doors: the interior lightens up top (i) and sinks below (I).
 const DOOR_LOCKED = [
   '....FiiF....', '...FiiiiF...', '..FiiiiiiF..', '.fFiiiiiiFf.',
   '.fFiiiiiiFf.', '.fFiiiiiiFf.', '.fFiiiiiiFf.', '.fFiiffiiFf.',
@@ -90,7 +90,7 @@ const DOOR_OPEN = [
   '.fMIIIIIIFf.', '.fMIIIIIIFf.', '.fMIIIIIIFf.', '.fMIIIIIIFf.',
   '.fMIIIIIIFf.', '.ffffffffff.',
 ];
-// Puerta abierta, frame B: las runas laten en blanco brillante.
+// Open door, frame B: the runes pulse in bright white.
 const DOOR_OPEN2 = [
   '....FiiF....', '...FiiiiF...', '..FiiiiiiF..', '.fMiiiiiiFf.',
   '.fMiiiiiiFf.', '.fMiiiiiiFf.', '.fMiiiiiiFf.', '.fMiiWWiiFf.',
@@ -103,12 +103,12 @@ const TILE_FILL = [
   'rrrorrrr', 'rorrrrro', 'rrrrorrr', 'orrrrrro',
   'rrrorrrr', 'rrrrrror', 'rorrrrrr', 'ssssssss',
 ];
-// Variante con un cristalito incrustado: rompe la repetición.
+// Variant with a small embedded crystal: breaks the repetition.
 const TILE_FILL2 = [
   'rrrorrrr', 'rorrrrro', 'rrtmorrr', 'orrmrrro',
   'rrrorrrr', 'rrrrrror', 'rorrrrrr', 'ssssssss',
 ];
-// Variante con una grieta vertical.
+// Variant with a vertical crack.
 const TILE_FILL3 = [
   'rrrorrrr', 'rorsrrro', 'rrrsorrr', 'orrsrrro',
   'rrrsrrrr', 'rrrrsror', 'rorrrrrr', 'ssssssss',
@@ -117,15 +117,15 @@ const TILE_TOP = [
   'ootmmtoo', 'oooooooo', 'rrrrorrr', 'orrrrrro',
   'rrrorrrr', 'rrrrrror', 'rorrrrrr', 'ssssssss',
 ];
-// Tablón de un solo sentido: fino, con brillos en el canto.
+// One-way plank: thin, with highlights on the edge.
 const TILE_PLANK = [
   'mtoootmo',
   'orrrrrro',
   '.s....s.',
 ];
 
-// Los sprites del jugador NO están acá: viven en playerSkins.ts
-// (horneados por skin). Dibujar al personaje = playerSprites().
+// The player sprites are NOT here: they live in playerSkins.ts
+// (baked per skin). Drawing the character = playerSprites().
 export const sprites = {
   slime1: new Sprite(SLIME_1, PALETTE),
   slime2: new Sprite(SLIME_2, PALETTE),

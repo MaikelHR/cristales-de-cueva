@@ -1,8 +1,8 @@
 // ============================================================
-//  VOLADOR (murciélago de cristal)
+//  FLYER (crystal bat)
 // ------------------------------------------------------------
-//  Flota ignorando la gravedad: patrulla horizontal dentro de un
-//  radio y cabecea con un seno. Daña al tocarlo; se lo puede pisar.
+//  Floats ignoring gravity: patrols horizontally within a radius
+//  and bobs with a sine. Hurts on contact; can be stomped.
 // ============================================================
 
 import type { Box } from '../../../engine/canvas';
@@ -12,9 +12,9 @@ import { sprites } from '../../art/sprites';
 import type { Enemy } from './Enemy';
 
 const SPEED = 34;      // px/s horizontal
-const RANGE = 44;      // px a cada lado del origen antes de girar
-const BOB_AMP = 5;     // amplitud del cabeceo vertical
-const BOB_SPEED = 3;   // rad/s del cabeceo
+const RANGE = 44;      // px to each side of the origin before turning
+const BOB_AMP = 5;     // vertical bob amplitude
+const BOB_SPEED = 3;   // rad/s of the bob
 
 export class Flyer implements Enemy {
   readonly layer = 'enemy' as const;
@@ -29,7 +29,7 @@ export class Flyer implements Enemy {
   private readonly spawnX: number;
   private readonly spawnY: number;
   private dir: 1 | -1 = 1;
-  private t = Math.random() * Math.PI * 2; // fase inicial variada
+  private t = Math.random() * Math.PI * 2; // varied initial phase
 
   constructor(px: number, py: number, private level: Level) {
     this.spawnX = px + (TILE - this.w) / 2;

@@ -2,9 +2,9 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <!-- Fondo oscuro desde el PRIMER frame, antes de que cargue el CSS
-         principal (que en dev inyecta el JS). Sin esto, el navegador pinta
-         su fondo blanco por defecto un instante: el "flashbang" al entrar. -->
+    <!-- Dark background from the FIRST frame, before the main CSS loads
+         (which in dev is injected by the JS). Without this, the browser paints
+         its default white background for an instant: the "flashbang" on entry. -->
     <meta name="color-scheme" content="dark" />
     <style>
       html {
@@ -15,28 +15,28 @@
       name="viewport"
       content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
     />
-    <!-- Color de la barra del navegador (Android Chrome) a tono con la cueva -->
+    <!-- Browser bar color (Android Chrome) matching the cave -->
     <meta name="theme-color" content="#11091a" />
-    <!-- Modo pantalla completa al "Agregar a inicio" (iOS y estandar) -->
+    <!-- Fullscreen mode on "Add to Home Screen" (iOS and standard) -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <!-- Fuentes: se piden aparte (con display=swap) para NO bloquear el
-         render esperando a Google Fonts; hasta que lleguen se usa la
-         monoespaciada del sistema como fallback. -->
+    <!-- Fonts: requested separately (with display=swap) so as NOT to block
+         rendering while waiting for Google Fonts; until they arrive the
+         system monospace is used as a fallback. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@600;700&display=swap"
     />
-    <!-- Idioma antes de la primera pintura: el HTML trae el texto en español
-         por defecto. Fijamos <html lang> ya mismo y, si el idioma detectado
-         NO es español, ocultamos el "chrome" (título, subtítulo, footer, aviso
-         de rotar) con la clase .pre-i18n hasta que main.ts lo traduzca. Así un
-         visitante en inglés no ve un parpadeo en español. main.ts quita la
-         clase. Misma detección que src/game/i18n.ts (guardado > navegador). -->
+    <!-- Language before the first paint: the HTML carries the text in Spanish
+         by default. We set <html lang> right now and, if the detected language
+         is NOT Spanish, we hide the "chrome" (title, subtitle, footer, rotate
+         notice) with the .pre-i18n class until main.ts translates it. That way an
+         English visitor doesn't see a flash of Spanish. main.ts removes the
+         class. Same detection as src/game/i18n.ts (saved > browser). -->
     <script>
       (function () {
         try {
@@ -50,27 +50,27 @@
           document.documentElement.lang = lang;
           if (lang !== 'es') document.documentElement.classList.add('pre-i18n');
         } catch (e) {
-          /* sin localStorage: dejamos el español por defecto del HTML */
+          /* no localStorage: we keep the HTML's default Spanish */
         }
       })();
     </script>
-    <!-- CSS de la app como <link> (bloquea el render hasta aplicarse): así
-         la primera pintura ya sale con estilos y no hay flash de HTML crudo.
-         En dev, importarlo desde el JS lo inyectaba tarde (FOUC). -->
+    <!-- The app's CSS as a <link> (blocks rendering until applied): that way
+         the first paint already comes styled and there's no flash of raw HTML.
+         In dev, importing it from the JS injected it late (FOUC). -->
     <link rel="stylesheet" href="/src/style.css" />
     <title>Cristales de la Cueva</title>
   </head>
   <body>
-    <!-- La página es SOLO el marco del juego: sin título, subtítulo ni
-         instrucciones en HTML. Todo eso vive dentro del canvas (menús del
-         juego), como en un juego de verdad.
-         width/height fijados en el HTML (no solo por JS) para que el lienzo
-         tenga su tamaño correcto desde la primera pintura: sin salto de
-         layout ni caja vacía mientras carga el juego. -->
+    <!-- The page is ONLY the game's frame: no title, subtitle or
+         instructions in HTML. All of that lives inside the canvas (game
+         menus), like a real game.
+         width/height fixed in the HTML (not only via JS) so the canvas
+         has its correct size from the first paint: no layout shift
+         nor empty box while the game loads. -->
     <canvas id="game" width="320" height="176"></canvas>
-    <!-- Aviso de rotar: la cueva es apaisada. En retrato el juego quedaría en
-         una franja fina; este overlay (solo táctil + retrato, por CSS) pide
-         girar el teléfono para jugar a pantalla completa. -->
+    <!-- Rotate notice: the cave is landscape. In portrait the game would fit in
+         a thin strip; this overlay (touch + portrait only, via CSS) asks to
+         rotate the phone to play fullscreen. -->
     <div class="rotate-hint" id="rotate-hint" aria-hidden="true">
       <div class="rotate-phone">📱</div>
       <p class="rotate-title">GIRA EL TELÉFONO</p>

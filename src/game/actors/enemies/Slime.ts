@@ -1,8 +1,8 @@
 // ============================================================
-//  SLIME (enemigo simple)
+//  SLIME (simple enemy)
 // ------------------------------------------------------------
-//  Camina de un lado a otro. Se da vuelta si choca una pared
-//  o si llega al borde de la plataforma (para no caerse).
+//  Walks back and forth. Turns around if it hits a wall or
+//  reaches the edge of the platform (to avoid falling off).
 // ============================================================
 
 import type { Box } from '../../../engine/canvas';
@@ -35,13 +35,13 @@ export class Slime implements Enemy {
 
   update(dt: number): void {
     const next = this.x + this.dir * SPEED * dt;
-    // Pared adelante
+    // Wall ahead
     const aheadX = this.dir === 1 ? next + this.w : next;
     const wall = this.level.isSolidAt(aheadX, this.y + this.h / 2);
-    // ¿Sigue habiendo piso adelante? (mira justo por delante de los pies)
+    // Is there still floor ahead? (checks just in front of the feet)
     const footX = this.dir === 1 ? next + this.w + 1 : next - 1;
     const floor = this.level.isSolidAt(footX, this.y + this.h + 1);
-    // Púas adelante: las respeta como a un borde (nada camina sobre púas)
+    // Spikes ahead: treats them like an edge (nothing walks over spikes)
     const spikes = this.level.touchesSpike({ x: footX, y: this.y, w: 1, h: this.h + 2 });
 
     if (wall || !floor || spikes) {
@@ -53,7 +53,7 @@ export class Slime implements Enemy {
   }
 
   draw(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {
-    // Parpadea brevemente cada par de segundos
+    // Blinks briefly every couple of seconds
     const blink = this.animTime % 2.4 < 0.16;
     const sprite = blink ? sprites.slime2 : sprites.slime1;
     const drawX = this.x + this.w / 2 - sprite.w / 2;

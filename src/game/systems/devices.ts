@@ -1,15 +1,14 @@
 // ============================================================
-//  APARATOS — las reglas de la capa 'device'
+//  DEVICES — the rules of the 'device' layer
 // ------------------------------------------------------------
-//  Resortes, plataformas móviles y corrientes ascendentes
-//  interactúan con la FÍSICA del jugador, así que su orden dentro
-//  del paso importa:
-//   1. carryAndAdvanceDevices — ANTES de la física del jugador:
-//      las plataformas se mueven y arrastran a su pasajero.
-//   2. resolveDeviceContacts — DESPUÉS de la física: aterrizar en
-//      plataformas (se comportan como tablones de un sentido),
-//      pisar resortes (lanzan hacia arriba) y recibir el empuje de
-//      una corriente (solo si el jugador PLANEA dentro de ella).
+//  Springs, moving platforms and updrafts interact with the
+//  player's PHYSICS, so their order within the step matters:
+//   1. carryAndAdvanceDevices — BEFORE the player's physics:
+//      platforms move and carry their rider along.
+//   2. resolveDeviceContacts — AFTER physics: landing on
+//      platforms (they behave like one-way planks), stepping on
+//      springs (launch upward) and receiving the push of an
+//      updraft (only if the player GLIDES inside it).
 // ============================================================
 
 import { overlaps } from '../../engine/canvas';
@@ -21,7 +20,7 @@ import { sfx } from '../sfx';
 
 const DUST_COLORS = ['#9b86c4', '#6f5a9e', '#d7c9ec'];
 
-/** Paso 1: mover las plataformas y llevar al pasajero con ellas. */
+/** Step 1: move the platforms and carry the rider along with them. */
 export function carryAndAdvanceDevices(session: GameSession, dt: number): void {
   const player = session.player;
   for (const d of session.world.current.devices) {
@@ -33,13 +32,13 @@ export function carryAndAdvanceDevices(session: GameSession, dt: number): void {
   }
 }
 
-/** Paso 2: aterrizajes en plataformas y disparos de resorte. */
+/** Step 2: landings on platforms and spring launches. */
 export function resolveDeviceContacts(session: GameSession, dt: number): void {
   const player = session.player;
   const pbox = player.box();
   const feet = pbox.y + pbox.h;
-  // Los pies del frame anterior: si venían de ARRIBA del tope, es un
-  // aterrizaje legítimo (misma idea que los tablones de un sentido).
+  // Last frame's feet: if they came from ABOVE the top, it's a
+  // legitimate landing (same idea as one-way planks).
   const prevFeet = feet - Math.max(0, player.vy) * dt;
 
   for (const d of session.world.current.devices) {
@@ -48,9 +47,9 @@ export function resolveDeviceContacts(session: GameSession, dt: number): void {
 
     if (d instanceof MovingPlatform) {
       d.rider = false;
-      if (player.vy < 0 || !xOverlap) continue; // subiendo se atraviesa
-      // Aterrizó este paso, o sigue parado encima (la gravedad lo hunde
-      // una pizca cada frame; el margen la absorbe y lo re-apoya).
+      if (player.vy < 0 || !xOverlap) continue; // moving up passes through
+      // Landed this step, or still standing on top (gravity sinks it
+      // a hair each frame; the margin absorbs it and re-seats it).
       if (feet >= b.y && prevFeet <= b.y + 3) {
         player.y = b.y - player.h;
         player.vy = 0;
@@ -58,7 +57,7 @@ export function resolveDeviceContacts(session: GameSession, dt: number): void {
         d.rider = true;
       }
     } else if (d instanceof Spring) {
-      // Pisar la banda del fuelle con los pies (cayendo o caminando).
+      // Step on the bellows band with the feet (falling or walking).
       if (player.vy < 0 || !xOverlap) continue;
       if (feet >= b.y && feet <= b.y + b.h + 1) {
         d.trigger();
@@ -67,8 +66,8 @@ export function resolveDeviceContacts(session: GameSession, dt: number): void {
         sfx.spring();
       }
     } else if (d instanceof Vent) {
-      // La corriente solo empuja al que planea dentro de la columna:
-      // soltar saltar es soltarse del viento (y bajarse a voluntad).
+      // The updraft only pushes whoever glides inside the column:
+      // releasing jump lets go of the wind (and drops at will).
       if (player.glideHeld && overlaps(player.box(), b)) {
         player.liftBy(dt, VENT_ACCEL, VENT_RISE);
       }

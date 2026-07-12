@@ -1,14 +1,14 @@
 import type { RoomData } from '../../RoomData';
 
-/** Nivel 3, sala 2 — El abismo: la sala de las plataformas móviles.
- *  Un vacío de lado a lado; se cruza leyendo los vaivenes: una losa
- *  horizontal, una vertical que sube 7 tiles, una repisa con
- *  cristal, otra losa horizontal y un último dash hasta el bloque
- *  de salida. Dos voladores patrullan los relevos. Caer no mata de
- *  una: cuesta un corazón y el viaje de vuelta desde la entrada.
- *  Al ras del vacío hay una segunda lectura: cuatro muelas de dos
- *  tiles que se encadenan a puro dash, sin esperar ningún vaivén.
- *  Es la ruta del contrarreloj — más rápida, sin red. */
+/** Level 3, room 2 — The abyss: the moving-platform room.
+ *  A void from side to side; you cross it by reading the swings: a
+ *  horizontal slab, a vertical one that rises 7 tiles, a ledge with
+ *  a crystal, another horizontal slab, and a final dash to the exit
+ *  block. Two flyers patrol the relays. Falling doesn't kill outright:
+ *  it costs a heart and the trip back from the entrance.
+ *  Skimming the void there's a second reading: four two-tile teeth
+ *  chained together on pure dash, without waiting for any swing.
+ *  It's the time-trial route — faster, no net. */
 export const abismo: RoomData = {
   id: 'abismo',
   mapPos: { x: 1, y: 0 },

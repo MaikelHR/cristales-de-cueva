@@ -1,14 +1,14 @@
 // ============================================================
-//  FORMATO DE NIVEL (datos, no código)
+//  LEVEL FORMAT (data, not code)
 // ------------------------------------------------------------
-//  Un nivel es una tanda de salas que se juega de principio a fin:
-//  aparecés en su playerSpawn, juntás sus cristales y salís por su
-//  puerta. El selector de niveles (overworld) los presenta en orden;
-//  completar uno desbloquea el siguiente.
+//  A level is a batch of rooms played from start to finish:
+//  you appear at its playerSpawn, collect its crystals and exit through
+//  its door. The level selector (overworld) presents them in order;
+//  completing one unlocks the next.
 //
-//  `startAbilities` son las habilidades con las que ARRANCÁS el
-//  nivel (las que "ya aprendiste" en niveles anteriores); la
-//  habilidad nueva del nivel se gana adentro, con su reliquia.
+//  `startAbilities` are the abilities you START the level with
+//  (the ones you "already learned" in earlier levels); the
+//  level's new ability is earned inside, with its relic.
 // ============================================================
 
 import type { AbilityName } from '../abilities';
@@ -16,20 +16,20 @@ import type { StrKey } from '../i18n';
 import { validateRooms, type RoomData } from './RoomData';
 
 export interface LevelDef {
-  /** Nombre único; el guardado asocia los récords a este id. */
+  /** Unique name; the save associates records with this id. */
   id: string;
-  /** Clave i18n del nombre visible (el overworld lo muestra). */
+  /** i18n key of the visible name (the overworld shows it). */
   nameKey: StrKey;
-  /** Las salas del nivel. La primera es donde arranca el jugador. */
+  /** The level's rooms. The first is where the player starts. */
   rooms: RoomData[];
-  /** Habilidades ya activas al empezar (aprendidas en niveles previos). */
+  /** Abilities already active at the start (learned in previous levels). */
   startAbilities: readonly AbilityName[];
 }
 
 /**
- * Valida una lista de niveles completa: cada nivel pasa las
- * validaciones de sala y, además, los ids de nivel no se repiten y
- * ninguna reliquia regala una habilidad que el nivel ya trae puesta.
+ * Validates a full list of levels: each level passes the room
+ * validations and, additionally, level ids don't repeat and
+ * no relic gives away an ability the level already has on.
  */
 export function validateLevels(levels: LevelDef[]): string[] {
   const errors: string[] = [];

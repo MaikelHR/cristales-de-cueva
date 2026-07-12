@@ -1,10 +1,10 @@
 // ============================================================
-//  ENEMY — la interfaz común de los enemigos
+//  ENEMY — the common enemy interface
 // ------------------------------------------------------------
-//  Un enemigo es un Actor de la capa 'enemy' con lo que el combate
-//  necesita saber de él. El juego los trata a todos por igual; sumar
-//  un tipo (que vuela, que persigue, que dispara) = crear una clase
-//  que implemente esto y registrarla en Room, sin tocar las reglas.
+//  An enemy is an Actor on the 'enemy' layer with everything combat
+//  needs to know about it. The game treats them all the same; adding
+//  a type (one that flies, chases, shoots) = create a class that
+//  implements this and register it in Room, without touching the rules.
 // ============================================================
 
 import type { Box } from '../../../engine/canvas';
@@ -12,16 +12,16 @@ import type { Actor } from '../Actor';
 
 export interface Enemy extends Actor {
   readonly layer: 'enemy';
-  /** ¿se lo puede derrotar pisándolo desde arriba? */
+  /** can it be defeated by stomping it from above? */
   readonly stompable: boolean;
-  /** colores del estallido al derrotarlo. */
+  /** colors of the burst when defeated. */
   readonly gooColors: readonly string[];
-  /** los jefes bloquean la puerta hasta ser derrotados. */
+  /** bosses block the door until defeated. */
   readonly isBoss?: boolean;
-  /** cajas peligrosas propias (p. ej. proyectiles) que dañan al jugador. */
+  /** own dangerous boxes (e.g. projectiles) that hurt the player. */
   hazards?(): Box[];
-  /** Reacción propia al pisotón (para enemigos con varios golpes).
-   *  Devuelve true si el pisotón lo derrotó. Si no está, un pisotón
-   *  lo mata de una. */
+  /** Own reaction to a stomp (for enemies with several hits).
+   *  Returns true if the stomp defeated it. If absent, a stomp
+   *  kills it in one. */
   onStomp?(): boolean;
 }

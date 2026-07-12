@@ -1,48 +1,48 @@
 // ============================================================
-//  MÚSICA (secuenciador por pasos)
+//  MUSIC (step sequencer)
 // ------------------------------------------------------------
-//  Una canción es DATOS: un tempo, un largo de loop y una lista
-//  de notas con su beat de entrada. Nada de archivos de audio:
-//  igual que los sprites, la música está "escrita" por código y
-//  suena por el mismo mini-sintetizador de audio.ts.
+//  A song is DATA: a tempo, a loop length and a list of notes
+//  with their entry beat. No audio files: like the sprites, the
+//  music is "written" by code and plays through the same mini
+//  synthesizer in audio.ts.
 //
-//  El truco de que suene estable: cada frame, tickMusic() agenda
-//  con ANTICIPACIÓN las notas que caen dentro de una ventana
-//  corta de futuro (lookahead). El reloj es el del hardware de
-//  audio, no el del juego: aunque un frame se trabe, las notas
-//  ya agendadas suenan a tiempo.
+//  The trick to keep it stable: every frame, tickMusic() schedules
+//  IN ADVANCE the notes falling within a short window of the
+//  future (lookahead). The clock is the audio hardware's, not the
+//  game's: even if a frame stalls, already-scheduled notes still
+//  play on time.
 //
-//  El módulo es agnóstico del juego: no sabe de escenas ni de
-//  niveles. El juego decide QUÉ canción suena (setSong) y cuánto
-//  se atenúa (setMusicDuck, p. ej. durante la pausa).
+//  The module is game-agnostic: it knows nothing of scenes or
+//  levels. The game decides WHICH song plays (setSong) and how
+//  much it ducks (setMusicDuck, e.g. during pause).
 // ============================================================
 
 import { playTone, audioNow, type ToneType } from './audio';
 
 export interface SongNote {
-  /** Beat (desde el inicio del loop) en que entra la nota. */
+  /** Beat (from the loop start) at which the note enters. */
   beat: number;
-  freq: number;            // Hz (en 'noise': el color del ruido)
-  beats: number;           // duración, en beats
-  freqEnd?: number;        // barrido de frecuencia (gotas, bombos, silbidos)
-  type?: ToneType;         // por defecto triangle (el timbre suave)
-  vol?: number;            // 0..1, por defecto 0.06 (la música va DEBAJO de los sfx)
-  attack?: number;         // segundos de ataque (largo = colchón)
+  freq: number;            // Hz (for 'noise': the noise color)
+  beats: number;           // duration, in beats
+  freqEnd?: number;        // frequency sweep (drops, kicks, whistles)
+  type?: ToneType;         // defaults to triangle (the soft timbre)
+  vol?: number;            // 0..1, defaults to 0.06 (music sits UNDER the sfx)
+  attack?: number;         // attack in seconds (long = pad)
 }
 
 export interface Song {
-  /** Identidad de la canción: si ya está sonando, setSong no la reinicia. */
+  /** Song identity: if it's already playing, setSong won't restart it. */
   id: string;
   bpm: number;
-  /** Largo del loop, en beats. Una nota puede COLEAR más allá del final
-   *  (su cola se superpone con la vuelta del loop): eso es deseable. */
+  /** Loop length, in beats. A note may TRAIL past the end (its tail
+   *  overlaps the loop's wraparound): that's desirable. */
   loopBeats: number;
-  /** Multiplicador de volumen de toda la canción. */
+  /** Volume multiplier for the whole song. */
   volume?: number;
   notes: SongNote[];
 }
 
-/** Problemas de integridad de una canción (para tests, como validateRooms). */
+/** Integrity problems of a song (for tests, like validateRooms). */
 export function validateSong(song: Song): string[] {
   const errors: string[] = [];
   if (song.bpm <= 0) errors.push(`[${song.id}] bpm debe ser positivo`);
@@ -60,20 +60,20 @@ export function validateSong(song: Song): string[] {
   return errors;
 }
 
-// Cuánto futuro se agenda por tick. Corto para que los cambios de canción
-// y el duck de pausa respondan rápido; largo para sobrevivir frames lentos.
-const LOOKAHEAD = 0.35; // segundos
+// How much future is scheduled per tick. Short so song changes and the
+// pause duck respond fast; long enough to survive slow frames.
+const LOOKAHEAD = 0.35; // seconds
 
 let current: Song | null = null;
-let loopStart: number | null = null; // hora (reloj de audio) del beat 0 del loop en curso
-let nextNote = 0;                    // próxima nota (por índice) a agendar
-let duck = 1;                        // atenuación transitoria (pausa)
+let loopStart: number | null = null; // time (audio clock) of beat 0 of the current loop
+let nextNote = 0;                    // next note (by index) to schedule
+let duck = 1;                        // transient attenuation (pause)
 
-/** Cambia la canción de fondo (null = silencio). Si ya suena, no hace nada:
- *  se puede llamar cada frame con "la canción que corresponde ahora". */
+/** Changes the background song (null = silence). If it's already playing,
+ *  does nothing: can be called every frame with "the song for right now". */
 export function setSong(song: Song | null): void {
   if (song?.id === current?.id) return;
-  // Copia ordenada por beat: el agendador recorre las notas en orden.
+  // Copy sorted by beat: the scheduler walks the notes in order.
   current = song
     ? { ...song, notes: [...song.notes].sort((a, b) => a.beat - b.beat) }
     : null;
@@ -81,34 +81,34 @@ export function setSong(song: Song | null): void {
   nextNote = 0;
 }
 
-/** Atenuación momentánea de la música (1 = normal). Afecta a las notas
- *  que se agenden de acá en más: con el lookahead corto, casi al instante. */
+/** Momentary attenuation of the music (1 = normal). Affects the notes
+ *  scheduled from here on: with the short lookahead, almost instant. */
 export function setMusicDuck(factor: number): void {
   duck = factor;
 }
 
-/** Llamar una vez por frame: agenda las notas que entran en la ventana.
- *  Si el audio aún no despertó (falta el primer gesto), espera sin drama. */
+/** Call once per frame: schedules the notes entering the window.
+ *  If audio hasn't woken up yet (first gesture missing), waits calmly. */
 export function tickMusic(): void {
   if (!current) return;
   const now = audioNow();
   if (now === null) return;
 
-  const spb = 60 / current.bpm; // segundos por beat
+  const spb = 60 / current.bpm; // seconds per beat
   const loopLen = current.loopBeats * spb;
 
-  // Arranque, o resincronización si pasó mucho sin ticks (pestaña oculta):
-  // mejor retomar desde el beat 0 que "correr" para alcanzar el presente.
+  // Startup, or resync if too long passed without ticks (hidden tab):
+  // better to resume from beat 0 than "race" to catch up to the present.
   if (loopStart === null || now - loopStart > loopLen + LOOKAHEAD) {
     loopStart = now + 0.05;
     nextNote = 0;
   }
-  // Copia local ya sin null: TypeScript pierde el narrowing de una
-  // variable de módulo entre llamadas a funciones. Se persiste al final.
+  // Local copy now non-null: TypeScript loses the narrowing of a module
+  // variable across function calls. Persisted back at the end.
   let start: number = loopStart;
 
   for (;;) {
-    // ¿Se acabaron las notas del loop? Pasar al siguiente si ya asoma.
+    // Out of notes for the loop? Move to the next one if it's coming up.
     if (nextNote >= current.notes.length) {
       const nextLoop = start + loopLen;
       if (nextLoop > now + LOOKAHEAD) break;
@@ -118,10 +118,10 @@ export function tickMusic(): void {
     }
     const note = current.notes[nextNote];
     const t = start + note.beat * spb;
-    if (t > now + LOOKAHEAD) break; // todavía no toca: hasta el próximo tick
+    if (t > now + LOOKAHEAD) break; // not yet due: wait for the next tick
     nextNote++;
     const volume = (note.vol ?? 0.06) * (current.volume ?? 1) * duck;
-    if (t < now || volume < 0.001) continue; // nota ya pasada o inaudible
+    if (t < now || volume < 0.001) continue; // note already passed or inaudible
     playTone(
       {
         freq: note.freq,

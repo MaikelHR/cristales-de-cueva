@@ -1,15 +1,15 @@
 import type { RoomData } from '../../RoomData';
 
-/** Nivel 5, sala 1 — La ventisca: aprender a pisar hielo.
- *  Arranque en roca firme; el primer carril helado enseña el patinado
- *  sin castigo. El foso paga (cristal adentro). En el segundo carril
- *  patrulla el primer ERIZO: pisarlo duele y todavía no hay respuesta
- *  — se lo espera, se lo salta sobre hielo (arriesgado) o se cruza
- *  por el puente-tablón (seguro): dos lecturas. La chimenea de
- *  pilares helados cita el salto de pared con premio arriba. El
- *  anzuelo del nivel: junto a la salida, un brillo se filtra por un
- *  piso agrietado que nada de lo que traés rompe — el AZOTÓN se
- *  aprende en la sala siguiente y el regreso es de tres pasos. */
+/** Level 5, room 1 — La ventisca: learn to walk on ice.
+ *  Start on firm rock; the first icy lane teaches the sliding
+ *  without punishment. The pit pays (crystal inside). In the second lane
+ *  the first ERIZO patrols: stomping it hurts and there's no answer yet
+ *  — you wait it out, jump it on ice (risky) or cross
+ *  via the plank bridge (safe): two readings. The chimney of
+ *  icy pillars quotes the wall jump with a reward up top. The
+ *  level's bait: next to the exit, a glint leaks through a
+ *  cracked floor that nothing you carry breaks — the POUND is
+ *  learned in the next room and the return trip is three steps. */
 export const ventisca: RoomData = {
   id: 'ventisca',
   mapPos: { x: 0, y: 0 },

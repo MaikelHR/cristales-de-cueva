@@ -1,11 +1,11 @@
 // ============================================================
-//  PARTÍCULAS (chispas)
+//  PARTICLES (sparks)
 // ------------------------------------------------------------
-//  Primera pieza de "game feel": la recompensa visual instantánea
-//  cuando pasa algo bueno. Cada partícula es un puntito con
-//  posición, velocidad y vida: nace en una explosión, se frena en
-//  el aire, cae con gravedad suave y se desvanece.
-//  Viven en coordenadas del MUNDO (se dibujan restando la cámara).
+//  The first piece of "game feel": the instant visual reward
+//  when something good happens. Each particle is a tiny dot with
+//  position, velocity and life: born in a burst, slowed by the
+//  air, falling under gentle gravity and fading out.
+//  They live in WORLD coordinates (drawn by subtracting the camera).
 // ============================================================
 
 interface Particle {
@@ -13,21 +13,21 @@ interface Particle {
   y: number;
   vx: number;
   vy: number;
-  life: number;    // segundos que le quedan
-  maxLife: number; // vida total, para calcular el desvanecido
-  size: number;    // 1 o 2 px, como el polvo del fondo
-  gravity: number; // cada tipo de partícula cae distinto
+  life: number;    // seconds remaining
+  maxLife: number; // total life, used to compute the fade
+  size: number;    // 1 or 2 px, like the background dust
+  gravity: number; // each particle type falls differently
   color: string;
 }
 
-const GRAVITY_SPARK = 190; // chispas: caen con peso
-const GRAVITY_DUST = 30;   // polvo: casi flota
-const DRAG = 2.2;          // cuánto se frenan en el aire (por segundo)
+const GRAVITY_SPARK = 190; // sparks: fall with weight
+const GRAVITY_DUST = 30;   // dust: nearly floats
+const DRAG = 2.2;          // how much they slow in the air (per second)
 
 export class Particles {
   private items: Particle[] = [];
 
-  /** Explosión de chispas desde (x, y), en todas direcciones. */
+  /** Burst of sparks from (x, y), in all directions. */
   burst(x: number, y: number, count: number, colors: string[]): void {
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
@@ -37,7 +37,7 @@ export class Particles {
         x,
         y,
         vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 35, // sesgo hacia arriba: más alegre
+        vy: Math.sin(angle) * speed - 35, // upward bias: more cheerful
         life: maxLife,
         maxLife,
         size: Math.random() < 0.25 ? 2 : 1,
@@ -48,8 +48,8 @@ export class Particles {
   }
 
   /**
-   * Nubecita de polvo: pocas motas lentas que suben apenas y se apagan.
-   * dirX empuja el polvo hacia un lado (-1 izquierda, 1 derecha, 0 simétrico).
+   * Little dust cloud: a few slow motes that barely rise and fade out.
+   * dirX pushes the dust to one side (-1 left, 1 right, 0 symmetric).
    */
   puff(x: number, y: number, count: number, colors: string[], dirX = 0): void {
     for (let i = 0; i < count; i++) {
@@ -73,7 +73,7 @@ export class Particles {
     for (const p of this.items) {
       p.life -= dt;
       p.vy += p.gravity * dt;
-      p.vx -= p.vx * DRAG * dt; // frena en el aire
+      p.vx -= p.vx * DRAG * dt; // slows in the air
       p.x += p.vx * dt;
       p.y += p.vy * dt;
     }
@@ -82,7 +82,7 @@ export class Particles {
 
   draw(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {
     for (const p of this.items) {
-      // La primera mitad de la vida brilla fija; la segunda se desvanece.
+      // The first half of life glows steady; the second half fades out.
       ctx.globalAlpha = Math.min(1, (2 * p.life) / p.maxLife);
       ctx.fillStyle = p.color;
       ctx.fillRect(Math.round(p.x - camX), Math.round(p.y - camY), p.size, p.size);

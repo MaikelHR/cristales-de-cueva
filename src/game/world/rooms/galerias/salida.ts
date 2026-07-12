@@ -1,11 +1,11 @@
 import type { RoomData } from '../../RoomData';
 
-/** Nivel 2, sala 3 — La salida: el examen del nivel.
- *  Se entra por lo alto y se baja en dos saltos de cornisa. Abajo,
- *  un lecho de púas de 9 tiles con un resorte en el borde: el vuelo
- *  cruza el lecho entero y pasa justo por el cristal (la ruta bien
- *  hecha premia sola). Un slime cuida el aterrizaje y la puerta
- *  espera sobre su altar de escalones. */
+/** Level 2, room 3 — La salida: the level's exam.
+ *  You enter up high and descend in two ledge jumps. Below,
+ *  a 9-tile spike bed with a spring on the edge: the flight
+ *  crosses the whole bed and passes right through the crystal (a
+ *  well-flown route rewards itself). A slime guards the landing and
+ *  the door waits atop its altar of steps. */
 export const salida: RoomData = {
   id: 'salida',
   mapPos: { x: 2, y: 0 },

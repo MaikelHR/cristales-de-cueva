@@ -3,9 +3,9 @@ import { SONGS, LEVEL_SONGS } from './music';
 import { validateSong } from '../engine/music';
 import { LEVELS } from './world/rooms';
 
-// La banda sonora también es datos: estos tests la mantienen honesta.
-// Una nota fuera del loop o un nivel sin tema fallan acá, con un
-// mensaje claro, no como un silencio raro en medio de una partida.
+// The soundtrack is data too: these tests keep it honest.
+// A note outside the loop or a level without a theme fails here, with a
+// clear message, not as a weird silence in the middle of a run.
 describe('la banda sonora', () => {
   it('todas las canciones pasan las validaciones de integridad', () => {
     for (const song of SONGS) {
@@ -25,9 +25,9 @@ describe('la banda sonora', () => {
   });
 
   it('todas las canciones citan el leitmotiv (la subida raíz→♭3→quinta)', () => {
-    // El tema del cristal arranca subiendo una tercera menor y luego una
-    // mayor (la→do→mi). Si al retocar una canción se pierde esa cita,
-    // se pierde la identidad de la banda sonora: este test la protege.
+    // The crystal theme starts by rising a minor third and then a major
+    // one (A→C→E). If tweaking a song loses that quote, the soundtrack
+    // loses its identity: this test protects it.
     const MINOR_THIRD = Math.pow(2, 3 / 12);
     const MAJOR_THIRD = Math.pow(2, 4 / 12);
     const near = (ratio: number, interval: number): boolean =>
@@ -49,9 +49,9 @@ describe('la banda sonora', () => {
   });
 
   it('la música se queda debajo de los efectos de sonido', () => {
-    // Los sfx viven entre 0.08 y 0.18 de volumen: ninguna nota musical
-    // debe competirles. Si una canción necesita más presencia, se gana
-    // con densidad de notas, no con volumen.
+    // The sfx live between 0.08 and 0.18 volume: no musical note
+    // should compete with them. If a song needs more presence, it earns it
+    // with note density, not with volume.
     for (const song of SONGS) {
       for (const note of song.notes) {
         const vol = (note.vol ?? 0.06) * (song.volume ?? 1);

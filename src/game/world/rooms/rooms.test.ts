@@ -4,17 +4,17 @@ import { validateRooms } from '../RoomData';
 import { validateLevels } from '../LevelData';
 import { FIRST_LEVEL_ID } from '../../save';
 
-// Los mapas reales del juego son datos: estos tests los mantienen
-// honestos. Si un mapa queda torcido o una salida apunta a la nada,
-// falla acá con un mensaje claro, no en medio de una partida.
+// The game's actual maps are data: these tests keep them honest.
+// If a map ends up crooked or an exit points to nothing, it fails
+// here with a clear message, not in the middle of a playthrough.
 describe('los niveles del juego', () => {
   it('pasan todas las validaciones de integridad', () => {
     expect(validateLevels(LEVELS)).toEqual([]);
   });
 
   it('el primer nivel es el que espera la migración del guardado', () => {
-    // Los récords de la versión 1 del guardado migran a este id:
-    // renombrar el nivel 1 exige tocar también save.ts.
+    // Version 1 save records migrate to this id: renaming level 1
+    // means touching save.ts too.
     expect(LEVELS[0].id).toBe(FIRST_LEVEL_ID);
   });
 
@@ -60,9 +60,9 @@ describe('los niveles del juego', () => {
   });
 
   it('las salas conectadas abren sus bordes a la misma altura', () => {
-    // La transición conserva la altura del jugador: si A abre su borde
-    // derecho en las filas 16-18, B tiene que abrir su borde izquierdo
-    // en (al menos una de) esas filas, o el cruce escupe dentro de roca.
+    // The transition preserves the player's height: if A opens its right
+    // border on rows 16-18, B has to open its left border on (at least one
+    // of) those rows, or the crossing spits you inside rock.
     const openRows = (tiles: string[], col: 'first' | 'last'): Set<number> => {
       const rows = new Set<number>();
       tiles.forEach((row, y) => {
@@ -94,15 +94,15 @@ describe('los niveles del juego', () => {
         exits: { right: 'inexistente' },
       },
     ]);
-    expect(errors.some((e) => e.includes("'s'"))).toBe(true);        // carácter inválido
+    expect(errors.some((e) => e.includes("'s'"))).toBe(true);        // invalid character
     expect(errors.some((e) => e.includes('fuera del mapa'))).toBe(true);
-    expect(errors.some((e) => e.includes('inexistente'))).toBe(true); // salida rota
+    expect(errors.some((e) => e.includes('inexistente'))).toBe(true); // broken exit
     expect(errors.some((e) => e.includes('playerSpawn'))).toBe(true);
     expect(errors.some((e) => e.includes('puerta'))).toBe(true);
   });
 
   it('validateLevels detecta ids repetidos y reliquias redundantes', () => {
-    const level = LEVELS[1]; // arranca con doubleJump
+    const level = LEVELS[1]; // starts with doubleJump
     const redundant = {
       ...level,
       rooms: [

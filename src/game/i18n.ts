@@ -1,23 +1,23 @@
 // ============================================================
-//  IDIOMAS (i18n): español / inglés
+//  LANGUAGES (i18n): Spanish / English
 // ------------------------------------------------------------
-//  Un diccionario chico con todos los textos que ve el jugador,
-//  en español (neutro, tuteo) e inglés. `t(clave)` devuelve el
-//  texto en el idioma activo; los textos del canvas lo llaman en
-//  cada frame, así el cambio de idioma se ve al instante.
+//  A small dictionary with every text the player sees, in Spanish
+//  (neutral, tuteo) and English. `t(key)` returns the text in the
+//  active language; the canvas texts call it every frame, so a
+//  language change shows up instantly.
 //
-//  El idioma elegido se guarda en localStorage. Si no hay nada
-//  guardado, se adivina del navegador (es -> español; si no, inglés).
-//  Todo va envuelto en try/catch: si el almacenamiento está
-//  bloqueado, el juego sigue igual, solo que sin recordar la elección.
+//  The chosen language is saved in localStorage. If nothing is
+//  saved, it's guessed from the browser (es -> Spanish; else English).
+//  Everything is wrapped in try/catch: if storage is blocked, the
+//  game keeps working, it just won't remember the choice.
 // ============================================================
 
 export type Lang = 'es' | 'en';
 
 const KEY = 'cristales-lang';
 
-// Los textos en español (neutro latino, tuteo: "gira", no "girá").
-// Placeholders {n} y {t} se reemplazan al vuelo con t(clave, {...}).
+// The Spanish texts (neutral LatAm, tuteo: "gira", not "girá").
+// Placeholders {n} and {t} are replaced on the fly with t(key, {...}).
 const es = {
   page_title: 'CRISTALES DE LA CUEVA',
   title_line1: 'CRISTALES',
@@ -32,14 +32,14 @@ const es = {
   ab_smash: '¡EMBESTIDA!',
   pause_title: 'PAUSA',
   pause_resume_touch: 'usa los botones del menú',
-  // Los menús del juego (título y pausa). El de idioma muestra el ACTIVO.
+  // The game menus (title and pause). The language one shows the ACTIVE one.
   menu_play: 'JUGAR',
   menu_resume: 'CONTINUAR',
   menu_restart: 'REINICIAR NIVEL',
   menu_fullscreen: 'PANTALLA COMPLETA',
   menu_language: 'IDIOMA: ESPAÑOL',
   menu_exit: 'SALIR AL MAPA',
-  // Personalización: PERSONAJE abre su propia pantalla (color + accesorio).
+  // Customization: PERSONAJE opens its own screen (color + accessory).
   menu_character: 'PERSONAJE',
   cust_title: 'PERSONAJE',
   cust_color: 'COLOR: {s}',
@@ -56,8 +56,8 @@ const es = {
   acc_antena: 'ANTENA',
   acc_mono: 'MOÑO',
   acc_bufanda: 'BUFANDA',
-  // Los textos de gamepad llevan {j}/{d}/{r}/{p}: los rótulos reales del
-  // pad conectado (A/X/Y/START o ✕/□/△/OPTIONS) los pone padLabels().
+  // The gamepad texts carry {j}/{d}/{r}/{p}: the real labels of the
+  // connected pad (A/X/Y/START or ✕/□/△/OPTIONS) are filled by padLabels().
   nav_kb: '↑ ↓ elegir · ENTER confirmar',
   nav_gp: 'D-pad elegir · {j} confirmar',
   boss_defeated: '¡GUARDIÁN DERROTADO!',
@@ -121,11 +121,11 @@ const es = {
   tc_map: 'Salir al mapa',
 };
 
-/** Las claves de texto: cualquier idioma debe tener exactamente estas. */
+/** The text keys: every language must have exactly these. */
 export type StrKey = keyof typeof es;
 
-// El inglés: tipado como Record<StrKey, string> para que el compilador
-// exija que estén TODAS las claves (ni una de menos, ni una de más).
+// English: typed as Record<StrKey, string> so the compiler
+// requires ALL the keys (not one fewer, not one extra).
 const en: Record<StrKey, string> = {
   page_title: 'CRYSTALS OF THE CAVE',
   title_line1: 'CRYSTALS',
@@ -227,15 +227,15 @@ const en: Record<StrKey, string> = {
 
 const TABLES: Record<Lang, Record<StrKey, string>> = { es, en };
 
-/** Idioma inicial: lo guardado; si no, lo del navegador; si no, español. */
+/** Initial language: the saved one; else the browser's; else Spanish. */
 function detect(): Lang {
   try {
     const saved = localStorage.getItem(KEY);
     if (saved === 'es' || saved === 'en') return saved;
   } catch {
-    // localStorage bloqueado: seguimos con la detección del navegador.
+    // localStorage blocked: fall back to browser detection.
   }
-  // typeof-guard: en Node (tests) no hay navigator y este módulo igual carga.
+  // typeof-guard: in Node (tests) there's no navigator and this module still loads.
   const nav = (typeof navigator !== 'undefined' && navigator.language) || 'es';
   return nav.toLowerCase().startsWith('es') ? 'es' : 'en';
 }
@@ -243,33 +243,33 @@ function detect(): Lang {
 let current: Lang = detect();
 const listeners = new Set<() => void>();
 
-/** El idioma activo. */
+/** The active language. */
 export function getLang(): Lang {
   return current;
 }
 
-/** Cambia el idioma, lo guarda y avisa a quien esté escuchando. */
+/** Changes the language, saves it and notifies any listeners. */
 export function setLang(lang: Lang): void {
   if (lang === current) return;
   current = lang;
   try {
     localStorage.setItem(KEY, lang);
   } catch {
-    // Sin almacenamiento: cambia igual, solo que no se recuerda.
+    // No storage: it still changes, it just isn't remembered.
   }
   for (const fn of listeners) fn();
 }
 
-/** Se suscribe a los cambios de idioma (para re-pintar el DOM estático). */
+/** Subscribes to language changes (to re-paint the static DOM). */
 export function onLangChange(fn: () => void): void {
   listeners.add(fn);
 }
 
 /**
- * Traduce una clave al idioma activo. Con `params` reemplaza los
- * placeholders: t('win_points', { n: 120 }) -> "PUNTOS: 120".
- * Si faltara una clave en un idioma, cae al español y luego a la clave
- * cruda, para no romper nunca el render.
+ * Translates a key into the active language. With `params` it replaces
+ * the placeholders: t('win_points', { n: 120 }) -> "PUNTOS: 120".
+ * If a key were missing in a language, it falls back to Spanish and then
+ * to the raw key, so the render never breaks.
  */
 export function t(key: StrKey, params?: Record<string, string | number>): string {
   let s = TABLES[current][key] ?? es[key] ?? key;

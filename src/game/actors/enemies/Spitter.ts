@@ -1,10 +1,10 @@
 // ============================================================
-//  ESPORERO (hongo centinela)
+//  SPORER (sentinel mushroom)
 // ------------------------------------------------------------
-//  No camina: vigila su parcela. Cuando el jugador entra en rango
-//  se INFLA (el aviso) y escupe una espora en arco hacia él; la
-//  espora cae con su propia gravedad y revienta al tocar roca.
-//  Se lo puede pisar. Se dibuja con primitivas (tallo + sombrero).
+//  Doesn't walk: it watches its patch. When the player enters range
+//  it INFLATES (the telegraph) and spits an arcing spore at them; the
+//  spore falls under its own gravity and bursts on hitting rock.
+//  It's stompable. Drawn with primitives (stem + cap).
 // ============================================================
 
 import type { Box } from '../../../engine/canvas';
@@ -12,14 +12,14 @@ import { Level, TILE } from '../../world/Level';
 import { drawGlow } from '../../art/glow';
 import type { Enemy } from './Enemy';
 
-const RANGE_X = 104;      // rango horizontal de vigilancia (px)
-const RANGE_Y = 64;       // tolerancia vertical
-const SHOOT_EVERY = 2.4;  // segundos entre escupidas
-const PUFF_TIME = 0.45;   // cuánto se infla antes de escupir (el aviso)
-const SPORE_VX = 52;      // px/s horizontal de la espora
-const SPORE_VY = -118;    // impulso vertical inicial (arco)
-const SPORE_G = 260;      // gravedad propia (más floja: flota)
-const SPORE_LIFE = 3.2;   // segundos de vida
+const RANGE_X = 104;      // horizontal watch range (px)
+const RANGE_Y = 64;       // vertical tolerance
+const SHOOT_EVERY = 2.4;  // seconds between spits
+const PUFF_TIME = 0.45;   // how long it inflates before spitting (the telegraph)
+const SPORE_VX = 52;      // spore horizontal px/s
+const SPORE_VY = -118;    // initial vertical impulse (arc)
+const SPORE_G = 260;      // own gravity (weaker: it floats)
+const SPORE_LIFE = 3.2;   // seconds of life
 
 interface Spore {
   x: number;
@@ -41,7 +41,7 @@ export class Spitter implements Enemy {
 
   private t = 0;
   private shootTimer = SHOOT_EVERY;
-  private puffTimer = 0; // >0 = inflándose para escupir
+  private puffTimer = 0; // >0 = inflating to spit
   private facing: 1 | -1 = -1;
   private spores: Spore[] = [];
 
@@ -65,7 +65,7 @@ export class Spitter implements Enemy {
     const inRange = Math.abs(dx) < RANGE_X && Math.abs(target.y - this.y) < RANGE_Y;
     if (dx !== 0) this.facing = (dx < 0 ? -1 : 1) as 1 | -1;
 
-    // El ciclo de escupida: espera -> se infla (aviso) -> dispara.
+    // The spit cycle: wait -> inflate (telegraph) -> fire.
     this.shootTimer -= dt;
     if (this.puffTimer > 0) {
       this.puffTimer -= dt;
@@ -83,7 +83,7 @@ export class Spitter implements Enemy {
       this.puffTimer = PUFF_TIME;
     }
 
-    // Las esporas vuelan en arco y revientan contra la roca.
+    // Spores fly in an arc and burst against rock.
     for (const s of this.spores) {
       s.vy += SPORE_G * dt;
       s.x += s.vx * dt;
@@ -95,7 +95,7 @@ export class Spitter implements Enemy {
   }
 
   draw(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {
-    // Esporas: motas verdes con halo.
+    // Spores: green specks with a halo.
     for (const s of this.spores) {
       drawGlow(ctx, s.x - camX, s.y - camY, 5, '#6ee08a', 0.6);
       ctx.fillStyle = '#d6ffe2';
@@ -104,18 +104,18 @@ export class Spitter implements Enemy {
 
     const cx = Math.round(this.x + this.w / 2 - camX);
     const baseY = Math.round(this.y + this.h - camY);
-    // Inflado: el sombrero crece 1px y el brillo sube (el aviso se lee).
+    // Inflated: the cap grows 1px and the glow rises (the telegraph reads).
     const puffed = this.puffTimer > 0;
     const breathe = puffed ? 1 : Math.sin(this.t * 2.5 + this.x) > 0 ? 1 : 0;
 
     drawGlow(ctx, cx, baseY - 6, 10, '#6ee08a', puffed ? 0.55 : 0.25);
 
-    // Tallo pálido con la base en sombra.
+    // Pale stem with the base in shadow.
     ctx.fillStyle = '#beffc8';
     ctx.fillRect(cx - 1, baseY - 4, 3, 4);
     ctx.fillStyle = '#33a843';
     ctx.fillRect(cx - 1, baseY - 1, 3, 1);
-    // Sombrero: dos franjas verdes con pecas claras.
+    // Cap: two green bands with light freckles.
     ctx.fillStyle = '#2e8038';
     ctx.fillRect(cx - 4, baseY - 5 - breathe, 9, 2);
     ctx.fillStyle = '#5ce06a';
@@ -124,7 +124,7 @@ export class Spitter implements Enemy {
     ctx.fillStyle = '#d6ffe2';
     ctx.fillRect(cx - 2, baseY - 6 - breathe, 1, 1);
     ctx.fillRect(cx + 2, baseY - 5 - breathe, 1, 1);
-    // Ojos: miran hacia donde va a escupir.
+    // Eyes: they look toward where it's about to spit.
     ctx.fillStyle = '#11091a';
     ctx.fillRect(cx - 1 + this.facing, baseY - 3, 1, 1);
     ctx.fillRect(cx + 1 + this.facing, baseY - 3, 1, 1);

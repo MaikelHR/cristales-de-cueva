@@ -1,13 +1,13 @@
 // ============================================================
-//  ESCENA: PERSONAJE (la pantalla de personalización)
+//  SCENE: CHARACTER (the customization screen)
 // ------------------------------------------------------------
-//  Se llega desde el menú del título. Dos ejes: COLOR (la skin
-//  mineral) y ACCESORIO (gorro, corona, antena...), cada uno una
-//  fila que se recorre con izquierda/derecha (o confirmar, que
-//  avanza en rueda); la vista previa grande refleja cada cambio
-//  al instante. VOLVER (o ESC / el botón de pausa del pad)
-//  regresa al título. En táctil no se navega esta escena: los
-//  chips DOM (color y accesorio) cumplen su papel en los menús.
+//  Reached from the title menu. Two axes: COLOR (the mineral
+//  skin) and ACCESSORY (hat, crown, antenna...), each a row
+//  cycled with left/right (or confirm, which advances on a
+//  wheel); the large preview reflects every change instantly.
+//  BACK (or ESC / the pad's pause button) returns to the title.
+//  On touch this scene isn't navigated: the DOM chips (color
+//  and accessory) do their job in the menus.
 // ============================================================
 
 import { justPressed } from '../../engine/input';
@@ -42,7 +42,7 @@ export class CharacterScene implements Scene {
       sfx.pickup();
     }
 
-    // Salida rápida desde cualquier fila (ESC / pausa del pad).
+    // Quick exit from any row (ESC / pad pause).
     if (justPressed('pause') || justPressed('quit')) {
       this.exit();
       return;

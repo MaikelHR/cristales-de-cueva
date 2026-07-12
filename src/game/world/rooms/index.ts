@@ -1,17 +1,17 @@
 // ============================================================
-//  REGISTRO DE NIVELES
+//  LEVEL REGISTRY
 // ------------------------------------------------------------
-//  Los niveles del juego, en el orden del overworld: completar
-//  uno desbloquea el siguiente. Cada nivel enseña algo nuevo:
-//   1. Cavernas  — moverse, pisar y el DOBLE SALTO.
-//   2. Galerías  — púas, resortes y el SALTO DE PARED.
-//   3. Corazón   — plataformas móviles, el DASH y el guardián.
-//   4. Esporas   — el PLANEO, corrientes ascendentes y esporeros.
-//   5. Glaciar   — el AZOTÓN, hielo, bloques agrietados y erizos.
-//   6. Fragua    — la EMBESTIDA, géiseres y el Guardián Ígneo.
-//  Agregar un nivel = una carpeta con sus salas + una entrada acá.
-//  (El id del PRIMER nivel está fijado también en save.ts, para
-//  migrar los récords viejos: no lo renombres a la ligera.)
+//  The game's levels, in overworld order: completing one unlocks
+//  the next. Each level teaches something new:
+//   1. Cavernas  — moving, stomping and the DOUBLE JUMP.
+//   2. Galerías  — spikes, springs and the WALL JUMP.
+//   3. Corazón   — moving platforms, the DASH and the guardian.
+//   4. Esporas   — the GLIDE, updrafts and spitters.
+//   5. Glaciar   — the POUND, ice, cracked blocks and erizos.
+//   6. Fragua    — the CHARGE, geysers and the Igneous Guardian.
+//  Adding a level = a folder with its rooms + an entry here.
+//  (The FIRST level's id is also pinned in save.ts, to migrate
+//  old records: don't rename it lightly.)
 // ============================================================
 
 import type { LevelDef } from '../LevelData';

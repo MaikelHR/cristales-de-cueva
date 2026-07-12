@@ -1,12 +1,12 @@
 // ============================================================
-//  DEPURACIÓN (solo desarrollo)
+//  DEBUG (development only)
 // ------------------------------------------------------------
-//  Flags que se togglean desde la consola del navegador vía
-//  window.__debug (los cablea main.ts). En producción el chequeo
-//  import.meta.env.DEV hace que todo esto se elimine del bundle.
+//  Flags toggled from the browser console via window.__debug
+//  (main.ts wires them up). In production the import.meta.env.DEV
+//  check strips all of this from the bundle.
 //
-//    __debug.hitboxes = true   // dibuja las cajas de colisión
-//    __debug.warp('santuario') // saltar a una sala
+//    __debug.hitboxes = true   // draws the collision boxes
+//    __debug.warp('santuario') // jump to a room
 // ============================================================
 
 export const debug = {

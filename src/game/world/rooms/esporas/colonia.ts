@@ -1,15 +1,15 @@
 import type { RoomData } from '../../RoomData';
 
-/** Nivel 4, sala 2 — La colonia: acá se gana el PLANEO.
- *  La reliquia corona un pedestal imposible de no ver. Enseguida, la
- *  lección barata: una cuenca ancha que solo se cruza de un vuelo
- *  (salto + doble + planeo); fallar deposita en el fondo, donde se
- *  camina y se saltan cuatro púas — la ruta lenta pero segura (el
- *  cristal flota justo sobre ellas). Después, las CORRIENTES: una
- *  bajita para probar (con premio adentro) y la chimenea grande que
- *  sube 13 tiles hasta la repisa de salida — planear dentro de la
- *  columna es la única forma de llegar; un esporero presiona la
- *  espera desde abajo. Soltar saltar es soltarse del viento. */
+/** Level 4, room 2 — La colonia: this is where you earn the GLIDE.
+ *  The relic crowns a pedestal you can't miss. Right after, the
+ *  cheap lesson: a wide basin you can only cross in one flight
+ *  (jump + double + glide); failing drops you to the bottom, where you
+ *  walk and jump four spikes — the slow but safe route (the
+ *  crystal floats right above them). Then the UPDRAFTS: a
+ *  short one to try out (with a reward inside) and the big shaft that
+ *  rises 13 tiles to the exit ledge — gliding inside the
+ *  column is the only way up; a spitter presses the
+ *  wait from below. Letting go of jump lets go of the wind. */
 export const colonia: RoomData = {
   id: 'colonia',
   mapPos: { x: 1, y: 0 },

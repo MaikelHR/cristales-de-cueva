@@ -1,10 +1,10 @@
 // ============================================================
-//  RELOJ compartido de animación
+//  Shared animation CLOCK
 // ------------------------------------------------------------
-//  Un contador de segundos que la sesión hace avanzar y que los
-//  actores leen para sus animaciones de reposo (bob, brillos).
-//  Es un objeto (no un número) para que todos vean el MISMO valor:
-//  también avanza en los menús, así el mundo respira de fondo.
+//  A seconds counter the session advances and that actors read
+//  for their idle animations (bob, glints). It's an object (not a
+//  number) so everyone sees the SAME value: it also advances in
+//  the menus, so the world keeps breathing in the background.
 // ============================================================
 
 export interface Clock {

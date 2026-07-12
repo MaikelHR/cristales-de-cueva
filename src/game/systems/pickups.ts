@@ -1,8 +1,8 @@
 // ============================================================
-//  RECOGIBLES — la regla de la capa 'pickup'
+//  PICKUPS — the 'pickup' layer rule
 // ------------------------------------------------------------
-//  Tocar un recogible vivo lo recoge. Qué pasa al recogerlo lo
-//  decide cada actor (Crystal, Relic) en su collect().
+//  Touching a live pickup collects it. What happens on collect is
+//  decided by each actor (Crystal, Relic) in its collect().
 // ============================================================
 
 import { overlaps } from '../../engine/canvas';

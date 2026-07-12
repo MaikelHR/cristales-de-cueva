@@ -1,10 +1,10 @@
 // ============================================================
-//  CRISTAL (recogible principal)
+//  CRYSTAL (main pickup)
 // ------------------------------------------------------------
-//  Flota con un bob suave, brilla con un halo pulsante y centellea
-//  de a ratos. Recogerlos todos (más derrotar al jefe) abre la
-//  puerta. Las fases de animación se desfasan por posición para
-//  que dos cristales vecinos no brillen sincronizados.
+//  Floats with a gentle bob, glows with a pulsing halo and
+//  twinkles now and then. Collecting them all (plus defeating the
+//  boss) opens the door. Animation phases are offset by position
+//  so two neighboring crystals don't glow in sync.
 // ============================================================
 
 import type { Box } from '../../../engine/canvas';
@@ -17,7 +17,7 @@ import { sfx } from '../../sfx';
 
 export class Crystal implements Pickup {
   readonly layer = 'pickup' as const;
-  dead = false; // recogido
+  dead = false; // collected
   readonly w = 6;
   readonly h = 6;
 
@@ -32,12 +32,12 @@ export class Crystal implements Pickup {
   }
 
   update(): void {
-    // Su animación es de reposo: lee el reloj compartido en draw().
+    // Its animation is idle: reads the shared clock in draw().
   }
 
   collect(ctx: CollectContext): void {
     this.dead = true;
-    // Chispas doradas desde el centro del cristal
+    // Golden sparks from the center of the crystal
     ctx.particles.burst(this.x + 3, this.y + 4, 14, ['#ffd23a', '#fff7c9', '#ffe25a']);
     sfx.pickup();
   }
@@ -47,14 +47,14 @@ export class Crystal implements Pickup {
     const bob = Math.sin(time * 3 + this.x) * 1.5;
     const cx = this.x + 3 - camX;
     const cy = this.y + 4 - camY + bob;
-    // Halo pulsante
+    // Pulsing halo
     const pulse = 0.45 + Math.sin(time * 4 + this.x) * 0.15;
     drawGlow(ctx, cx, cy, 12, '#ffe25a', pulse);
-    // Cristal con destello que barre las facetas (offset por posición)
+    // Crystal with a glint sweeping across the facets (offset by position)
     const frames = [sprites.crystal, sprites.crystal2, sprites.crystal3, sprites.crystal4];
     const spr = frameAt(frames, 7, time, this.x * 0.5);
     spr.draw(ctx, cx - spr.w / 2, cy - spr.h / 2);
-    // Twinkle: una estrellita que centellea de a ratos, arriba a la derecha
+    // Twinkle: a little star that sparkles now and then, top right
     if ((time * 1.6 + this.x * 0.7) % 2.2 < 0.2) {
       const sx = Math.round(cx + 4);
       const sy = Math.round(cy - 4);

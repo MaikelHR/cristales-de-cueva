@@ -1,11 +1,11 @@
 // ============================================================
-//  ESCENA: TÍTULO (la portada del juego)
+//  SCENE: TITLE (the game's cover)
 // ------------------------------------------------------------
-//  El mundo se anima de fondo bajo el título y un menú de verdad:
-//  JUGAR (al mapa de niveles), PANTALLA COMPLETA e IDIOMA. Se
-//  navega con arriba/abajo y se confirma con ENTER/espacio o el
-//  botón de confirmar del pad. En táctil no hay menú que navegar:
-//  un tap arranca y el idioma tiene su propio botón (langSwitch).
+//  The world animates in the background beneath the title and a real
+//  menu: PLAY (to the level map), FULLSCREEN and LANGUAGE. Navigate
+//  with up/down and confirm with ENTER/space or the pad's confirm
+//  button. On touch there's no menu to navigate: a tap starts and
+//  language has its own button (langSwitch).
 // ============================================================
 
 import { justPressed } from '../../engine/input';
@@ -44,7 +44,7 @@ export class TitleScene implements Scene {
     }
 
     const item = this.items[this.selected];
-    // Sobre IDIOMA, izquierda/derecha también alternan (se siente natural).
+    // On LANGUAGE, left/right also toggle (feels natural).
     if (item === 'language' && (justPressed('left') || justPressed('right'))) {
       setLang(getLang() === 'es' ? 'en' : 'es');
       sfx.pickup();
@@ -57,7 +57,7 @@ export class TitleScene implements Scene {
         sfx.pickup();
         break;
       case 'character':
-        // La personalización tiene su propia pantalla (color + accesorio).
+        // Customization has its own screen (color + accessory).
         this.scenes.replace(new CharacterScene(this.session, this.scenes));
         sfx.pickup();
         break;

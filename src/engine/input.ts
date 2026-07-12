@@ -1,19 +1,19 @@
 // ============================================================
-//  ENTRADA (input): teclado + gamepad
+//  INPUT: keyboard + gamepad
 // ------------------------------------------------------------
-//  Traducimos entradas físicas a "acciones" (left, right, jump...).
-//  Así el resto del juego nunca pregunta por una tecla o botón
-//  concreto, sino por la intención. El teclado llega por eventos;
-//  el gamepad se SONDEA cada frame (la API del navegador no avisa,
-//  hay que preguntarle el estado). Ambos alimentan las mismas
-//  acciones, así que el juego no distingue de dónde viene la orden.
+//  We translate physical inputs into "actions" (left, right, jump...).
+//  This way the rest of the game never asks about a specific key or
+//  button, only the intent. The keyboard arrives via events; the
+//  gamepad is POLLED every frame (the browser API doesn't notify,
+//  you have to ask it for the state). Both feed the same actions,
+//  so the game doesn't distinguish where the command comes from.
 //
-//  Además recordamos el ÚLTIMO dispositivo usado para que la interfaz
-//  muestre los controles correctos (teclas o botones) al instante.
+//  We also remember the LAST device used so the UI shows the correct
+//  controls (keys or buttons) instantly.
 // ============================================================
 
-// 'up'/'down' son para NAVEGAR MENÚS; 'quit' es "salir al mapa" (lo emite
-// el botón táctil del menú de pausa; en teclado/gamepad se elige en el menú).
+// 'up'/'down' are for NAVIGATING MENUS; 'quit' is "exit to map" (emitted
+// by the touch button of the pause menu; on keyboard/gamepad it's chosen in the menu).
 type Action =
   | 'left'
   | 'right'
@@ -26,12 +26,12 @@ type Action =
   | 'pause'
   | 'quit';
 
-/** Qué estuvo usando el jugador de último: define qué controles mostrar. */
+/** What the player used last: defines which controls to show. */
 export type InputDevice = 'keyboard' | 'gamepad' | 'touch';
 
-// Una tecla puede valer por VARIAS acciones: ↑/W son saltar (jugando) y
-// subir (en un menú); espacio salta y también confirma (activar en menús).
-// Cada pantalla lee solo las acciones que le importan, así no chocan.
+// A key can stand for SEVERAL actions: ↑/W are jump (in play) and up
+// (in a menu); space jumps and also confirms (activating in menus).
+// Each screen reads only the actions it cares about, so they don't clash.
 const KEY_TO_ACTION: Record<string, Action[]> = {
   ArrowLeft: ['left'],
   a: ['left'],
@@ -57,22 +57,22 @@ const KEY_TO_ACTION: Record<string, Action[]> = {
   P: ['pause'],
 };
 
-// Estado del TECLADO (por eventos).
+// KEYBOARD state (via events).
 const down = new Set<Action>();
 const pressedThisStep = new Set<Action>();
 
-// Estado del GAMEPAD (por sondeo). Lo mantenemos aparte y lo mezclamos
-// en las consultas, porque el teclado se enciende/apaga con eventos y
-// el gamepad se reconstruye entero en cada sondeo.
+// GAMEPAD state (via polling). We keep it separate and merge it into
+// queries, because the keyboard toggles on/off with events and the
+// gamepad is rebuilt entirely on each poll.
 const gpDown = new Set<Action>();
 const gpPressed = new Set<Action>();
 let gpPrev = new Set<Action>();
 
 let lastDevice: InputDevice = 'keyboard';
 
-// Capacidad táctil FIJA del dispositivo (no cambia una vez detectada).
-// El módulo táctil la enciende al arrancar si el aparato tiene pantalla
-// táctil; el resto del juego la consulta para decidir el layout móvil.
+// FIXED touch capability of the device (doesn't change once detected).
+// The touch module turns it on at startup if the device has a touch
+// screen; the rest of the game queries it to decide the mobile layout.
 let touchMode = false;
 
 export function initInput(): void {
@@ -94,31 +94,31 @@ export function initInput(): void {
   });
 }
 
-// Mapeo de botones del gamepad (layout "standard" del navegador; vale
-// para Xbox Y PlayStation, el navegador ya los traduce):
-//   0 = abajo (A / ✕)   1 = derecha (B / ○)   2 = izquierda (X / □)
-//   3 = arriba (Y / △)  4/5 = L1/R1   6/7 = L2/R2
+// Gamepad button mapping (browser "standard" layout; works for both
+// Xbox AND PlayStation, the browser already translates them):
+//   0 = down (A / ✕)   1 = right (B / ○)   2 = left (X / □)
+//   3 = up (Y / △)  4/5 = L1/R1   6/7 = L2/R2
 //   8 = Select/Share    9 = Start/Options
-//   12/13/14/15 = d-pad arriba/abajo/izquierda/derecha
-//   axes[0] = stick izquierdo horizontal
+//   12/13/14/15 = d-pad up/down/left/right
+//   axes[0] = left stick horizontal
 const STICK_DEADZONE = 0.4;
 
-/** El "sabor" del pad conectado: decide qué rótulos muestra la interfaz
- *  (A/X/Y/START para genérico-Xbox, ✕/□/△/OPTIONS para PlayStation). */
+/** The "flavor" of the connected pad: decides which labels the UI shows
+ *  (A/X/Y/START for generic-Xbox, ✕/□/△/OPTIONS for PlayStation). */
 export type PadFlavor = 'generic' | 'playstation';
 
 let padFlavor: PadFlavor = 'generic';
 
-/** ¿El id del pad huele a PlayStation? (DualShock/DualSense, o el
- *  vendor id de Sony 054c que reportan Chrome y Firefox). */
+/** Does the pad id smell like PlayStation? (DualShock/DualSense, or the
+ *  Sony vendor id 054c that Chrome and Firefox report). */
 function detectFlavor(id: string): PadFlavor {
   return /playstation|dual\s?shock|dual\s?sense|sony|054c/i.test(id)
     ? 'playstation'
     : 'generic';
 }
 
-/** Sondea el primer gamepad conectado y traduce su estado a acciones.
- *  Llamar una vez por paso de lógica, antes de leer las acciones. */
+/** Polls the first connected gamepad and translates its state into actions.
+ *  Call once per logic step, before reading the actions. */
 export function pollGamepad(): void {
   const pads = navigator.getGamepads ? navigator.getGamepads() : [];
   let pad: Gamepad | null = null;
@@ -141,71 +141,71 @@ export function pollGamepad(): void {
   const on = (i: number): boolean => !!b[i]?.pressed;
   const axX = pad.axes[0] ?? 0;
   const axY = pad.axes[1] ?? 0;
-  // Pads que el navegador no supo normalizar (mapping != 'standard'):
-  // aceptamos también el orden crudo típico de un DS4 (0=□ 1=✕ 2=○ 3=△),
-  // así saltar/confirmar responden aunque el mapeo venga corrido.
+  // Pads the browser couldn't normalize (mapping != 'standard'):
+  // we also accept the typical raw order of a DS4 (0=□ 1=✕ 2=○ 3=△),
+  // so jump/confirm respond even if the mapping comes shifted.
   const raw = pad.mapping !== 'standard';
 
   const next = new Set<Action>();
   if (on(14) || axX < -STICK_DEADZONE) next.add('left');
   if (on(15) || axX > STICK_DEADZONE) next.add('right');
-  if (on(12) || axY < -STICK_DEADZONE) next.add('up'); // para navegar menús
+  if (on(12) || axY < -STICK_DEADZONE) next.add('up'); // for navigating menus
   if (on(13) || axY > STICK_DEADZONE) next.add('down');
-  if (on(0) || on(12) || (raw && on(1))) next.add('jump'); // A/✕ o d-pad arriba
-  if (on(2) || on(4) || on(5) || on(6) || on(7)) next.add('dash'); // X/□ u hombros/gatillos
-  if (on(0) || on(9) || (raw && on(1))) next.add('confirm'); // A/✕ o Start (para menús)
-  if (on(9) || on(8)) next.add('pause'); // Start/Options (y Select/Share)
+  if (on(0) || on(12) || (raw && on(1))) next.add('jump'); // A/✕ or d-pad up
+  if (on(2) || on(4) || on(5) || on(6) || on(7)) next.add('dash'); // X/□ or shoulders/triggers
+  if (on(0) || on(9) || (raw && on(1))) next.add('confirm'); // A/✕ or Start (for menus)
+  if (on(9) || on(8)) next.add('pause'); // Start/Options (and Select/Share)
   if (on(3)) next.add('restart'); // Y/△
 
   for (const a of next) {
     gpDown.add(a);
-    if (!gpPrev.has(a)) gpPressed.add(a); // flanco de subida = "recién presionado"
+    if (!gpPrev.has(a)) gpPressed.add(a); // rising edge = "just pressed"
   }
   gpPrev = next;
   if (next.size > 0) lastDevice = 'gamepad';
 }
 
-/** Los rótulos de botón para los textos de la interfaz, según el pad
- *  visto de último. Con las claves cortas que usan los diccionarios:
- *  {j}=saltar {d}=dash {r}=reiniciar {p}=pausa. */
+/** The button labels for the UI text, based on the pad seen last.
+ *  With the short keys the dictionaries use:
+ *  {j}=jump {d}=dash {r}=restart {p}=pause. */
 export function padLabels(): { j: string; d: string; r: string; p: string } {
   return padFlavor === 'playstation'
     ? { j: '✕', d: '□', r: '△', p: 'OPTIONS' }
     : { j: 'A', d: 'X', r: 'Y', p: 'START' };
 }
 
-/** ¿La acción está siendo mantenida en este instante? (teclado o gamepad) */
+/** Is the action being held right now? (keyboard or gamepad) */
 export function isDown(action: Action): boolean {
   return down.has(action) || gpDown.has(action);
 }
 
-/** ¿La acción se acaba de presionar en este paso de lógica? (teclado o gamepad) */
+/** Was the action just pressed in this logic step? (keyboard or gamepad) */
 export function justPressed(action: Action): boolean {
   return pressedThisStep.has(action) || gpPressed.has(action);
 }
 
-/** El último dispositivo que usó el jugador (para mostrar los controles). */
+/** The last device the player used (for showing the controls). */
 export function inputDevice(): InputDevice {
   return lastDevice;
 }
 
-/** Llamar al final de cada paso de lógica para limpiar los "recién presionados". */
+/** Call at the end of each logic step to clear the "just pressed" set. */
 export function endStep(): void {
   pressedThisStep.clear();
 }
 
 // ------------------------------------------------------------
-//  ENTRADA TÁCTIL (botones en pantalla)
+//  TOUCH INPUT (on-screen buttons)
 // ------------------------------------------------------------
-//  Los controles táctiles reutilizan EXACTAMENTE los mismos sets que
-//  el teclado (down y pressedThisStep), así que el juego no distingue
-//  el origen: un botón en pantalla "presiona" y "suelta" una acción
-//  igual que una tecla. El módulo game/touch.ts llama estas funciones
-//  desde los eventos de puntero.
+//  The touch controls reuse EXACTLY the same sets as the keyboard
+//  (down and pressedThisStep), so the game doesn't distinguish the
+//  origin: an on-screen button "presses" and "releases" an action
+//  just like a key. The game/touch.ts module calls these functions
+//  from the pointer events.
 
-/** Presiona (isDownNow=true) o suelta (isDownNow=false) una acción táctil.
- *  Al presionar por primera vez marca el flanco de subida (recién presionado)
- *  y la deja mantenida; al soltar solo la quita de las mantenidas. */
+/** Presses (isDownNow=true) or releases (isDownNow=false) a touch action.
+ *  On the first press it marks the rising edge (just pressed) and leaves it
+ *  held; on release it only removes it from the held set. */
 export function touchButton(action: Action, isDownNow: boolean): void {
   if (isDownNow) {
     if (!down.has(action)) pressedThisStep.add(action);
@@ -216,22 +216,22 @@ export function touchButton(action: Action, isDownNow: boolean): void {
   lastDevice = 'touch';
 }
 
-/** Suelta TODO lo que estuviera mantenido (al perder foco o cambiar de pestaña). */
+/** Releases EVERYTHING that was held (on losing focus or switching tabs). */
 export function releaseAll(): void {
   down.clear();
 }
 
-/** Fuerza el último dispositivo usado (para sincronizar qué controles mostrar). */
+/** Forces the last device used (to sync which controls to show). */
 export function setDevice(d: InputDevice): void {
   lastDevice = d;
 }
 
-/** ¿El aparato tiene capacidad táctil? (flag fijo detectado al arrancar). */
+/** Does the device have touch capability? (fixed flag detected at startup). */
 export function isTouchMode(): boolean {
   return touchMode;
 }
 
-/** Enciende/apaga el flag de capacidad táctil (lo fija el módulo táctil). */
+/** Turns the touch-capability flag on/off (set by the touch module). */
 export function setTouchMode(v: boolean): void {
   touchMode = v;
 }

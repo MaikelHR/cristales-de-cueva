@@ -1,17 +1,16 @@
 import type { RoomData } from '../../RoomData';
 
-/** Nivel 6, sala 2 — El yunque: acá se gana la EMBESTIDA.
- *  Reliquia en pedestal y el túnel-lección enseguida: dos tabiques
- *  agrietados que el dash hace pedazos sin frenar (el techo llega
- *  tan alto que no se salta por encima). Un hoyito paga después.
- *  La práctica combina fuego y grieta: un géiser custodia una
- *  compuerta agrietada de tres de espesor — se embiste entre
- *  erupciones. El yunque hueco guarda un cristal tras una banda
- *  agrietada de tres (una embestida la atraviesa entera; las bandas
- *  siempre cruzan TODO el espesor del muro, nunca van enmarcadas de
- *  roca a los costados). La torre de salida solo abre por su portal
- *  agrietado, y la chimenea junto a ella cita el examen del nivel 2:
- *  salto de pared hasta el cristal de arriba. */
+/** Level 6, room 2 — The anvil: here you earn the SMASH.
+ *  Relic on a pedestal and the lesson-tunnel right after: two cracked
+ *  partitions that the dash shatters without slowing (the ceiling is
+ *  so high you can't jump over). A little pit pays off later.
+ *  The practice combines fire and crack: a geyser guards a cracked
+ *  gate three thick — you smash through between eruptions. The hollow
+ *  anvil hides a crystal behind a cracked band three thick (one smash
+ *  goes clean through; bands always span the FULL thickness of the
+ *  wall, never framed by rock on the sides). The exit tower only opens
+ *  through its cracked portal, and the chimney beside it quotes the
+ *  level 2 exam: wall-jump up to the crystal above. */
 export const yunque: RoomData = {
   id: 'yunque',
   mapPos: { x: 1, y: 0 },

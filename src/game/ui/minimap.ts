@@ -1,8 +1,8 @@
 // ============================================================
-//  MINIMAPA (arriba a la derecha)
+//  MINIMAP (top right)
 // ------------------------------------------------------------
-//  Las salas se revelan al visitarlas; la actual se resalta y
-//  muestra un puntito con la posición del jugador.
+//  Rooms are revealed as they're visited; the current one is
+//  highlighted and shows a dot with the player's position.
 // ============================================================
 
 import { clamp } from '../../engine/canvas';
@@ -15,8 +15,8 @@ export function drawMinimap(ctx: CanvasRenderingContext2D, session: GameSession)
   const gap = 2;
   const rooms = session.world.allRooms;
   const maxX = Math.max(...rooms.map((r) => r.data.mapPos.x));
-  // En táctil dejamos libre la esquina superior derecha (ahí va el botón
-  // de pausa en pantalla), así que corremos el minimapa más a la izquierda.
+  // On touch we keep the top-right corner clear (the on-screen pause
+  // button goes there), so we shift the minimap further left.
   const inset = isTouchMode() ? 44 : 6;
   const baseX = session.viewW - inset - ((maxX + 1) * cellW + maxX * gap);
   const baseY = 6;
@@ -26,12 +26,12 @@ export function drawMinimap(ctx: CanvasRenderingContext2D, session: GameSession)
     const x = baseX + room.data.mapPos.x * (cellW + gap);
     const y = baseY + room.data.mapPos.y * (cellH + gap);
     const isCurrent = room === session.world.current;
-    // Marco y fondo de la celda
+    // Cell frame and background
     ctx.fillStyle = isCurrent ? '#ffe25a' : '#4a2e70';
     ctx.fillRect(x, y, cellW, cellH);
     ctx.fillStyle = isCurrent ? '#3a2456' : '#241638';
     ctx.fillRect(x + 1, y + 1, cellW - 2, cellH - 2);
-    // Puntito del jugador dentro de la sala actual
+    // Player dot inside the current room
     if (isCurrent) {
       const rel = clamp(session.player.x / room.level.widthPx, 0, 1);
       ctx.fillStyle = '#7ce0ff';

@@ -1,12 +1,12 @@
 import type { RoomData } from '../../RoomData';
 
-/** Nivel 1, sala 1 — La senda: el paseo de bienvenida.
- *  Terreno que sube de a un escalón (enseña que 1 tile se salta,
- *  no se camina), una zanja con fondo que guarda un cristal (la
- *  primera lección de la cueva: asomarse a los huecos paga — el
- *  umbral la retoma al final), un slime en la meseta para aprender
- *  el pisotón y un tablón con cristal que enseña a atravesarlos
- *  desde abajo. Ningún cristal se recoge caminando derecho. */
+/** Level 1, room 1 — La senda: the welcome stroll.
+ *  Terrain that rises one step at a time (teaches that 1 tile is
+ *  jumped, not walked), a ditch with a floor that holds a crystal
+ *  (the cave's first lesson: peeking into holes pays off — umbral
+ *  revisits it at the end), a slime on the plateau to learn the
+ *  stomp, and a plank with a crystal that teaches crossing them
+ *  from below. No crystal is collected by walking straight. */
 export const senda: RoomData = {
   id: 'senda',
   mapPos: { x: 0, y: 0 },

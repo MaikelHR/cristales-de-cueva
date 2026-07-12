@@ -1,10 +1,10 @@
 // ============================================================
-//  ESCENA: PARTIDA (el juego de verdad)
+//  SCENE: GAMEPLAY (the actual game)
 // ------------------------------------------------------------
-//  Orquesta un paso de juego llamando a los sistemas en orden:
-//  jugador, transiciones de sala, enemigos, recogibles, combate,
-//  fosos, victoria y cámara. Los estados especiales (hit-stop,
-//  muerte congelada) cortan el paso antes.
+//  Orchestrates one game step by calling the systems in order:
+//  player, room transitions, enemies, pickups, combat,
+//  pits, victory and camera. Special states (hit-stop,
+//  frozen death) cut the step short before that.
 // ============================================================
 
 import { justPressed } from '../../engine/input';
@@ -34,55 +34,55 @@ export class GameplayScene implements Scene {
   update(dt: number): void {
     const s = this.session;
 
-    // Reinicio rápido durante la partida (tecla R): mundo nuevo, a jugar.
+    // Quick restart during the run (R key): fresh world, play on.
     if (justPressed('restart')) {
       s.reset();
       return;
     }
 
-    // Pausa (Esc/P): se apila una escena encima; esta queda congelada
-    // TAL CUAL está —incluida una muerte en curso— hasta que se despile.
+    // Pause (Esc/P): a scene is pushed on top; this one stays frozen
+    // AS IT IS —including a death in progress— until it is popped.
     if (justPressed('pause')) {
       this.scenes.push(new PauseScene(s, this.scenes));
       return;
     }
 
-    // Hit-stop: tras un golpe mortal, el mundo entero queda clavado
-    // un instante. Al soltarse llegan el respawn y la sacudida.
+    // Hit-stop: after a lethal hit, the whole world freezes for an
+    // instant. When it releases, the respawn and the shake arrive.
     if (s.freezeTimer > 0) {
       s.freezeTimer -= dt;
       if (s.freezeTimer <= 0 && s.deadFrozen) {
         s.deadFrozen = false;
         if (s.pendingReset) {
           s.pendingReset = false;
-          s.endRun(false); // sin corazones: a la pantalla de game over
+          s.endRun(false); // no hearts left: to the game over screen
           this.scenes.replace(new GameOverScene(s, this.scenes));
         } else {
-          s.respawnPlayer(); // cayó a un foso pero le quedan corazones
+          s.respawnPlayer(); // fell into a pit but still has hearts
           s.camera.shake(3, 0.35);
         }
       }
       return;
     }
 
-    // Micro-pausa de impacto al pisar: un instante clavado y sigue.
+    // Micro-pause on stomp impact: frozen for an instant, then on.
     if (s.hitStop > 0) {
       s.hitStop -= dt;
       return;
     }
 
     s.tick(dt);
-    s.runTime += dt; // el cronómetro solo corre mientras se juega de verdad
+    s.runTime += dt; // the timer only runs while actually playing
     s.announceTimer = Math.max(0, s.announceTimer - dt);
     s.particles.update(dt);
     s.popups.update(dt);
 
-    // Los aparatos van ANTES del jugador (la plataforma arrastra a su
-    // pasajero) y sus contactos DESPUÉS (aterrizar, pisar un resorte).
+    // Devices go BEFORE the player (the platform carries its
+    // passenger) and their contacts AFTER (landing, hitting a spring).
     carryAndAdvanceDevices(s, dt);
     s.player.update(dt);
 
-    // ¿Cruzó un borde hacia otra sala?
+    // Did it cross a border into another room?
     handleRoomTransition(s);
 
     resolveDeviceContacts(s, dt);
@@ -95,17 +95,17 @@ export class GameplayScene implements Scene {
     collectPickups(s);
     resolveEnemyContacts(s, dt);
 
-    // Pisar púas -> perder un corazón y reaparecer en el checkpoint
+    // Stepping on spikes -> lose a heart and respawn at the checkpoint
     if (room.level.touchesSpike(s.player.box())) {
       s.loseLifeAndRespawn();
     }
 
-    // Caer fuera del mundo -> perder un corazón y reaparecer
+    // Falling out of the world -> lose a heart and respawn
     if (s.player.y > room.level.heightPx + 24) {
       s.loseLifeAndRespawn();
     }
 
-    // Llegar a la puerta con todos los cristales y sin jefes vivos -> ganar
+    // Reaching the door with all crystals and no bosses alive -> win
     const door = room.doorBox;
     if (door && s.doorOpen && overlaps(s.player.box(), door)) {
       s.endRun(true);

@@ -1,9 +1,9 @@
 // ============================================================
-//  CAZADOR (bola con púas que persigue)
+//  CHASER (spiky ball that chases)
 // ------------------------------------------------------------
-//  Patrulla lento como el slime, pero si el jugador se acerca se
-//  lanza hacia él, acelerando. Nunca se cae ni atraviesa paredes:
-//  gira en los bordes incluso persiguiendo. Se lo puede pisar.
+//  Patrols slowly like the slime, but if the player gets close it
+//  lunges toward them, speeding up. Never falls or goes through
+//  walls: turns at edges even while chasing. Can be stomped.
 // ============================================================
 
 import type { Box } from '../../../engine/canvas';
@@ -12,10 +12,10 @@ import { Level, TILE } from '../../world/Level';
 import { sprites } from '../../art/sprites';
 import type { Enemy } from './Enemy';
 
-const PATROL_SPEED = 20; // px/s cuando no ve al jugador
-const CHASE_SPEED = 60;  // px/s cuando persigue
-const DETECT_X = 92;     // rango horizontal de detección
-const DETECT_Y = 40;     // tolerancia vertical de detección
+const PATROL_SPEED = 20; // px/s when it doesn't see the player
+const CHASE_SPEED = 60;  // px/s when chasing
+const DETECT_X = 92;     // horizontal detection range
+const DETECT_Y = 40;     // vertical detection tolerance
 
 export class Chaser implements Enemy {
   readonly layer = 'enemy' as const;
@@ -54,14 +54,14 @@ export class Chaser implements Enemy {
     const wall = this.level.isSolidAt(aheadX, this.y + this.h / 2);
     const footX = this.dir === 1 ? next + this.w + 1 : next - 1;
     const floor = this.level.isSolidAt(footX, this.y + this.h + 1);
-    // Púas adelante: gira como en un borde, incluso persiguiendo
+    // Spikes ahead: turn as at an edge, even while chasing
     const spikes = this.level.touchesSpike({ x: footX, y: this.y, w: 1, h: this.h + 2 });
     if (wall || !floor || spikes) {
       this.dir = (this.dir * -1) as 1 | -1;
     } else {
       this.x = next;
     }
-    this.animTime += dt * (chasing ? 2 : 1); // patea más rápido persiguiendo
+    this.animTime += dt * (chasing ? 2 : 1); // kicks faster while chasing
   }
 
   draw(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {

@@ -1,16 +1,16 @@
 // ============================================================
-//  TEXTO — la letra del juego y formateos compartidos
+//  TEXT — the game's font and shared formatting
 // ------------------------------------------------------------
-//  Un solo lugar para la tipografía del canvas: cambiar la fuente
-//  del juego es cambiarla acá.
+//  A single place for the canvas typography: changing the game's
+//  font means changing it here.
 // ============================================================
 
-/** La fuente del juego en un tamaño dado (px). */
+/** The game's font at a given size (px). */
 export function font(sizePx: number): string {
   return `${sizePx}px "JetBrains Mono", ui-monospace, monospace`;
 }
 
-/** Formatea segundos como m:ss (p. ej. 83.4 -> "1:23"). */
+/** Formats seconds as m:ss (e.g. 83.4 -> "1:23"). */
 export function formatTime(seconds: number): string {
   const total = Math.floor(seconds);
   const m = Math.floor(total / 60);

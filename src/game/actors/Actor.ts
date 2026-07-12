@@ -1,38 +1,38 @@
 // ============================================================
-//  ACTOR — lo mínimo que es "una cosa que vive en una sala"
+//  ACTOR — the minimum for "a thing that lives in a room"
 // ------------------------------------------------------------
-//  Enemigos, recogibles y aparatos comparten esta forma: avanzar
-//  en el tiempo, dibujarse, decir qué caja ocupan y en qué CAPA de
-//  colisión están. La capa decide qué regla se le aplica al tocar
-//  al jugador (dañar vs. recoger vs. empujar); sumar una capa nueva
-//  (p. ej. 'trigger' o 'playerAttack') es agregar su regla en
-//  systems/, sin tocar a los actores existentes.
+//  Enemies, pickups and devices share this shape: advance in time,
+//  draw themselves, say what box they occupy and which collision
+//  LAYER they're on. The layer decides which rule applies when they
+//  touch the player (hurt vs. collect vs. push); adding a new layer
+//  (e.g. 'trigger' or 'playerAttack') means adding its rule in
+//  systems/, without touching existing actors.
 // ============================================================
 
 import type { Box } from '../../engine/canvas';
 import type { Player } from './Player';
 import type { Particles } from '../effects/Particles';
 
-/** 'device' = aparatos del escenario (resortes, plataformas móviles):
- *  no dañan ni se recogen; interactúan con la física del jugador. */
+/** 'device' = stage apparatus (springs, moving platforms): they
+ *  don't hurt or get collected; they interact with player physics. */
 export type ActorLayer = 'enemy' | 'pickup' | 'device';
 
 export interface Actor {
   readonly layer: ActorLayer;
-  /** true cuando ya no está en juego (derrotado / recogido):
-   *  el mundo lo ignora y deja de dibujarlo. */
+  /** true when it's no longer in play (defeated / collected):
+   *  the world ignores it and stops drawing it. */
   dead: boolean;
-  /** target = posición del jugador (para los que persiguen o apuntan). */
+  /** target = player position (for those that chase or aim). */
   update(dt: number, target: { x: number; y: number }): void;
   draw(ctx: CanvasRenderingContext2D, camX: number, camY: number): void;
   box(): Box;
 }
 
-/** Lo que un recogible puede tocar del juego al ser recogido. */
+/** What a pickup can touch in the game when collected. */
 export interface CollectContext {
   player: Player;
   particles: Particles;
-  /** Muestra el aviso grande en pantalla (p. ej. "¡DASH!"). */
+  /** Shows the big on-screen notice (e.g. "¡DASH!"). */
   announce(text: string): void;
 }
 

@@ -1,17 +1,16 @@
 // ============================================================
-//  DIBUJO DEL OVERWORLD (el mapa de niveles)
+//  OVERWORLD DRAWING (the level map)
 // ------------------------------------------------------------
-//  Todo lo visible del selector: las islitas de roca de cada nodo
-//  (cada una vestida con el bioma de su nivel: cristal, goteo,
-//  corazón, musgo, hielo, brasa — el escalón anticipa el nivel),
-//  el sendero punteado con su pulso que corre hacia adelante, los
-//  nodos (completado = cristal dorado con banderín, desbloqueado =
-//  latido, cerrado = piedra con '?'), el decorado entre nodos, la
-//  fauna ambiente (murciélagos, luciérnagas, polvo), el personaje
-//  parado o caminando, el panel con nombre y récords del nivel
-//  elegido y el elegidor de modo. La lógica (qué se puede pisar,
-//  entrar, elegir) vive en la escena; acá solo se pinta lo que
-//  ella decide.
+//  Everything visible in the selector: the rocky islets under each
+//  node (each dressed in its level's biome: crystal, drip, heart,
+//  moss, ice, ember — the step foreshadows the level), the dotted
+//  path with its pulse running forward, the nodes (completed =
+//  golden crystal with pennant, unlocked = pulsing, closed = stone
+//  with '?'), the decor between nodes, the ambient fauna (bats,
+//  fireflies, dust), the character standing or walking, the panel
+//  with the chosen level's name and records, and the mode chooser.
+//  The logic (what can be stepped on, entered, chosen) lives in the
+//  scene; here we only paint what it decides.
 // ============================================================
 
 import { frameAt } from '../../engine/animation';
@@ -27,8 +26,8 @@ import { drawBackground, drawDust, drawFog, drawVignette } from '../art/atmosphe
 import { t } from '../i18n';
 import { font, formatTime } from './text';
 
-/** Los 10 nodos del mundo 1, serpenteando gruta arriba hacia la
- *  gran puerta. Solo los primeros LEVELS.length tienen nivel real. */
+/** The 10 nodes of world 1, snaking up the cave toward the great
+ *  door. Only the first LEVELS.length have an actual level. */
 export const OW_NODES: ReadonlyArray<{ x: number; y: number }> = [
   { x: 30, y: 120 },
   { x: 66, y: 100 },
@@ -42,7 +41,7 @@ export const OW_NODES: ReadonlyArray<{ x: number; y: number }> = [
   { x: 300, y: 38 },
 ];
 
-/** Lo que el dibujo necesita saber de la escena del overworld. */
+/** What the drawing needs to know about the overworld scene. */
 export interface OverworldView {
   node: number;
   x: number;
@@ -62,26 +61,26 @@ export function drawOverworld(
   view: OverworldView,
 ): void {
   const { viewW, viewH, time, save } = session;
-  ctx.textBaseline = 'alphabetic'; // por si el HUD dejó otra puesta
+  ctx.textBaseline = 'alphabetic'; // in case the HUD left another one set
 
-  // La gruta de fondo, quieta (variante propia para que no sea
-  // idéntica a ninguna sala) y con su tema dorado de mapa.
+  // The background cave, still (its own variant so it isn't
+  // identical to any room) with its golden map theme.
   drawBackground(ctx, 0, 0, viewW, viewH, viewW, 7, time, 'overworld');
 
-  // Fauna lejana: murciélagos que cruzan la gruta de vez en cuando.
+  // Distant fauna: bats crossing the cave now and then.
   drawBats(ctx, viewW, time);
 
-  // --- Islitas de roca bajo cada nodo, vestidas de su bioma ---
+  // --- Rocky islets under each node, dressed in their biome ---
   for (let i = 0; i < OW_NODES.length; i++) {
     const levelId = i < LEVELS.length ? LEVELS[i].id : null;
     drawIsland(ctx, OW_NODES[i].x, OW_NODES[i].y, i <= view.maxNode, levelId, time);
   }
 
-  // --- Decorado entre nodos: cristalitos, hongos y rocas ---
+  // --- Decor between nodes: little crystals, mushrooms and rocks ---
   drawPathDecor(ctx, time);
 
-  // --- Sendero punteado con pulso que corre hacia adelante ---
-  let dTotal = 0; // distancia acumulada: hace que el pulso RECORRA el camino
+  // --- Dotted path with a pulse running forward ---
+  let dTotal = 0; // accumulated distance: makes the pulse TRAVEL the path
   for (let i = 0; i < OW_NODES.length - 1; i++) {
     const a = OW_NODES[i];
     const b = OW_NODES[i + 1];
@@ -107,18 +106,18 @@ export function drawOverworld(
     dTotal += dist;
   }
 
-  // --- Nodos ---
+  // --- Nodes ---
   for (let i = 0; i < OW_NODES.length; i++) {
     drawNode(ctx, session, view, i);
   }
 
-  // --- El personaje ---
+  // --- The character ---
   drawAvatar(ctx, view, time);
 
-  // --- Luciérnagas: puntitos de luz que orbitan por la gruta ---
+  // --- Fireflies: dots of light orbiting the cave ---
   drawFireflies(ctx, time);
 
-  // --- Título del mundo (flanqueado por cristales) y progreso ---
+  // --- World title (flanked by crystals) and progress ---
   const cx = viewW / 2;
   ctx.textAlign = 'center';
   ctx.fillStyle = '#e9d6ff';
@@ -139,8 +138,8 @@ export function drawOverworld(
   ctx.font = font(8);
   ctx.fillText(t('ow_progress', { n: completed, m: OW_NODES.length }), cx, 25);
 
-  // Con el elegidor abierto, el panel no se dibuja: evita dos capas
-  // de texto peleando en el fondo de la pantalla.
+  // With the chooser open, the panel isn't drawn: avoids two layers
+  // of text fighting at the bottom of the screen.
   if (view.choosing) drawModeChooser(ctx, session, view);
   else drawPanel(ctx, session, view);
 
@@ -150,10 +149,10 @@ export function drawOverworld(
   ctx.textAlign = 'left';
 }
 
-/** Colores de la islita de cada bioma: el filo iluminado donde se
- *  pisa, la cara de la losa y la panza que se afina hacia abajo.
- *  Tomados de los temas de atmósfera para que cada escalón anticipe
- *  el nivel al que lleva. */
+/** Each biome's islet colors: the lit edge you stand on, the slab
+ *  face and the belly that tapers downward. Taken from the
+ *  atmosphere themes so each step foreshadows the level it leads
+ *  to. */
 const ISLAND_LOOKS: Record<string, { edge: string; slab: string; belly: string }> = {
   cavernas: { edge: '#8064b0', slab: '#4a2e70', belly: '#2e1c48' },
   galerias: { edge: '#4180a8', slab: '#20405a', belly: '#122338' },
@@ -164,9 +163,9 @@ const ISLAND_LOOKS: Record<string, { edge: string; slab: string; belly: string }
 };
 const DEFAULT_LOOK = { edge: '#8064b0', slab: '#4a2e70', belly: '#2e1c48' };
 
-/** La islita flotante donde se apoya cada nodo, vestida con el bioma
- *  de su nivel. Cerrada se pinta atenuada y quieta (sin partículas):
- *  un adelanto en penumbra de lo que espera. */
+/** The floating islet each node rests on, dressed in its level's
+ *  biome. Closed, it's painted dimmed and still (no particles): a
+ *  shadowy preview of what awaits. */
 function drawIsland(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -177,26 +176,26 @@ function drawIsland(
 ): void {
   const look = (levelId && ISLAND_LOOKS[levelId]) || DEFAULT_LOOK;
   if (!unlocked) ctx.globalAlpha = 0.42;
-  // Losa de arriba (donde se pisa) con su borde iluminado.
+  // Top slab (where you stand) with its lit edge.
   ctx.fillStyle = look.edge;
   ctx.fillRect(x - 7, y - 3, 14, 1);
   ctx.fillStyle = look.slab;
   ctx.fillRect(x - 7, y - 2, 14, 4);
-  // La panza de roca que se afina hacia abajo.
+  // The rock belly that tapers downward.
   ctx.fillStyle = look.belly;
   ctx.fillRect(x - 5, y + 2, 10, 2);
   ctx.fillRect(x - 3, y + 4, 6, 2);
-  // Piedritas colgando de los bordes (se leen como raíces de la isla).
+  // Little stones dangling from the edges (they read as the islet's roots).
   ctx.fillRect(x - 6, y + 2, 1, 1);
   ctx.fillRect(x + 5, y + 2, 1, 1);
   if (levelId) drawIslandBiome(ctx, x, y, levelId, unlocked, time);
   ctx.globalAlpha = 1;
 }
 
-/** El vestuario de cada bioma sobre la islita base. Los adornos van
- *  en los BORDES de la losa (el avatar se para en el centro y el
- *  número vive justo debajo) y las partículas/brillos solo animan
- *  con el nodo desbloqueado. */
+/** Each biome's dressing over the base islet. The ornaments go on
+ *  the EDGES of the slab (the avatar stands in the center and the
+ *  number lives just below) and particles/glows only animate when
+ *  the node is unlocked. */
 function drawIslandBiome(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -207,7 +206,7 @@ function drawIslandBiome(
 ): void {
   switch (levelId) {
     case 'cavernas': {
-      // Cristalitos violetas brotando de los bordes de la losa.
+      // Little violet crystals sprouting from the slab's edges.
       if (unlocked) drawGlow(ctx, x + 5, y - 5, 5, '#b98bff', 0.15 + (Math.sin(time * 2 + x) + 1) * 0.05);
       ctx.fillStyle = '#7a4bd6';
       ctx.fillRect(x - 6, y - 5, 2, 2);
@@ -219,8 +218,8 @@ function drawIslandBiome(
       break;
     }
     case 'galerias': {
-      // Púas chiquitas en un borde y estalactitas que gotean: el
-      // nivel de las galerías húmedas con sus trampas.
+      // Tiny spikes on one edge and dripping stalactites: the level
+      // of the damp galleries with their traps.
       ctx.fillStyle = '#9fb7c8';
       ctx.fillRect(x - 6, y - 4, 1, 1);
       ctx.fillRect(x - 4, y - 5, 1, 2);
@@ -237,7 +236,7 @@ function drawIslandBiome(
       break;
     }
     case 'corazon': {
-      // Un corazón de cristal incrustado en la cara, latiendo.
+      // A crystal heart embedded in the face, beating.
       const beat = Math.pow(Math.max(0, Math.sin(time * 2.6)), 8);
       if (unlocked) drawGlow(ctx, x, y - 1, 7, '#ff8a6a', 0.1 + beat * 0.3);
       ctx.fillStyle = '#ff8a6a';
@@ -251,7 +250,7 @@ function drawIslandBiome(
       break;
     }
     case 'esporas': {
-      // Flecos de musgo, brotes y un honguito; esporas que suben.
+      // Fringes of moss, sprouts and a little mushroom; rising spores.
       ctx.fillStyle = '#3e8a58';
       ctx.fillRect(x - 5, y - 2, 1, 1);
       ctx.fillRect(x + 1, y - 2, 1, 2);
@@ -273,7 +272,7 @@ function drawIslandBiome(
       break;
     }
     case 'glaciar': {
-      // Vetas de brillo sobre el hielo, carámbanos y un destello.
+      // Glinting veins over the ice, icicles and a sparkle.
       ctx.fillStyle = '#eafaff';
       ctx.fillRect(x - 5, y - 3, 3, 1);
       ctx.fillRect(x + 2, y - 3, 2, 1);
@@ -292,7 +291,7 @@ function drawIslandBiome(
       break;
     }
     case 'fragua': {
-      // Grietas de brasa en la costra y una llamita en el borde.
+      // Ember cracks in the crust and a little flame on the edge.
       ctx.fillStyle = '#d0662a';
       ctx.fillRect(x - 3, y, 3, 1);
       ctx.fillRect(x + 2, y - 1, 2, 1);
@@ -317,7 +316,7 @@ function drawIslandBiome(
   }
 }
 
-/** Decorado fijo a mitad de camino entre nodos (alternando tipos). */
+/** Fixed decor at the midpoint between nodes (alternating types). */
 function drawPathDecor(ctx: CanvasRenderingContext2D, time: number): void {
   for (let i = 0; i < OW_NODES.length - 1; i += 2) {
     const a = OW_NODES[i];
@@ -326,7 +325,7 @@ function drawPathDecor(ctx: CanvasRenderingContext2D, time: number): void {
     const my = Math.round(Math.max(a.y, b.y) + 12 + (i % 3));
     const kind = i % 3;
     if (kind === 0) {
-      // Cristalitos dorados brotando de la roca.
+      // Little golden crystals sprouting from the rock.
       const pulse = 0.12 + (Math.sin(time * 1.8 + i) + 1) * 0.06;
       drawGlow(ctx, mx + 2, my - 2, 6, '#ffd76a', pulse);
       ctx.fillStyle = '#c9761f';
@@ -335,7 +334,7 @@ function drawPathDecor(ctx: CanvasRenderingContext2D, time: number): void {
       ctx.fillRect(mx + 2, my - 4, 2, 5);
       ctx.fillRect(mx - 1, my - 1, 1, 2);
     } else if (kind === 1) {
-      // Un hongo violeta que late suave.
+      // A violet mushroom pulsing softly.
       const pulse = 0.1 + (Math.sin(time * 2.2 + i) + 1) * 0.06;
       drawGlow(ctx, mx + 1, my - 4, 6, '#b98bff', pulse);
       ctx.fillStyle = '#3a2a5e';
@@ -344,7 +343,7 @@ function drawPathDecor(ctx: CanvasRenderingContext2D, time: number): void {
       ctx.fillRect(mx - 1, my - 4, 5, 1);
       ctx.fillRect(mx, my - 5, 3, 1);
     } else {
-      // Una roca puntiaguda muda.
+      // A silent pointed rock.
       ctx.fillStyle = '#241638';
       ctx.beginPath();
       ctx.moveTo(mx - 2, my + 1);
@@ -358,25 +357,25 @@ function drawPathDecor(ctx: CanvasRenderingContext2D, time: number): void {
   }
 }
 
-/** Murciélagos que cruzan la parte alta de la gruta, de a ratos. */
+/** Bats crossing the upper part of the cave, every so often. */
 function drawBats(ctx: CanvasRenderingContext2D, viewW: number, time: number): void {
   const frames = [sprites.flyer1, sprites.flyer2];
   for (let i = 0; i < 2; i++) {
     const period = 17 + i * 6;
     const p = ((time + i * 9) % period) / period;
-    if (p > 0.55) continue; // la mayor parte del ciclo, la gruta está quieta
+    if (p > 0.55) continue; // most of the cycle, the cave is still
     const dir = i === 0 ? 1 : -1;
     const across = (p / 0.55) * (viewW + 24);
     const bx = dir === 1 ? -12 + across : viewW + 12 - across;
     const by = 30 + i * 12 + Math.sin(time * 4 + i * 2) * 4;
     const spr = frameAt(frames, 10, time);
-    ctx.globalAlpha = 0.5; // medio a contraluz: es fondo, no amenaza
+    ctx.globalAlpha = 0.5; // half backlit: it's background, not a threat
     spr.draw(ctx, Math.round(bx - spr.w / 2), Math.round(by), dir === -1);
     ctx.globalAlpha = 1;
   }
 }
 
-/** Luciérnagas: órbitas deterministas, cada una con su parpadeo. */
+/** Fireflies: deterministic orbits, each with its own blink. */
 function drawFireflies(ctx: CanvasRenderingContext2D, time: number): void {
   for (let i = 0; i < 6; i++) {
     const cx = 30 + ((i * 67) % 260);
@@ -390,7 +389,7 @@ function drawFireflies(ctx: CanvasRenderingContext2D, time: number): void {
   }
 }
 
-/** Un nodo del sendero, según su estado. */
+/** A path node, according to its state. */
 function drawNode(
   ctx: CanvasRenderingContext2D,
   session: GameSession,
@@ -405,8 +404,8 @@ function drawNode(
   const current = i === view.node && !view.walking;
 
   if (done) {
-    // Completado: un cristal dorado flota sobre la piedra y un
-    // banderín conquistado flamea a su lado (guiño a Mario).
+    // Completed: a golden crystal floats over the stone and a
+    // conquest pennant waves at its side (a nod to Mario).
     const bob = Math.sin(time * 2.5 + i) * 1.5;
     drawGlow(ctx, x, y - 9 + bob, 9, '#ffe25a', 0.4);
     const frames = [sprites.crystal, sprites.crystal2, sprites.crystal3, sprites.crystal4];
@@ -420,7 +419,7 @@ function drawNode(
       ctx.fillRect(x + 8 + wav, y - 13 + r, 4 - r, 1);
     }
   } else if (unlocked) {
-    // La frontera: late invitando a entrar, con chispas que suben.
+    // The frontier: it pulses inviting you in, with sparks rising.
     const pulse = 0.35 + Math.sin(time * 3.5) * 0.2;
     drawGlow(ctx, x, y - 4, 10, '#b98bff', pulse);
     for (let k = 0; k < 2; k++) {
@@ -431,15 +430,15 @@ function drawNode(
       ctx.globalAlpha = 1;
     }
   } else {
-    // Cerrado: una piedra muda con su incógnita.
+    // Closed: a silent stone with its question mark.
     ctx.fillStyle = '#6f5a94';
     ctx.font = font(7);
     ctx.textAlign = 'center';
     ctx.fillText('?', x, y - 6);
   }
 
-  // El último nodo es la gran puerta del mundo (por ahora, cerrada),
-  // custodiada por dos antorchas de cristal que chisporrotean.
+  // The last node is the world's great door (closed, for now),
+  // guarded by two sputtering crystal torches.
   if (i === OW_NODES.length - 1) {
     const door = sprites.doorLocked;
     door.draw(ctx, x - door.w / 2, y - 3 - door.h);
@@ -456,19 +455,19 @@ function drawNode(
     }
   }
 
-  // Número del nivel bajo la piedra; el actual, resaltado.
+  // Level number below the stone; the current one, highlighted.
   ctx.fillStyle = current ? '#ffe25a' : '#6f5a94';
   ctx.font = font(7);
   ctx.textAlign = 'center';
   ctx.fillText(String(i + 1), x, y + 12);
 }
 
-/** El personaje del mapa: quieto respira, caminando corre y patea
- *  polvito; al llegar a un nodo se aplasta un instante (plof). */
+/** The map character: standing it breathes, walking it runs and
+ *  kicks up dust; landing on a node it squashes for a moment (plop). */
 function drawAvatar(ctx: CanvasRenderingContext2D, view: OverworldView, time: number): void {
-  const bottomY = view.y - 3; // parado sobre la piedra del nodo
+  const bottomY = view.y - 3; // standing on the node's stone
 
-  // Anillo de "estás acá" que se expande bajo los pies, solo quieto.
+  // A "you are here" ring that expands under the feet, only when still.
   if (!view.walking) {
     const rp = (time * 0.9) % 1;
     ctx.globalAlpha = (1 - rp) * 0.3;
@@ -482,7 +481,7 @@ function drawAvatar(ctx: CanvasRenderingContext2D, view: OverworldView, time: nu
 
   drawGlow(ctx, view.x, bottomY - 5, 12, currentSkin().glow, 0.3);
 
-  // Polvito que queda atrás mientras camina.
+  // Dust left behind while walking.
   if (view.walking) {
     const p = (view.walkTime * 4) % 1;
     ctx.globalAlpha = (1 - p) * 0.5;
@@ -492,7 +491,7 @@ function drawAvatar(ctx: CanvasRenderingContext2D, view: OverworldView, time: nu
     ctx.globalAlpha = 1;
   }
 
-  const s = playerSprites(); // los sprites de la skin activa
+  const s = playerSprites(); // the active skin's sprites
   let spr;
   if (view.walking) {
     spr = frameAt(s.run, 12, view.walkTime);
@@ -501,12 +500,12 @@ function drawAvatar(ctx: CanvasRenderingContext2D, view: OverworldView, time: nu
   } else {
     spr = frameAt([s.idle, s.idle2], 1.6, time);
   }
-  // El "plof" al aterrizar: recién llegado se aplasta y se recupera.
+  // The landing "plop": just arrived it squashes and recovers.
   const squash = Math.max(0, 1 - view.settleTime / 0.18);
   spr.drawStretched(ctx, view.x, bottomY, 1 + squash * 0.3, 1 - squash * 0.25, view.facing === -1);
 }
 
-/** Panel inferior: nombre y récords del nodo donde está parado. */
+/** Bottom panel: name and records of the node it's standing on. */
 function drawPanel(
   ctx: CanvasRenderingContext2D,
   session: GameSession,
@@ -515,7 +514,7 @@ function drawPanel(
   const { viewW, viewH, time, save } = session;
   ctx.fillStyle = 'rgba(17,9,26,0.72)';
   ctx.fillRect(0, viewH - 40, viewW, 40);
-  ctx.fillStyle = '#4a2e70'; // filo superior: separa el panel del mapa
+  ctx.fillStyle = '#4a2e70'; // top edge: separates the panel from the map
   ctx.fillRect(0, viewH - 41, viewW, 1);
   const cx = viewW / 2;
   ctx.textAlign = 'center';
@@ -534,7 +533,7 @@ function drawPanel(
   ctx.font = font(9);
   ctx.fillText(`${view.node + 1}. ${t(level.nameKey)}`, cx, viewH - 28);
 
-  // Récords en una línea (solo lo que exista, separado con puntos).
+  // Records on one line (only what exists, separated with dots).
   const parts: string[] = [];
   if (rec.bestTime > 0) parts.push(t('best_time', { t: formatTime(rec.bestTime) }));
   if (rec.bestTrialTime > 0) parts.push(t('trial_best', { t: formatTime(rec.bestTrialTime) }));
@@ -547,8 +546,8 @@ function drawPanel(
     ctx.fillText(parts.join(' · '), cx, viewH - 18);
   }
 
-  // Cómo entrar (derecha) y cómo moverse (izquierda): cada aviso en
-  // su esquina para que nunca se pisen entre sí.
+  // How to enter (right) and how to move (left): each prompt in its
+  // own corner so they never overlap.
   const dev = inputDevice();
   const pl = padLabels();
   const enter = dev === 'touch' ? t('ow_enter_touch') : dev === 'gamepad' ? t('ow_enter_gp', pl) : t('ow_enter_kb');
@@ -565,7 +564,7 @@ function drawPanel(
   ctx.fillText(hint, 4, viewH - 9);
 }
 
-/** El elegidor de modo sobre un nivel ya completado. */
+/** The mode chooser over an already-completed level. */
 function drawModeChooser(
   ctx: CanvasRenderingContext2D,
   session: GameSession,
@@ -577,7 +576,7 @@ function drawModeChooser(
   const cx = viewW / 2;
   const cy = viewH / 2;
 
-  // Marco del elegidor: un recuadro de piedra con esquinas de cristal.
+  // Chooser frame: a stone box with crystal corners.
   const pw = 216;
   const ph = 100;
   ctx.fillStyle = 'rgba(26,14,44,0.92)';
@@ -600,7 +599,7 @@ function drawModeChooser(
   ctx.font = font(8);
   ctx.fillText(t(LEVELS[view.node].nameKey), cx, cy - 14);
 
-  // Las dos opciones, lado a lado; la elegida brilla y se subraya.
+  // The two options, side by side; the chosen one glows and is underlined.
   const options: Array<{ mode: GameMode; label: string }> = [
     { mode: 'normal', label: t('mode_normal') },
     { mode: 'trial', label: t('mode_trial') },
@@ -617,7 +616,7 @@ function drawModeChooser(
     }
   });
 
-  // Pista del modo elegido y, en contrarreloj, la marca a batir.
+  // Hint for the chosen mode and, in time trial, the mark to beat.
   ctx.fillStyle = '#9b86c4';
   ctx.font = font(7);
   ctx.fillText(view.choice === 'normal' ? t('mode_normal_hint') : t('mode_trial_hint'), cx, cy + 20);

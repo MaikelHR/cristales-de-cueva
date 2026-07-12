@@ -1,10 +1,10 @@
 // ============================================================
-//  DIBUJO DEL MUNDO (un frame completo de la escena)
+//  WORLD DRAWING (one full frame of the scene)
 // ------------------------------------------------------------
-//  Compone las capas en orden: fondo con parallax, tiles, puerta,
-//  recogibles, enemigos, jugador, partículas, popups y la
-//  atmósfera por encima (niebla, polvo, viñeta). Lo usan todas
-//  las escenas: el mundo también se ve detrás de los menús.
+//  Composes the layers in order: parallax background, tiles, door,
+//  pickups, enemies, player, particles, popups and the atmosphere
+//  on top (fog, dust, vignette). Used by every scene: the world is
+//  also visible behind the menus.
 // ============================================================
 
 import type { GameSession } from '../session';
@@ -23,13 +23,13 @@ export function drawWorld(ctx: CanvasRenderingContext2D, session: GameSession): 
   drawBackground(
     ctx, camX, camY, viewW, viewH,
     room.level.widthPx, room.data.mapPos.x, time,
-    session.level.id, // cada nivel tiene su propio tema de color
+    session.level.id, // each level has its own color theme
   );
 
   drawLevelTiles(ctx, room.level, camX, camY, viewW, viewH, session.level.id);
   drawDoor(ctx, session, camX, camY);
   for (const d of room.devices) {
-    d.draw(ctx, camX, camY); // aparatos primero: se pisa SOBRE ellos
+    d.draw(ctx, camX, camY); // devices first: you stand ON TOP of them
   }
   for (const p of room.pickups) {
     if (!p.dead) p.draw(ctx, camX, camY);
@@ -55,12 +55,12 @@ function drawDoor(
   camY: number,
 ): void {
   const d = session.world.current.doorBox;
-  if (!d) return; // esta sala no tiene puerta
+  if (!d) return; // this room has no door
   const open = session.doorOpen;
-  // Abierta: las runas laten alternando dos frames.
+  // Open: the runes pulse by alternating two frames.
   const openSprite = Math.sin(session.time * 4) > 0 ? sprites.doorOpen2 : sprites.doorOpen;
   const sprite = open ? openSprite : sprites.doorLocked;
-  const floorY = d.y - 2 + 8; // base de la puerta sobre el piso
+  const floorY = d.y - 2 + 8; // base of the door on the floor
   const drawX = d.x + 4 - sprite.w / 2;
   const drawY = floorY - sprite.h;
   if (open) {
@@ -70,7 +70,7 @@ function drawDoor(
   sprite.draw(ctx, drawX - camX, drawY - camY);
 }
 
-/** Contornos de las cajas de colisión (solo desarrollo). */
+/** Collision box outlines (development only). */
 function drawHitboxes(
   ctx: CanvasRenderingContext2D,
   session: GameSession,

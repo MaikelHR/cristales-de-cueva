@@ -1,14 +1,14 @@
 import type { RoomData } from '../../RoomData';
 
-/** Nivel 1, sala 3 — El umbral: el examen del nivel.
- *  La entrada es tierra segura: el cazador acecha la cornisa del
- *  medio, del otro lado del primer foso — se lo ve venir, se elige
- *  el momento (pisalo al caer o esquivalo). Dos fosos de verdad
- *  (caer cuesta un corazón), un tablón alto sobre el segundo que
- *  pide el doble salto recién aprendido y un volador rondando el
- *  cruce. La puerta espera sobre el altar… y el último cristal
- *  brilla en el hueco DETRÁS de ella: la zanja de la senda ya
- *  enseñó que asomarse a los huecos paga. */
+/** Level 1, room 3 — The threshold: the level's exam.
+ *  The entry is safe ground: the chaser stalks the middle ledge,
+ *  on the far side of the first pit — you see it coming, you pick
+ *  the moment (stomp it on the way down or dodge it). Two real pits
+ *  (falling costs a heart), a high plank over the second one that
+ *  asks for the freshly learned double jump, and a flyer prowling
+ *  the crossing. The door waits above the altar… and the last
+ *  crystal glints in the gap BEHIND it: senda's ditch already
+ *  taught that peeking into gaps pays off. */
 export const umbral: RoomData = {
   id: 'umbral',
   mapPos: { x: 2, y: 0 },

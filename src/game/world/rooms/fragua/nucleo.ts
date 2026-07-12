@@ -1,16 +1,17 @@
 import type { RoomData } from '../../RoomData';
 
-/** Nivel 6, sala 3 — El núcleo: el Ariete Ígneo y la puerta.
- *  Una arena de PISO, nada que ver con el santuario: el jefe ronda
- *  y EMBISTE a ras del suelo. El umbral de piedra (izquierda) y el
- *  altar de la puerta (derecha) son sus paredes de choque — ahí se
- *  aturde y se lo pisa. Los dos parapetos agrietados del medio son
- *  refugio... hasta que una embestida los hace pedazos: la arena se
- *  va quedando pelada pelea adentro. La repisa alta de la izquierda
- *  es el único refugio fijo (su cristal pide un salto más), pero la
- *  lluvia de brasas de cada golpazo llega a todos lados. Esquivar =
- *  saltarlo por encima o subirse a algo; herirlo = pisarlo SOLO
- *  aturdido (la placa al rojo quema, como enseñó el erizo). */
+/** Level 6, room 3 — The core: the Ariete Ígneo and the door.
+ *  A GROUND arena, nothing like the sanctuary: the boss patrols
+ *  and CHARGES along the floor. The stone threshold (left) and the
+ *  door's altar (right) are its crash walls — that's where it gets
+ *  stunned and stomped. The two cracked barricades in the middle are
+ *  shelter... until a charge smashes them to bits: the arena keeps
+ *  getting stripped bare as the fight goes on. The high ledge on the
+ *  left is the only fixed shelter (its crystal asks for one more
+ *  jump), but the ember rain from every slam reaches everywhere.
+ *  Dodging = jumping over it or climbing onto something; hurting it
+ *  = stomping it ONLY while stunned (the red-hot plate burns, as the
+ *  erizo taught). */
 export const nucleo: RoomData = {
   id: 'nucleo',
   mapPos: { x: 2, y: 0 },

@@ -1,15 +1,15 @@
 import type { RoomData } from '../../RoomData';
 
-/** Nivel 5, sala 2 — La grieta: acá se gana el AZOTÓN.
- *  Reliquia en pedestal, y la lección barata enseguida: la mesa tiene
- *  un pozo tapado con DOS capas agrietadas — la picada las encadena
- *  (rompe, sigue cayendo, rompe) hasta el cristal del fondo; se sale
- *  con doble salto. La práctica de combate: un erizo ronda el puente
- *  de hielo — saltar y picar encima es su única muerte (y debajo del
- *  puente cuelga otro cristal, para el que se anima a la zanja). Al
- *  final, la repisa de hielo queda JUSTO sobre un bolsillo agrietado:
- *  dejarse caer picando desde ella lo abre — piso que patina y piso
- *  que revienta, combinados. Un segundo erizo guarda la salida. */
+/** Level 5, room 2 — La grieta: this is where you earn the POUND.
+ *  Relic on a pedestal, and the cheap lesson right after: the table has
+ *  a pit capped by TWO cracked layers — the pound chains them
+ *  (breaks, keeps falling, breaks) down to the crystal at the bottom; you exit
+ *  with a double jump. The combat practice: an erizo prowls the ice
+ *  bridge — jumping and pounding on it is its only death (and below the
+ *  bridge hangs another crystal, for whoever dares the ditch). At
+ *  the end, the ice ledge sits RIGHT above a cracked pocket:
+ *  dropping onto it with a pound opens it — slippery floor and floor
+ *  that bursts, combined. A second erizo guards the exit. */
 export const grieta: RoomData = {
   id: 'grieta',
   mapPos: { x: 1, y: 0 },

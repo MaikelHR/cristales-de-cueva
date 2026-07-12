@@ -1,11 +1,11 @@
 // ============================================================
-//  PLATAFORMA MÓVIL (aparato del escenario)
+//  MOVING PLATFORM (stage device)
 // ------------------------------------------------------------
-//  Una losa de cristal que viaja en vaivén por un eje ('x' o 'y')
-//  dentro de su rango. No forma parte de la grilla de colisión:
-//  la regla de "pararse encima y viajar con ella" vive en
-//  systems/devices.ts. Acá el movimiento (onda triangular, sin
-//  acumulación de error) y el dibujo.
+//  A crystal slab that travels back and forth along one axis ('x' or 'y')
+//  within its range. It's not part of the collision grid:
+//  the "stand on top and ride along" rule lives in
+//  systems/devices.ts. Here: the movement (triangle wave, no
+//  error accumulation) and the drawing.
 // ============================================================
 
 import type { Box } from '../../../engine/canvas';
@@ -13,24 +13,24 @@ import { TILE } from '../../world/Level';
 import type { Actor } from '../Actor';
 import { drawGlow } from '../../art/glow';
 
-const DEFAULT_SPEED = 28; // px/s, cómodo para subirse en marcha
+const DEFAULT_SPEED = 28; // px/s, comfortable to hop onto while moving
 
 export class MovingPlatform implements Actor {
   readonly layer = 'device' as const;
-  dead = false; // las plataformas no mueren; el campo es parte de Actor
+  dead = false; // platforms never die; the field is part of Actor
   readonly w = TILE * 3;
   readonly h = 6;
   x: number;
   y: number;
-  /** Cuánto se movió en el último paso (para llevar al pasajero). */
+  /** How much it moved last step (to carry the rider). */
   dx = 0;
   dy = 0;
-  /** ¿El jugador iba parado encima en el último paso? (lo marca systems). */
+  /** Was the player standing on top last step? (set by systems). */
   rider = false;
 
   private readonly baseX: number;
   private readonly baseY: number;
-  private readonly rangePx: number; // con signo: hacia dónde arranca
+  private readonly rangePx: number; // signed: which way it starts
   private readonly speed: number;
   private t = 0;
 
@@ -42,7 +42,7 @@ export class MovingPlatform implements Actor {
     speed?: number,
   ) {
     this.baseX = px;
-    this.baseY = py + 1; // deja 1px de aire: se lee como losa flotante
+    this.baseY = py + 1; // leaves 1px of air: reads as a floating slab
     this.x = this.baseX;
     this.y = this.baseY;
     this.rangePx = rangeTiles * TILE;
@@ -55,8 +55,8 @@ export class MovingPlatform implements Actor {
 
   update(dt: number): void {
     this.t += dt;
-    // Onda triangular sobre el tiempo total: la posición es función de t,
-    // así no se acumula error y el vaivén es perfectamente periódico.
+    // Triangle wave over total time: position is a function of t,
+    // so no error accumulates and the back-and-forth is perfectly periodic.
     const span = Math.abs(this.rangePx);
     const period = (2 * span) / this.speed;
     const phase = (this.t % period) / period; // 0..1
@@ -74,14 +74,14 @@ export class MovingPlatform implements Actor {
     const px = Math.round(this.x - camX);
     const py = Math.round(this.y - camY);
     drawGlow(ctx, px + this.w / 2, py + this.h / 2, 16, '#b98bff', 0.25);
-    // Losa: cuerpo oscuro, tope iluminado (es donde se pisa) y base en sombra.
+    // Slab: dark body, lit top (that's where you step) and shadowed base.
     ctx.fillStyle = '#3a2456';
     ctx.fillRect(px, py, this.w, this.h);
     ctx.fillStyle = '#8064b0';
     ctx.fillRect(px, py, this.w, 1);
     ctx.fillStyle = '#160b24';
     ctx.fillRect(px, py + this.h - 1, this.w, 1);
-    // Gemas guía en las puntas: leen como "esto es tecnología de cristal".
+    // Guide gems on the tips: they read as "this is crystal tech".
     ctx.fillStyle = '#7ce0ff';
     ctx.fillRect(px + 1, py + 2, 2, 2);
     ctx.fillRect(px + this.w - 3, py + 2, 2, 2);

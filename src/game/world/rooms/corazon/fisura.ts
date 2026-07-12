@@ -1,15 +1,15 @@
 import type { RoomData } from '../../RoomData';
 
-/** Nivel 3, sala 1 — La fisura: acá se gana el dash.
- *  La reliquia corona un pedestal que el doble salto ya alcanza.
- *  Primera pregunta: un vacío de 14 tiles entre repisas altas que
- *  ningún salto cruza — el dash sí (salto sostenido + dash + doble
- *  salto, con margen). Fallar deposita en el fondo (con un cazador
- *  de anfitrión) y se reintenta por el pedestal. Segunda pregunta,
- *  ya en serio: un cruce parecido sobre un foso. Y sobre la isla
- *  de salida, una ranura angosta con cristal cita el examen del
- *  nivel 2: el salto de pared no se olvida — el que cruza el foso
- *  todavía tiene que acordarse de escalar. */
+/** Level 3, room 1 — La fisura: this is where you earn the dash.
+ *  The relic crowns a pedestal the double jump already reaches.
+ *  First question: a 14-tile void between high ledges that no
+ *  jump clears — the dash does (sustained jump + dash + double
+ *  jump, with margin). Failing drops you to the bottom (with a
+ *  chaser as host) and you retry via the pedestal. Second
+ *  question, now for real: a similar crossing over a pit. And
+ *  above the exit island, a narrow slot with a crystal quotes
+ *  the level 2 exam: the wall jump isn't forgotten — whoever
+ *  crosses the pit still has to remember how to climb. */
 export const fisura: RoomData = {
   id: 'fisura',
   mapPos: { x: 0, y: 0 },

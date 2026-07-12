@@ -1,14 +1,14 @@
 import type { RoomData } from '../../RoomData';
 
-/** Nivel 5, sala 3 — El espejo: el examen del glaciar.
- *  Una carrera de hielo con dos fosos de púas: se salta PATINANDO,
- *  con la inercia mandando (el primer cristal flota sobre el primer
- *  foso, el segundo pide subir al tablón en plena corrida). Dos
- *  erizos marcan el ritmo: azotón o paciencia. El final es una
- *  bóveda sellada con tapa agrietada — la puerta y el último cristal
- *  esperan ADENTRO: se entra picando a través de la tapa y se sale
- *  de un doble salto por el agujero propio. El nivel entero se
- *  responde con lo aprendido: patinar, leer púas y reventar pisos. */
+/** Level 5, room 3 — The mirror: the glaciar's exam.
+ *  An ice run with two spike pits: you jump while SLIDING, with
+ *  inertia in charge (the first crystal floats over the first pit,
+ *  the second asks you to climb onto the plank mid-run). Two erizos
+ *  set the rhythm: pound or patience. The end is a sealed vault with
+ *  a cracked lid — the door and the last crystal wait INSIDE: you get
+ *  in by pounding through the lid and get out with a double jump
+ *  through your own hole. The whole level is answered with what you
+ *  learned: slide, read spikes, and blow up floors. */
 export const espejo: RoomData = {
   id: 'espejo',
   mapPos: { x: 2, y: 0 },

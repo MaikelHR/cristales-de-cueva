@@ -1,16 +1,16 @@
-/* La página es SOLO el marco del juego: fondo negro-violeta y el canvas
-   ocupando toda la pantalla (con bandas si la proporción no coincide),
-   como un juego de verdad. Todo el texto vive DENTRO del canvas. */
-/* Las fuentes (JetBrains Mono / Space Grotesk) se cargan desde index.html
-   con <link ... display=swap>, no con @import, para no bloquear el render. */
+/* The page is ONLY the game's frame: black-violet background and the canvas
+   filling the whole screen (with letterbox bands if the aspect doesn't match),
+   like a real game. All text lives INSIDE the canvas. */
+/* The fonts (JetBrains Mono / Space Grotesk) load from index.html
+   with <link ... display=swap>, not @import, so they don't block render. */
 
 * {
   box-sizing: border-box;
 }
 
-/* Anti-parpadeo de idioma: si el idioma detectado no es el español por
-   defecto del HTML, un script en <head> pone .pre-i18n en <html> y ocultamos
-   el aviso de rotar hasta que main.ts lo traduzca (luego quita la clase). */
+/* Language anti-flicker: if the detected language isn't the HTML's default
+   Spanish, a script in <head> sets .pre-i18n on <html> and we hide the
+   rotate hint until main.ts translates it (then removes the class). */
 html.pre-i18n .rotate-hint {
   visibility: hidden;
 }
@@ -19,12 +19,12 @@ html,
 body {
   margin: 0;
   height: 100%;
-  /* Movil: nada de pull-to-refresh ni rebote elastico al llegar al borde. */
+  /* Mobile: no pull-to-refresh and no elastic bounce when hitting the edge. */
   overscroll-behavior: none;
 }
 
 body {
-  /* Bandas de letterbox mas oscuras que la cueva: el ojo va al juego. */
+  /* Letterbox bands darker than the cave: the eye goes to the game. */
   background: #0b0612;
   color: #d7c9ec;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
@@ -32,24 +32,24 @@ body {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  /* 100dvh sigue en vivo a la barra del navegador (movil); fallback 100vh. */
+  /* 100dvh follows the browser bar live (mobile); fallback 100vh. */
   height: 100vh;
   height: 100dvh;
   user-select: none;
   -webkit-user-select: none;
 }
 
-/* El canvas a pantalla completa conservando la proporcion interna 320x176,
-   escalado sin difuminar: ese es el look pixel-art. Primero el fallback en
-   vw/vh (navegadores viejos), luego dvw/dvh (siguen a la barra del
-   navegador). Sin el fallback, un navegador que no entiende dvw descarta
-   TODA la regla. */
+/* The fullscreen canvas keeping the internal 320x176 aspect,
+   scaled without blurring: that's the pixel-art look. First the vw/vh
+   fallback (old browsers), then dvw/dvh (they follow the browser
+   bar). Without the fallback, a browser that doesn't understand dvw drops
+   the WHOLE rule. */
 canvas {
   image-rendering: pixelated;
-  /* Mismo degradado base que dibuja el juego (drawBackground): así, mientras
-     carga el JS y llega el primer frame, el lienzo ya parece la cueva en vez
-     de una caja vacía. El juego pinta encima opaco, así que solo se ve antes
-     del primer dibujado. */
+  /* Same base gradient the game draws (drawBackground): so while the JS
+     loads and the first frame arrives, the canvas already looks like the cave
+     instead of an empty box. The game paints over it opaquely, so it only
+     shows before the first draw. */
   background: linear-gradient(180deg, #170c28, #2a1644);
   width: min(100vw, calc(100vh * 320 / 176));
   width: min(100dvw, calc(100dvh * 320 / 176));
@@ -59,7 +59,7 @@ canvas {
   max-height: 100vh;
   max-height: 100dvh;
   touch-action: none;
-  /* En tactil: sin flash azul al tocar, sin menu contextual, sin seleccion. */
+  /* On touch: no blue flash on tap, no context menu, no selection. */
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
@@ -67,18 +67,18 @@ canvas {
 }
 
 /* =========================================================================
-   AVISO DE ROTAR (retrato -> apaisado)
-   La cueva es apaisada (320x176). En retrato el canvas quedaba en una franja
-   fina con enormes vacios negros (el juez de vision lo marco 1/5). Este overlay,
-   SOLO en tactil + retrato, cubre todo y pide girar el telefono. Es CSS puro
-   (media orientation), robusto y honesto (el lock de orientacion no es fiable).
-   En escritorio nunca se ve; en apaisado se oculta y el juego ocupa la pantalla.
+   ROTATE HINT (portrait -> landscape)
+   The cave is landscape (320x176). In portrait the canvas ended up in a thin
+   band with huge black voids (the vision judge flagged it 1/5). This overlay,
+   ONLY on touch + portrait, covers everything and asks to turn the phone. It's
+   pure CSS (media orientation), robust and honest (orientation lock isn't reliable).
+   On desktop it never shows; in landscape it hides and the game fills the screen.
    ========================================================================= */
 .rotate-hint {
   display: none;
 }
 body.touch .rotate-hint {
-  /* Por defecto (apaisado) sigue oculto; solo se muestra en retrato, abajo. */
+  /* By default (landscape) stays hidden; only shown in portrait, below. */
   display: none;
 }
 @media (orientation: portrait) {
@@ -86,7 +86,7 @@ body.touch .rotate-hint {
     display: flex;
     position: fixed;
     inset: 0;
-    z-index: 50; /* por encima de los controles tactiles (z 10) */
+    z-index: 50; /* above the touch controls (z 10) */
     flex-direction: column;
     align-items: center;
     justify-content: center;
@@ -96,8 +96,8 @@ body.touch .rotate-hint {
     background: radial-gradient(600px 400px at 50% 40%, rgba(122, 75, 214, 0.22), transparent 65%),
       #0b0510;
   }
-  /* En retrato, mientras se pide rotar, ocultamos el juego y sus controles
-     (no tiene sentido mostrar la franja fina detras del aviso). */
+  /* In portrait, while we ask to rotate, we hide the game and its controls
+     (no point showing the thin band behind the hint). */
   body.touch canvas,
   body.touch .tc {
     display: none;
@@ -127,49 +127,49 @@ body.touch .rotate-hint {
 }
 
 /* =========================================================================
-   SOPORTE MOVIL TACTIL
-   Todo lo de abajo solo entra en juego cuando touch.ts detecta un dispositivo
-   tactil y agrega la clase .touch al <body>. En escritorio: CERO cambios.
+   TOUCH MOBILE SUPPORT
+   Everything below only kicks in when touch.ts detects a touch device
+   and adds the .touch class to <body>. On desktop: ZERO changes.
    ========================================================================= */
 
-/* El overlay de controles no debe verse jamas en escritorio (red de seguridad). */
+/* The controls overlay must never show on desktop (safety net). */
 body:not(.touch) .tc {
   display: none;
 }
 
-/* --- Ajustes extra del modo tactil -------------------------------------- */
-/* El layout ya es a pantalla completa para todos; en tactil ademas
-   bloqueamos cualquier gesto de scroll que descoloque el canvas.
-   Las variables de abajo dimensionan TODO el mando; usan vh (no dvh) a
-   proposito: un navegador sin dvh invalidaria la propiedad que consuma la
-   variable, y la diferencia vh/dvh en el tamano de un boton es despreciable. */
+/* --- Extra touch-mode adjustments --------------------------------------- */
+/* The layout is already fullscreen for everyone; on touch we also
+   block any scroll gesture that would shift the canvas.
+   The variables below size the WHOLE gamepad; they use vh (not dvh) on
+   purpose: a browser without dvh would invalidate the property consuming the
+   variable, and the vh/dvh difference in a button's size is negligible. */
 body.touch {
   touch-action: none;
-  --tc-btn: clamp(48px, 13vh, 62px); /* lado de un boton de la cruceta */
+  --tc-btn: clamp(48px, 13vh, 62px); /* side of a d-pad button */
   --tc-gap: 10px;
-  --tc-edge: 12px; /* margen contra el borde fisico de la pantalla */
-  /* Notch/isla (viewport-fit=cover): los botones se corren hacia adentro
-     con env(), asi que la franja reservada crece en la misma medida. */
+  --tc-edge: 12px; /* margin against the physical screen edge */
+  /* Notch/island (viewport-fit=cover): the buttons shift inward
+     with env(), so the reserved band grows by the same amount. */
   --tc-safe: max(env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
-  /* Ancho de la franja lateral reservada al mando a cada lado: la cruceta
-     (2 columnas + hueco) mas sus margenes. */
+  /* Width of the side band reserved for the gamepad on each side: the d-pad
+     (2 columns + gap) plus its margins. */
   --tc-gutter: calc(var(--tc-btn) * 2 + var(--tc-gap) + var(--tc-edge) * 2 + var(--tc-safe));
-  /* Las bandas donde vive el mando dejan de ser negro plano: vineta sutil. */
+  /* The bands where the gamepad lives stop being flat black: subtle vignette. */
   background: radial-gradient(130% 130% at 50% 42%, #140b21 0%, #0b0612 68%);
 }
 
-/* LA REGLA DE ORO MOVIL: el mando vive en las bandas laterales de letterbox,
-   NUNCA encima del juego. En tactil el canvas cede una franja (--tc-gutter)
-   a cada lado; el min() sigue respetando la proporcion 320x176 y la altura.
-   El brillo perimetral enmarca el juego como la pantalla de una consola. */
+/* THE GOLDEN MOBILE RULE: the gamepad lives in the letterbox side bands,
+   NEVER over the game. On touch the canvas cedes a band (--tc-gutter)
+   on each side; the min() still respects the 320x176 aspect and the height.
+   The perimeter glow frames the game like a console screen. */
 body.touch canvas {
   width: min(100vw - var(--tc-gutter) * 2, calc(100vh * 320 / 176));
   width: min(100dvw - var(--tc-gutter) * 2, calc(100dvh * 320 / 176));
   box-shadow: 0 0 0 1px rgba(122, 75, 214, 0.3), 0 0 26px rgba(122, 75, 214, 0.14);
 }
 
-/* --- Contenedor de controles tactiles ---------------------------------- */
-/* Cubre toda la pantalla pero deja pasar los toques salvo en los botones. */
+/* --- Touch controls container ------------------------------------------ */
+/* Covers the whole screen but lets taps through except on the buttons. */
 .tc {
   position: fixed;
   inset: 0;
@@ -181,12 +181,12 @@ body.touch canvas {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Botones base: pixel-art del juego, no chrome del navegador. La cara
-   es un sprite horneado por codigo (ui/touchButtons.ts) que touch.ts
-   entrega como data-URL en --tc-face (reposo) y --tc-face-down
-   (presionado); aca solo se estira SIN difuminar, igual que el canvas.
-   El unico efecto no-pixel es un halo suave, a tono con los glows que
-   el juego dibuja alrededor de sus cristales. */
+/* Base buttons: the game's pixel-art, not browser chrome. The face
+   is a code-baked sprite (ui/touchButtons.ts) that touch.ts
+   delivers as a data-URL in --tc-face (idle) and --tc-face-down
+   (pressed); here it's just stretched WITHOUT blurring, like the canvas.
+   The only non-pixel effect is a soft halo, in tune with the glows the
+   game draws around its crystals. */
 .tc-btn {
   pointer-events: auto;
   touch-action: none;
@@ -206,18 +206,18 @@ body.touch canvas {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Estado presionado (dedo encima o clase que agrega touch.ts): se muestra
-   la cara "hundida" (bisel invertido, contorno dorado) y el halo se
-   enciende en dorado, como los cristales al recogerlos. */
+/* Pressed state (finger down or the class touch.ts adds): shows
+   the "sunken" face (inverted bevel, golden outline) and the halo
+   lights up gold, like the crystals when picked up. */
 .tc-btn:active,
 .tc-btn.is-active {
   background-image: var(--tc-face-down, var(--tc-face));
   filter: drop-shadow(0 0 9px rgba(255, 226, 90, 0.55));
 }
 
-/* --- Cruceta (banda izquierda) ------------------------------------------ */
-/* Compacta para caber en la franja: ◀ ▶ arriba y una barra ▼ debajo
-   (bajar de tablones / menus). Los botones estiran a su celda. */
+/* --- D-pad (left band) -------------------------------------------------- */
+/* Compact to fit in the band: ◀ ▶ on top and a ▼ bar below
+   (drop through planks / menus). The buttons stretch to their cell. */
 .tc-pad {
   position: absolute;
   bottom: calc(var(--tc-edge) + env(safe-area-inset-bottom, 0px));
@@ -242,9 +242,9 @@ body.touch canvas {
   grid-area: down;
 }
 
-/* --- Acciones (banda derecha) ------------------------------------------- */
-/* Columna: DASH (cristal celeste, el del jugador) sobre un SALTO ancho y
-   dorado, protagonista, con el mismo ancho total que la cruceta. */
+/* --- Actions (right band) ----------------------------------------------- */
+/* Column: DASH (cyan crystal, the player's) over a wide golden
+   JUMP, the star, with the same total width as the d-pad. */
 .tc-actions {
   position: absolute;
   bottom: calc(var(--tc-edge) + env(safe-area-inset-bottom, 0px));
@@ -257,21 +257,21 @@ body.touch canvas {
 }
 
 .tc-dash {
-  /* 26x16 nativo: mismo aspecto para que los pixeles queden cuadrados. */
+  /* 26x16 native: same aspect so the pixels stay square. */
   width: calc(var(--tc-btn) * 1.38);
   height: calc(var(--tc-btn) * 0.85);
   --tc-glow: rgba(124, 224, 255, 0.4);
 }
 
 .tc-jump {
-  /* 32x16 nativo: ancho de la cruceta y alto exacto de la mitad (2:1),
-     asi los pixeles del sprite quedan cuadrados. */
+  /* 32x16 native: d-pad width and exactly half the height (2:1),
+     so the sprite's pixels stay square. */
   width: calc(var(--tc-btn) * 2 + var(--tc-gap));
   height: calc(var(--tc-btn) + var(--tc-gap) / 2);
   --tc-glow: rgba(255, 210, 58, 0.4);
 }
 
-/* --- Boton de pausa (arriba, banda derecha) ----------------------------- */
+/* --- Pause button (top, right band) ------------------------------------- */
 .tc-pause {
   position: absolute;
   top: calc(var(--tc-edge) + env(safe-area-inset-top, 0px));
@@ -280,7 +280,7 @@ body.touch canvas {
   height: calc(var(--tc-btn) * 0.85);
 }
 
-/* --- Menu de pausa (centro) -------------------------------------------- */
+/* --- Pause menu (center) ----------------------------------------------- */
 .tc-menu {
   position: absolute;
   inset: 0;
@@ -296,8 +296,8 @@ body.touch canvas {
 }
 
 .tc-mbtn {
-  /* 128x24 nativo con el rotulo ya horneado (letra del juego, se estira
-     pixelada como los menus del canvas). */
+  /* 128x24 native with the label already baked (the game's font, stretched
+     pixelated like the canvas menus). */
   width: min(72vw, 288px);
   width: min(72dvw, 288px);
   height: 54px;
@@ -307,8 +307,8 @@ body.touch canvas {
   --tc-glow: rgba(255, 210, 58, 0.4);
 }
 
-/* --- Visibilidad por data-mode del contenedor -------------------------- */
-/* En juego: pad, acciones y pausa; sin menu. */
+/* --- Visibility by the container's data-mode --------------------------- */
+/* In game: pad, actions and pause; no menu. */
 .tc[data-mode='play'] .tc-menu {
   display: none;
 }
@@ -320,7 +320,7 @@ body.touch canvas {
   display: flex;
 }
 
-/* En pausa: solo el menu. */
+/* When paused: only the menu. */
 .tc[data-mode='paused'] .tc-pad,
 .tc[data-mode='paused'] .tc-actions,
 .tc[data-mode='paused'] .tc-pause {
@@ -330,7 +330,7 @@ body.touch canvas {
   display: flex;
 }
 
-/* En menus del juego (titulo/victoria/derrota): todo oculto, el tap va al canvas. */
+/* In game menus (title/win/game-over): all hidden, the tap goes to the canvas. */
 .tc[data-mode='menu'] .tc-pad,
 .tc[data-mode='menu'] .tc-actions,
 .tc[data-mode='menu'] .tc-pause,
@@ -339,17 +339,17 @@ body.touch canvas {
 }
 
 /* =========================================================================
-   SELECTOR DE IDIOMA (ES / EN) — solo tactil
-   Botones fijos arriba a la izquierda. Ocultos por defecto: langSwitch.ts
-   los enciende (data-show='1') SOLO en modo tactil y en menus/pausa. En
-   escritorio/gamepad el idioma se cambia en los menus del juego. En
-   retrato se ocultan (ahi manda el aviso de rotar).
+   LANGUAGE SELECTOR (ES / EN) — touch only
+   Fixed buttons top-left. Hidden by default: langSwitch.ts
+   turns them on (data-show='1') ONLY in touch mode and in menus/pause. On
+   desktop/gamepad the language is changed in the game menus. In
+   portrait they hide (there the rotate hint rules).
    ========================================================================= */
 .lang-switch {
   position: fixed;
   top: 10px;
   left: 10px;
-  z-index: 60; /* por encima del aviso de rotar (50) y los controles (10) */
+  z-index: 60; /* above the rotate hint (50) and the controls (10) */
   display: none;
   gap: 4px;
   padding: 3px;
@@ -383,8 +383,8 @@ body.touch canvas {
   color: #ffe9b8;
 }
 
-/* Selector de skin (tactil): un boton-muestra del color del personaje,
-   debajo del selector de idioma. Recorre las skins con cada toque. */
+/* Skin selector (touch): a swatch button of the character's color,
+   below the language selector. Cycles through the skins on each tap. */
 .skin-switch {
   position: fixed;
   top: 52px;
@@ -406,14 +406,14 @@ body.touch canvas {
   cursor: pointer;
   width: 26px;
   height: 26px;
-  border: 2px solid transparent; /* el color real lo pinta skinSwitch.ts */
+  border: 2px solid transparent; /* the real color is painted by skinSwitch.ts */
   border-radius: 7px;
   -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none;
   user-select: none;
 }
 
-/* Botón de accesorio: un canvas pixelado con el accesorio activo. */
+/* Accessory button: a pixelated canvas with the active accessory. */
 .acc-btn {
   cursor: pointer;
   display: flex;
@@ -433,7 +433,7 @@ body.touch canvas {
   image-rendering: pixelated;
 }
 
-/* En retrato manda el aviso de rotar: nada de selector encima. */
+/* In portrait the rotate hint rules: no selector on top. */
 @media (orientation: portrait) {
   body.touch .lang-switch[data-show='1'],
   body.touch .skin-switch[data-show='1'] {

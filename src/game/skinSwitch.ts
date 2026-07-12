@@ -1,16 +1,16 @@
 // ============================================================
-//  SELECTOR DE PERSONAJE (color + accesorio) — solo táctil
+//  CHARACTER SELECTOR (color + accessory) — touch only
 // ------------------------------------------------------------
-//  Dos botones fijos (debajo del selector de idioma) que recorren
-//  la personalización con cada toque: en táctil no hay menú de
-//  título que navegar (la pantalla PERSONAJE es de teclado/pad),
-//  así que el look necesita sus propios botones. Igual que el de
-//  idioma: solo existen en modo táctil y solo en los menús o en
-//  pausa, nunca durante la partida.
-//    - El primer botón se pinta del cuerpo de la skin activa:
-//      ES la vista previa del color.
-//    - El segundo muestra el accesorio activo dibujado al doble
-//      (un canvas chiquito), o un puntito si no hay ninguno.
+//  Two fixed buttons (below the language selector) that cycle
+//  through customization with each tap: on touch there's no title
+//  menu to navigate (the CHARACTER screen is keyboard/pad), so the
+//  look needs its own buttons. Just like the language one: they
+//  only exist in touch mode and only in the menus or in pause,
+//  never during gameplay.
+//    - The first button is painted with the active skin's body:
+//      it IS the color preview.
+//    - The second shows the active accessory drawn at 2x
+//      (a tiny canvas), or a dot if there's none.
 // ============================================================
 
 import { isTouchMode } from '../engine/input';
@@ -20,25 +20,25 @@ import { currentSkin, cycleSkin, onSkinChange } from './skins';
 import { currentAccessory, cycleAccessory, onAccessoryChange } from './accessories';
 import { t, onLangChange } from './i18n';
 
-const ACC_CANVAS_W = 28; // 14 columnas de grilla al doble
-const ACC_CANVAS_H = 12; // hasta 5 filas de grilla, centradas
+const ACC_CANVAS_W = 28; // 14 grid columns at 2x
+const ACC_CANVAS_H = 12; // up to 5 grid rows, centered
 
 let container: HTMLDivElement | null = null;
 let skinBtn: HTMLButtonElement | null = null;
 let accBtn: HTMLButtonElement | null = null;
 let accCanvas: HTMLCanvasElement | null = null;
 
-/** Construye los botones y los agrega al DOM. Idempotente. */
+/** Builds the buttons and appends them to the DOM. Idempotent. */
 export function initSkinSwitch(): void {
   if (container) return;
   const wrap = document.createElement('div');
   wrap.className = 'skin-switch';
-  wrap.dataset.show = '0'; // en táctil arranca oculto; syncSkinSwitch decide.
+  wrap.dataset.show = '0'; // starts hidden on touch; syncSkinSwitch decides.
 
   skinBtn = document.createElement('button');
   skinBtn.type = 'button';
   skinBtn.className = 'skin-btn';
-  // Solo 'click' (nada de pointerdown extra): un toque = UN paso de rueda.
+  // Only 'click' (no extra pointerdown): one tap = ONE wheel step.
   skinBtn.addEventListener('click', () => cycleSkin(1));
 
   accBtn = document.createElement('button');
@@ -55,12 +55,12 @@ export function initSkinSwitch(): void {
   container = wrap;
 
   paint();
-  onSkinChange(paint); // reflejar el color cuando cambie la skin.
-  onAccessoryChange(paint); // ídem el dibujito del accesorio.
-  onLangChange(paint); // los aria-label también cambian de idioma.
+  onSkinChange(paint); // reflect the color when the skin changes.
+  onAccessoryChange(paint); // likewise the accessory drawing.
+  onLangChange(paint); // the aria-labels also change language.
 }
 
-/** Visibles solo en táctil y fuera del juego (menús o pausa). */
+/** Visible only on touch and outside gameplay (menus or pause). */
 export function syncSkinSwitch(ui: { state: string; paused: boolean }): void {
   if (!container) return;
   const show = isTouchMode() && (ui.state !== 'playing' || ui.paused);
@@ -68,8 +68,8 @@ export function syncSkinSwitch(ui: { state: string; paused: boolean }): void {
   if (container.dataset.show !== val) container.dataset.show = val;
 }
 
-/** Botón 1 teñido del cuerpo (B) y contorno (K) de la skin activa;
- *  botón 2 con el accesorio activo dibujado pixel a pixel. */
+/** Button 1 tinted with the active skin's body (B) and outline (K);
+ *  button 2 with the active accessory drawn pixel by pixel. */
 function paint(): void {
   const skin = currentSkin();
   if (skinBtn) {
@@ -85,14 +85,14 @@ function paint(): void {
   const ctx = accCanvas?.getContext('2d');
   if (!ctx || !accCanvas) return;
   ctx.clearRect(0, 0, ACC_CANVAS_W, ACC_CANVAS_H);
-  ctx.imageSmoothingEnabled = false; // pixeles nítidos al escalar
+  ctx.imageSmoothingEnabled = false; // crisp pixels when scaling
   if (acc.grid.length === 0) {
-    // Sin accesorio: un puntito mudo como "ranura vacía".
+    // No accessory: a quiet dot as an "empty slot".
     ctx.fillStyle = '#57457a';
     ctx.fillRect(ACC_CANVAS_W / 2 - 1, ACC_CANVAS_H / 2 - 1, 2, 2);
     return;
   }
-  // El accesorio se tiñe como en el juego (K = contorno de la skin).
+  // The accessory is tinted as in-game (K = skin outline).
   const spr = new Sprite([...acc.grid], { ...PALETTE, ...skin.tint });
   ctx.save();
   ctx.scale(2, 2);

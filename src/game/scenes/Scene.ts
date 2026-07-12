@@ -1,26 +1,26 @@
 // ============================================================
-//  ESCENAS — el flujo de pantallas del juego
+//  SCENES — the game's screen flow
 // ------------------------------------------------------------
-//  Cada pantalla (título, partida, pausa, victoria, game over) es
-//  una escena: sabe actualizarse y dibujarse. El manager las lleva
-//  en una PILA: solo la de arriba se actualiza, pero se dibujan
-//  todas de abajo hacia arriba. Así "pausa" es una escena apilada
-//  sobre la partida: la congela con solo taparla.
-//  Sumar una pantalla nueva (opciones, mapa, diálogo) = una escena
-//  nueva; nadie más se entera.
+//  Each screen (title, gameplay, pause, victory, game over) is a
+//  scene: it knows how to update and draw itself. The manager keeps
+//  them in a STACK: only the top one updates, but they all draw
+//  bottom to top. That's how "pause" is a scene stacked over
+//  gameplay: it freezes it just by covering it.
+//  Adding a new screen (options, map, dialogue) = a new scene;
+//  nobody else needs to know.
 // ============================================================
 
-/** Estado observable para la UI de fuera del canvas (mando táctil,
- *  selector de idioma): qué pantalla se muestra y si está en pausa.
- *  'overworld' es el mapa de niveles: se navega con el mando (los
- *  botones táctiles de mover/saltar se muestran como jugando). */
+/** Observable state for the UI outside the canvas (touch controls,
+ *  language selector): which screen shows and whether it's paused.
+ *  'overworld' is the level map: navigated with the pad (the touch
+ *  move/jump buttons show as if playing). */
 export interface UiState {
   state: 'title' | 'overworld' | 'playing' | 'won' | 'gameover';
   paused: boolean;
 }
 
 export interface Scene {
-  /** El estado que esta escena representa para la UI exterior. */
+  /** The state this scene represents for the outer UI. */
   readonly ui: UiState;
   update(dt: number): void;
   draw(ctx: CanvasRenderingContext2D): void;
@@ -29,32 +29,32 @@ export interface Scene {
 export class SceneManager {
   private stack: Scene[] = [];
 
-  /** Reemplaza TODA la pila por una escena (cambio de pantalla). */
+  /** Replaces the ENTIRE stack with one scene (screen change). */
   replace(scene: Scene): void {
     this.stack = [scene];
   }
 
-  /** Apila una escena encima (p. ej. pausa sobre la partida). */
+  /** Stacks a scene on top (e.g. pause over gameplay). */
   push(scene: Scene): void {
     this.stack.push(scene);
   }
 
-  /** Saca la escena de arriba (volver a la de abajo). */
+  /** Pops the top scene (back to the one below). */
   pop(): void {
     this.stack.pop();
   }
 
-  /** Solo la escena de arriba avanza: las de abajo quedan congeladas. */
+  /** Only the top scene advances: the ones below stay frozen. */
   update(dt: number): void {
     this.stack[this.stack.length - 1]?.update(dt);
   }
 
-  /** Se dibujan todas, de abajo hacia arriba: los overlays tapan. */
+  /** All draw, bottom to top: overlays cover what's beneath. */
   draw(ctx: CanvasRenderingContext2D): void {
     for (const scene of this.stack) scene.draw(ctx);
   }
 
-  /** El estado de la escena activa (para la UI exterior). */
+  /** The active scene's state (for the outer UI). */
   get ui(): UiState {
     return this.stack[this.stack.length - 1]?.ui ?? { state: 'title', paused: false };
   }

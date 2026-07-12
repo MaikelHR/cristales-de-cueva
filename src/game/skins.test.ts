@@ -1,18 +1,17 @@
 // ============================================================
-//  Tests de las skins del personaje (datos y preferencia)
+//  Character skin tests (data and preference)
 // ------------------------------------------------------------
-//  Las skins son datos puros: acá se vigila su integridad (ids
-//  únicos, colores válidos, tints que solo re-pintan la rampa del
-//  jugador) y la lógica de elección (setSkin ignora ids inválidos,
-//  cycleSkin recorre la rueda completa). El horneado de sprites
-//  necesita DOM y no se testea acá.
+//  Skins are pure data: here we guard their integrity (unique ids,
+//  valid colors, tints that only re-paint the player ramp) and the
+//  selection logic (setSkin ignores invalid ids, cycleSkin walks the
+//  full wheel). Baking sprites needs the DOM and isn't tested here.
 // ============================================================
 
 import { beforeEach, describe, expect, it } from 'vitest';
 import { SKINS, currentSkin, cycleSkin, getSkin, setSkin } from './skins';
 
-// Las claves de la rampa del jugador en la paleta (ver art/palette.ts):
-// un tint que re-pintara otra clave teñiría tiles o enemigos al hornear.
+// The player ramp keys in the palette (see art/palette.ts):
+// a tint that re-painted another key would tint tiles or enemies when baking.
 const PLAYER_KEYS = new Set(['K', 'C', 'B', 'b', 'd', 'H', 'W', 'P']);
 const HEX = /^#[0-9a-f]{6}$/i;
 
@@ -57,8 +56,8 @@ describe('elección de skin', () => {
       seen.push(getSkin());
       cycleSkin(1);
     }
-    expect(new Set(seen).size).toBe(SKINS.length); // pasó por todas
-    expect(getSkin()).toBe(SKINS[0].id); // la vuelta completa
+    expect(new Set(seen).size).toBe(SKINS.length); // went through all
+    expect(getSkin()).toBe(SKINS[0].id); // full loop around
   });
 
   it('cycleSkin(-1) desde la primera cae en la última', () => {

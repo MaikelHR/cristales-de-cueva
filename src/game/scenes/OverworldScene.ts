@@ -1,12 +1,12 @@
 // ============================================================
-//  ESCENA: OVERWORLD (el mapa de niveles, estilo Mario)
+//  SCENE: OVERWORLD (the level map, Mario-style)
 // ------------------------------------------------------------
-//  Un sendero de 10 nodos por la gruta; el personaje CAMINA de
-//  nodo en nodo (izquierda/derecha) y entra al nivel con saltar/
-//  confirmar. Completar un nivel desbloquea el siguiente; por
-//  ahora hay 3 niveles reales y los demás nodos esperan ('???').
-//  Sobre un nivel ya completado, entrar abre el elegidor de modo:
-//  NORMAL o CONTRARRELOJ (izquierda/derecha + confirmar).
+//  A 10-node path through the grotto; the character WALKS from
+//  node to node (left/right) and enters the level with jump/
+//  confirm. Completing a level unlocks the next; for now there
+//  are 3 real levels and the other nodes wait ('???').
+//  Over an already-completed level, entering opens the mode
+//  chooser: NORMAL or TIME-TRIAL (left/right + confirm).
 // ============================================================
 
 import { justPressed } from '../../engine/input';
@@ -19,26 +19,26 @@ import type { Scene, SceneManager, UiState } from './Scene';
 import { GameplayScene } from './GameplayScene';
 import { TitleScene } from './TitleScene';
 
-const WALK_SPEED = 70; // px/s del personaje por el sendero
+const WALK_SPEED = 70; // px/s of the character along the path
 
-// El último nodo pisado persiste mientras viva la pestaña: al volver
-// de un nivel, el personaje sigue parado donde lo dejaste.
+// The last node stepped on persists while the tab lives: coming back
+// from a level, the character stays standing where you left it.
 let lastNode = 0;
 
 export class OverworldScene implements Scene {
   readonly ui: UiState = { state: 'overworld', paused: false };
 
-  /** Nodo actual (donde está parado o del que salió caminando). */
+  /** Current node (where it stands or the one it walked out of). */
   node: number;
-  /** Nodo destino mientras camina; null = quieto. */
+  /** Destination node while walking; null = still. */
   private target: number | null = null;
   x: number;
   y: number;
   facing: 1 | -1 = 1;
   walkTime = 0;
-  /** Segundos desde que llegó a un nodo (para el "plof" al aterrizar). */
+  /** Seconds since it reached a node (for the "plop" on landing). */
   settleTime = 1;
-  /** Elegidor de modo (solo sobre niveles ya completados). */
+  /** Mode chooser (only over already-completed levels). */
   choosing = false;
   choice: GameMode = 'normal';
 
@@ -51,23 +51,23 @@ export class OverworldScene implements Scene {
     this.y = OW_NODES[this.node].y;
   }
 
-  /** El nodo pisable más lejano: lo que el guardado tenga desbloqueado
-   *  (nunca más allá del último nivel que existe de verdad). */
+  /** The farthest steppable node: whatever the save has unlocked
+   *  (never past the last level that actually exists). */
   get maxNode(): number {
     const ids = LEVELS.map((l) => l.id);
     return Math.min(unlockedLevels(this.session.save, ids), LEVELS.length) - 1;
   }
 
-  /** ¿Está caminando entre nodos? (elige el sprite y silencia la entrada) */
+  /** Is it walking between nodes? (picks the sprite and silences input) */
   get walking(): boolean {
     return this.target !== null;
   }
 
   update(dt: number): void {
-    this.session.ambientUpdate(dt); // el reloj compartido sigue latiendo
+    this.session.ambientUpdate(dt); // the shared clock keeps ticking
     this.settleTime += dt;
 
-    // --- Caminando: avanzar hacia el nodo destino ---
+    // --- Walking: advance toward the destination node ---
     if (this.target !== null) {
       const dest = OW_NODES[this.target];
       const dx = dest.x - this.x;
@@ -81,16 +81,16 @@ export class OverworldScene implements Scene {
         this.node = this.target;
         this.target = null;
         lastNode = this.node;
-        this.settleTime = 0; // recién aterrizado: el dibujo lo aplasta un toque
+        this.settleTime = 0; // just landed: the drawing squashes it a touch
       } else {
         this.x += (dx / dist) * step;
         this.y += (dy / dist) * step;
         this.facing = dx >= 0 ? 1 : -1;
       }
-      return; // mientras camina no se procesa otra entrada
+      return; // while walking no other input is processed
     }
 
-    // --- Elegidor de modo ---
+    // --- Mode chooser ---
     if (this.choosing) {
       if (justPressed('left') || justPressed('right')) {
         this.choice = this.choice === 'normal' ? 'trial' : 'normal';
@@ -99,12 +99,12 @@ export class OverworldScene implements Scene {
       if (justPressed('confirm') || justPressed('jump')) {
         this.enterLevel(this.choice);
       } else if (justPressed('pause')) {
-        this.choosing = false; // cancelar y volver al mapa
+        this.choosing = false; // cancel and return to the map
       }
       return;
     }
 
-    // --- Parado en un nodo ---
+    // --- Standing on a node ---
     if (justPressed('right') && this.node < this.maxNode) {
       this.target = this.node + 1;
       this.walkTime = 0;
@@ -114,7 +114,7 @@ export class OverworldScene implements Scene {
       this.walkTime = 0;
       this.facing = -1;
     } else if (justPressed('confirm') || justPressed('jump')) {
-      // Nivel ya completado: se elige el modo; si no, directo a jugar.
+      // Already-completed level: pick the mode; otherwise straight to play.
       const completed = levelRecord(this.session.save, LEVELS[this.node].id).completions > 0;
       if (completed) {
         this.choosing = true;

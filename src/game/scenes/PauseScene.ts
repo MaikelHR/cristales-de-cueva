@@ -1,12 +1,12 @@
 // ============================================================
-//  ESCENA: PAUSA (el menú dentro de la partida)
+//  SCENE: PAUSE (the in-game menu)
 // ------------------------------------------------------------
-//  Vive APILADA sobre la partida: la partida no se actualiza pero
-//  sí se dibuja debajo, así que queda congelada tal cual estaba.
-//  El menú: continuar, reiniciar el nivel, pantalla completa,
-//  idioma y salir al mapa. Los atajos siguen vivos: pausa reanuda
-//  y R reinicia. En táctil el menú es de botones DOM (touch.ts);
-//  su botón "salir al mapa" llega como la acción 'quit'.
+//  Lives STACKED over the game: the game doesn't update but is
+//  still drawn underneath, so it stays frozen exactly as it was.
+//  The menu: resume, restart the level, fullscreen, language and
+//  exit to map. The shortcuts stay live: pause resumes and R
+//  restarts. On touch the menu is DOM buttons (touch.ts); its
+//  "exit to map" button arrives as the 'quit' action.
 // ============================================================
 
 import { justPressed } from '../../engine/input';
@@ -32,17 +32,17 @@ export class PauseScene implements Scene {
   ) {}
 
   update(): void {
-    // Atajos de siempre: pausa reanuda, R reinicia el nivel.
+    // Usual shortcuts: pause resumes, R restarts the level.
     if (justPressed('pause')) {
-      this.scenes.pop(); // reanudar exactamente donde estaba
+      this.scenes.pop(); // resume exactly where it was
       return;
     }
     if (justPressed('restart')) {
       this.session.reset();
-      this.scenes.pop(); // de vuelta a la partida, ya fresca
+      this.scenes.pop(); // back to the game, now fresh
       return;
     }
-    // "Salir al mapa" del menú táctil (botón DOM) llega como 'quit'.
+    // "Exit to map" from the touch menu (DOM button) arrives as 'quit'.
     if (justPressed('quit')) {
       this.exitToMap();
       return;
@@ -84,13 +84,13 @@ export class PauseScene implements Scene {
     }
   }
 
-  /** Abandonar la corrida y volver al mapa de niveles (sin récords). */
+  /** Abandon the run and return to the level map (no records). */
   private exitToMap(): void {
     this.scenes.replace(new OverworldScene(this.session, this.scenes));
   }
 
   draw(ctx: CanvasRenderingContext2D): void {
-    // La partida congelada ya se dibujó debajo (pila de escenas).
+    // The frozen game was already drawn underneath (scene stack).
     drawPauseOverlay(ctx, this.session, this.items, this.selected);
   }
 }

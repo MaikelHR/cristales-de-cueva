@@ -1,12 +1,12 @@
 // ============================================================
-//  ANIMACIÓN: ciclos de frames por tiempo
+//  ANIMATION: frame cycles over time
 // ------------------------------------------------------------
-//  Un solo lugar para la aritmética de "¿qué frame toca ahora?".
-//  frameAt(frames, fps, t) recorre la lista en bucle; `phase`
-//  desfasa el ciclo (p. ej. por posición, para que dos cristales
-//  vecinos no brillen sincronizados).
-//  Si más adelante hacen falta clips con eventos por frame
-//  ("en el frame 3 nace el hitbox"), este es el módulo a crecer.
+//  A single home for the "which frame is it now?" arithmetic.
+//  frameAt(frames, fps, t) loops over the list; `phase` offsets
+//  the cycle (e.g. by position, so two neighboring crystals
+//  don't glow in sync).
+//  If per-frame event clips are ever needed ("the hitbox is born
+//  on frame 3"), this is the module to grow.
 // ============================================================
 
 export function frameAt<T>(

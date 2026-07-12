@@ -1,11 +1,11 @@
 // ============================================================
-//  CÁMARA
+//  CAMERA
 // ------------------------------------------------------------
-//  Sigue al jugador y se "frena" en los bordes del nivel para no
-//  mostrar el vacío de afuera. Redondeamos a enteros para que el
-//  pixel-art no tiemble.
-//  También sabe sacudirse (shake): un golpe de amplitud que se
-//  apaga solo, para dar peso a los momentos violentos (morir).
+//  Follows the player and "brakes" at the level edges so it never
+//  shows the void outside. We round to integers so the pixel-art
+//  doesn't shimmer.
+//  It also knows how to shake: a burst of amplitude that decays on
+//  its own, to give weight to violent moments (dying).
 // ============================================================
 
 import { clamp } from '../engine/canvas';
@@ -14,9 +14,9 @@ export class Camera {
   x = 0;
   y = 0;
 
-  private shakeTime = 0;     // tiempo restante de la sacudida
-  private shakeDuration = 0; // duración total, para atenuar
-  private shakeAmp = 0;      // amplitud máxima en píxeles
+  private shakeTime = 0;     // time remaining of the shake
+  private shakeDuration = 0; // total duration, for the falloff
+  private shakeAmp = 0;      // max amplitude in pixels
 
   constructor(
     private viewW: number,
@@ -25,7 +25,7 @@ export class Camera {
     private worldH: number,
   ) {}
 
-  /** Sacude la cámara: hasta amp píxeles, durante duration segundos. */
+  /** Shakes the camera: up to amp pixels, for duration seconds. */
   shake(amp: number, duration: number): void {
     this.shakeAmp = amp;
     this.shakeTime = duration;
@@ -43,7 +43,7 @@ export class Camera {
     this.y = Math.round(clamp(targetY - this.viewH / 2, 0, maxY));
 
     if (this.shakeTime > 0) {
-      // Cada paso, un empujón aleatorio que pierde fuerza al acabarse.
+      // Each step, a random nudge that loses strength as it runs out.
       const force = this.shakeAmp * (this.shakeTime / this.shakeDuration);
       this.x += Math.round((Math.random() * 2 - 1) * force);
       this.y += Math.round((Math.random() * 2 - 1) * force);

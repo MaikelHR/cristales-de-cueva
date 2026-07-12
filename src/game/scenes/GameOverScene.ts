@@ -1,9 +1,9 @@
 // ============================================================
-//  ESCENA: GAME OVER
+//  SCENE: GAME OVER
 // ------------------------------------------------------------
-//  El mundo congelado tras la muerte queda de fondo, oscurecido.
-//  Confirmar/saltar vuelve al mapa de niveles; R reintenta el
-//  nivel al instante (que reintentar sea lo más barato posible).
+//  The world frozen after death stays in the background, darkened.
+//  Confirm/jump returns to the level map; R retries the level
+//  instantly (make retrying as cheap as possible).
 // ============================================================
 
 import { justPressed } from '../../engine/input';
@@ -27,7 +27,7 @@ export class GameOverScene implements Scene {
   update(dt: number): void {
     this.session.ambientUpdate(dt, true);
     if (justPressed('restart')) {
-      this.session.reset(); // mismo nivel y modo, de cero
+      this.session.reset(); // same level and mode, from scratch
       this.scenes.replace(new GameplayScene(this.session, this.scenes));
       return;
     }

@@ -1,31 +1,31 @@
 // ============================================================
-//  BOTONES TÁCTILES — arte pixel horneado por código
+//  TOUCH BUTTONS — pixel art baked by code
 // ------------------------------------------------------------
-//  Como todo el arte del juego, las caras del mando táctil no son
-//  imágenes ni CSS: se hornean acá pixel a pixel con la paleta de
-//  la cueva y se entregan como data-URLs que el CSS estira con
-//  image-rendering: pixelated (los botones son sprites del juego,
-//  no chrome del navegador). Cada cara tiene dos estados: reposo
-//  (bisel con luz cenital, como los tiles) y presionado (la cara
-//  se apaga, el glifo baja 1px y el contorno se enciende en
-//  dorado, igual que un cristal al recogerlo).
+//  Like all the game's art, the touch pad faces are neither
+//  images nor CSS: they're baked here pixel by pixel with the
+//  cave palette and served as data-URLs that CSS stretches with
+//  image-rendering: pixelated (the buttons are game sprites,
+//  not browser chrome). Each face has two states: idle
+//  (bevel with top-down light, like the tiles) and pressed (the
+//  face dims, the glyph drops 1px and the outline lights up in
+//  gold, just like a crystal when you collect it).
 //
-//  Familias de color: violeta (cruceta/pausa/menú) con la rampa
-//  de los tiles de cueva, dorado (salto) con la de los cristales,
-//  y celeste (dash) con la rampa del propio jugador.
+//  Color families: violet (d-pad/pause/menu) with the cave tile
+//  ramp, gold (jump) with the crystal ramp, and cyan (dash) with
+//  the player's own ramp.
 // ============================================================
 
 import { PALETTE } from '../art/palette';
 import { font } from './text';
 
-/** Las dos caras de un botón, listas para CSS (url en --tc-face*). */
+/** A button's two faces, ready for CSS (url in --tc-face*). */
 export interface TouchFace {
   idle: string;
   pressed: string;
 }
 
-/** Rampa de una familia de botón. Luz CENITAL como en toda la
- *  paleta: bisel claro arriba, sombra abajo (presionado la invierte). */
+/** Ramp for a button family. Top-down light as in the whole
+ *  palette: light bevel on top, shadow below (pressed inverts it). */
 interface Ramp {
   outline: string;
   top: string;
@@ -52,8 +52,8 @@ const GOLD: Ramp = {
   mid: PALETTE.Y, // #ffd23a
   dark: PALETTE.y, // #c9761f
   bottom: PALETTE.u, // #8f4d1a
-  glyph: '#5a3210', // glifo GRABADO: oscuro sobre cara clara...
-  glyphShadow: PALETTE.h, // ...con brillo claro abajo-derecha (cincelado)
+  glyph: '#5a3210', // ENGRAVED glyph: dark over a light face...
+  glyphShadow: PALETTE.h, // ...with a light glint bottom-right (chiseled)
 };
 
 const CYAN: Ramp = {
@@ -66,7 +66,7 @@ const CYAN: Ramp = {
   glyphShadow: PALETTE.P,
 };
 
-// --- Glifos (grillas pixel, 'X' = pintar) --------------------------------
+// --- Glyphs (pixel grids, 'X' = paint) --------------------------------
 
 const ARROW_L = ['...X', '..XX', '.XXX', 'XXXX', '.XXX', '..XX', '...X'];
 const ARROW_R = ['X...', 'XX..', 'XXX.', 'XXXX', 'XXX.', 'XX..', 'X...'];
@@ -91,7 +91,7 @@ const CHEVRONS_DASH = [
 ];
 const BARS_PAUSE = ['XX.XX', 'XX.XX', 'XX.XX', 'XX.XX', 'XX.XX', 'XX.XX', 'XX.XX'];
 
-// --- Horneado -------------------------------------------------------------
+// --- Baking -------------------------------------------------------------
 
 function drawGrid(
   ctx: CanvasRenderingContext2D,
@@ -109,9 +109,9 @@ function drawGrid(
   }
 }
 
-/** El "chasis" del botón: contorno con esquinas talladas (2px, silueta
- *  de gema), cara en dos tonos y biseles. Presionado: contorno dorado,
- *  cara apagada y bisel invertido (la sombra pasa arriba). */
+/** The button "chassis": outline with carved corners (2px, gem
+ *  silhouette), two-tone face and bevels. Pressed: gold outline,
+ *  dimmed face and inverted bevel (the shadow moves to the top). */
 function paintChassis(
   ctx: CanvasRenderingContext2D,
   w: number,
@@ -121,7 +121,7 @@ function paintChassis(
 ): void {
   ctx.fillStyle = pressed ? PALETTE.t : ramp.outline;
   ctx.fillRect(0, 0, w, h);
-  // Esquinas talladas: se recortan 2x1 + 1x2 pixeles por esquina.
+  // Carved corners: clip 2x1 + 1x2 pixels per corner.
   const cuts: Array<[number, number, number, number]> = [
     [0, 0, 2, 1],
     [0, 0, 1, 2],
@@ -134,7 +134,7 @@ function paintChassis(
   ];
   for (const [cx, cy, cw, ch] of cuts) ctx.clearRect(cx, cy, cw, ch);
 
-  // Cara en dos tonos (mitad superior más clara: la luz viene de arriba).
+  // Two-tone face (lighter upper half: the light comes from above).
   const mid = pressed ? ramp.dark : ramp.mid;
   const dark = pressed ? ramp.bottom : ramp.dark;
   const midH = Math.max(1, Math.floor((h - 4) / 2));
@@ -143,13 +143,13 @@ function paintChassis(
   ctx.fillStyle = dark;
   ctx.fillRect(1, 2 + midH, w - 2, h - 4 - midH);
 
-  // Biseles: claro arriba / sombra abajo; presionado los invierte.
+  // Bevels: light on top / shadow below; pressed inverts them.
   ctx.fillStyle = pressed ? ramp.bottom : ramp.top;
   ctx.fillRect(2, 1, w - 4, 1);
   ctx.fillStyle = pressed ? mid : ramp.bottom;
   ctx.fillRect(2, h - 2, w - 4, 1);
 
-  // Destello de gema cerca de la esquina iluminada (solo en reposo).
+  // Gem glint near the lit corner (idle only).
   if (!pressed) {
     ctx.fillStyle = ramp.top;
     ctx.fillRect(2, 2, 1, 1);
@@ -165,7 +165,7 @@ function makeCanvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingCo
   return [canvas, ctx];
 }
 
-/** Hornea las dos caras de un botón con un glifo centrado. */
+/** Bakes a button's two faces with a centered glyph. */
 function bakeGlyphFace(w: number, h: number, ramp: Ramp, glyph: string[]): TouchFace {
   const gw = Math.max(...glyph.map((r) => r.length));
   const gh = glyph.length;
@@ -181,7 +181,7 @@ function bakeGlyphFace(w: number, h: number, ramp: Ramp, glyph: string[]): Touch
   return { idle: bake(false), pressed: bake(true) };
 }
 
-/** Las caras de todos los botones del mando de juego. */
+/** The faces of all the gameplay pad's buttons. */
 export function bakeControlFaces(): {
   left: TouchFace;
   right: TouchFace;
@@ -200,10 +200,10 @@ export function bakeControlFaces(): {
   };
 }
 
-/** Cara de un botón del menú de pausa: mismo chasis, pero con el rótulo
- *  escrito con la MISMA letra del juego a resolución nativa — al estirarse
- *  queda pixelada igual que los menús dibujados dentro del canvas. Se
- *  re-hornea al cambiar de idioma (y cuando la fuente termina de cargar). */
+/** Face of a pause-menu button: same chassis, but with the label
+ *  written in the game's SAME font at native resolution — when stretched
+ *  it comes out pixelated just like the menus drawn inside the canvas. It's
+ *  re-baked on language change (and when the font finishes loading). */
 export function bakeMenuFace(label: string, gold = false): TouchFace {
   const w = 128;
   const h = 24;

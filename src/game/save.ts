@@ -1,37 +1,37 @@
 // ============================================================
-//  GUARDADO PERSISTENTE (localStorage)
+//  PERSISTENT SAVE (localStorage)
 // ------------------------------------------------------------
-//  Cada partida arranca de cero (nivel nuevo), así que no hay un
-//  "progreso a medias" que guardar. Lo que SÍ persiste entre
-//  sesiones son los récords POR NIVEL: mejor puntaje, mejor tiempo,
-//  mejor contrarreloj y cuántas veces lo completaste. Completar un
-//  nivel es lo que desbloquea el siguiente en el overworld.
+//  Each run starts from scratch (a fresh level), so there's no
+//  "half-finished progress" to save. What DOES persist across
+//  sessions are the PER-LEVEL records: best score, best time,
+//  best time-trial, and how many times you completed it. Completing
+//  a level is what unlocks the next one in the overworld.
 //
-//  El guardado lleva `version`: la v1 era de cuando el juego tenía
-//  un solo nivel (récords globales); parseSave() migra esos récords
-//  al primer nivel en vez de descartarlos.
+//  The save carries a `version`: v1 was from when the game had a
+//  single level (global records); parseSave() migrates those records
+//  onto the first level instead of discarding them.
 //
-//  parseSave/serializeSave/recordRun son puros (testeables en Node);
-//  el acceso a localStorage va aparte y envuelto en try/catch: si el
-//  navegador lo bloquea (incógnito estricto), el juego sigue igual,
-//  solo que sin recordar entre sesiones.
+//  parseSave/serializeSave/recordRun are pure (Node-testable);
+//  localStorage access lives separately and wrapped in try/catch: if
+//  the browser blocks it (strict incognito), the game runs the same,
+//  just without remembering across sessions.
 // ============================================================
 
 const KEY = 'cristales-save-v1';
 
 export const SAVE_VERSION = 2;
 
-// El id del primer nivel: los récords de la v1 (un solo nivel) migran acá.
-// Si algún día cambia el id del nivel 1, esta constante NO debe cambiar
-// sola: habría que migrar también la clave dentro de `levels`.
+// The id of the first level: v1 records (single level) migrate here.
+// If the level 1 id ever changes, this constant must NOT change on its
+// own: you'd also have to migrate the key inside `levels`.
 export const FIRST_LEVEL_ID = 'cavernas';
 
-/** Los récords de un nivel. 0 en un tiempo significa "sin marca". */
+/** A level's records. 0 for a time means "no record". */
 export interface LevelRecord {
-  completions: number;   // veces completado (en cualquier modo)
-  bestScore: number;     // mejor puntaje (modo normal)
-  bestTime: number;      // mejor tiempo al completar (modo normal)
-  bestTrialTime: number; // mejor tiempo en contrarreloj
+  completions: number;   // times completed (in any mode)
+  bestScore: number;     // best score (normal mode)
+  bestTime: number;      // best completion time (normal mode)
+  bestTrialTime: number; // best time-trial time
 }
 
 export interface SaveData {
@@ -45,14 +45,15 @@ export function emptyRecord(): LevelRecord {
 
 const DEFAULT: SaveData = { version: SAVE_VERSION, levels: {} };
 
-/** El récord de un nivel, sin mutar el guardado (para leer y mostrar). */
+/** A level's record, without mutating the save (for reading and display). */
 export function levelRecord(save: SaveData, levelId: string): LevelRecord {
   return save.levels[levelId] ?? emptyRecord();
 }
 
 /**
- * Cuántos niveles están jugables, en orden: el primero siempre, y cada
- * uno más al completar el anterior. (Nunca menos de 1 ni más que todos.)
+ * How many levels are playable, in order: the first one always, plus one
+ * more each time you complete the previous. (Never fewer than 1 nor more
+ * than all of them.)
  */
 export function unlockedLevels(save: SaveData, levelIds: readonly string[]): number {
   let unlocked = 1;
@@ -62,15 +63,15 @@ export function unlockedLevels(save: SaveData, levelIds: readonly string[]): num
   return Math.min(unlocked, levelIds.length);
 }
 
-/** El resultado de una corrida, para actualizar los récords. */
+/** The result of a run, used to update the records. */
 export interface RunResult {
   won: boolean;
   mode: 'normal' | 'trial';
   score: number;
-  time: number; // segundos jugados
+  time: number; // seconds played
 }
 
-/** Qué marcas batió la corrida (para celebrarlas en pantalla). */
+/** Which records the run broke (to celebrate them on screen). */
 export interface RunFlags {
   newBestScore: boolean;
   newBestTime: boolean;
@@ -78,10 +79,10 @@ export interface RunFlags {
 }
 
 /**
- * Vuelca una corrida terminada sobre los récords del nivel (mutando el
- * guardado) y devuelve qué marcas batió. Reglas: el puntaje cuenta solo
- * en modo normal (en contrarreloj se corre, no se caza); los tiempos
- * cuentan solo al ganar, cada modo con su propia marca.
+ * Folds a finished run into the level's records (mutating the save) and
+ * returns which records it broke. Rules: score counts only in normal mode
+ * (in a time-trial you race, you don't hunt); times count only on a win,
+ * each mode with its own record.
  */
 export function recordRun(save: SaveData, levelId: string, run: RunResult): RunFlags {
   const rec = (save.levels[levelId] ??= emptyRecord());
@@ -103,7 +104,7 @@ export function recordRun(save: SaveData, levelId: string, run: RunResult): RunF
   return flags;
 }
 
-/** Normaliza un récord crudo: números válidos o 0, nunca basura. */
+/** Normalizes a raw record: valid numbers or 0, never garbage. */
 function cleanRecord(raw: unknown): LevelRecord {
   const r = (typeof raw === 'object' && raw !== null ? raw : {}) as Partial<LevelRecord>;
   return {
@@ -114,15 +115,15 @@ function cleanRecord(raw: unknown): LevelRecord {
   };
 }
 
-/** Interpreta (y migra) un guardado crudo. Corrupto o ausente = por defecto. */
+/** Parses (and migrates) a raw save. Corrupt or absent = default. */
 export function parseSave(raw: string | null): SaveData {
   if (!raw) return structuredClone(DEFAULT);
   try {
     const data = JSON.parse(raw) as Record<string, unknown> | null;
     if (typeof data !== 'object' || data === null) return structuredClone(DEFAULT);
 
-    // Migración v0/v1 -> v2: el juego entero era lo que hoy es el primer
-    // nivel, así que sus récords globales pasan a ser los de ese nivel.
+    // Migration v0/v1 -> v2: the whole game was what today is the first
+    // level, so its global records become that level's records.
     if (!('levels' in data)) {
       const legacy = cleanRecord({
         completions: data.victories,
@@ -154,7 +155,7 @@ export function serializeSave(data: SaveData): string {
   return JSON.stringify(data);
 }
 
-/** Lee el guardado del navegador. Sin almacenamiento = valores por defecto. */
+/** Reads the save from the browser. No storage = default values. */
 export function loadSave(): SaveData {
   try {
     return parseSave(localStorage.getItem(KEY));
@@ -163,11 +164,11 @@ export function loadSave(): SaveData {
   }
 }
 
-/** Escribe el guardado. Si el navegador no lo permite, no pasa nada. */
+/** Writes the save. If the browser doesn't allow it, nothing happens. */
 export function writeSave(data: SaveData): void {
   try {
     localStorage.setItem(KEY, serializeSave(data));
   } catch {
-    // Almacenamiento no disponible: seguimos sin persistir.
+    // Storage unavailable: we carry on without persisting.
   }
 }

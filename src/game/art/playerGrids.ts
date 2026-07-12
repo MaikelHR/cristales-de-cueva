@@ -1,41 +1,41 @@
 // ============================================================
-//  GRILLAS DEL JUGADOR (solo datos, sin hornear)
+//  PLAYER GRIDS (data only, no baking)
 // ------------------------------------------------------------
-//  Los frames del ser de cristal como texto, separados de
-//  sprites.ts para que carguen en Node: la composición de
-//  accesorios (accessories.ts) se testea contra estas grillas
-//  reales. El horneado (que sí necesita DOM) vive en
-//  playerSkins.ts: tinta la rampa por skin y superpone el
-//  accesorio elegido ANTES de hornear.
+//  The crystal being's frames as text, split out of sprites.ts
+//  so they load in Node: the accessory composition
+//  (accessories.ts) is tested against these real grids. Baking
+//  (which does need the DOM) lives in playerSkins.ts: it tints
+//  the ramp per skin and overlays the chosen accessory BEFORE
+//  baking.
 // ============================================================
 
-// ---- Jugador (ser de cristal) — 14x16 ----
-// Rampa fría con hue shift: W>H>B>b>d>K (luz cenital). Contorno sel-out:
-// claro (C) arriba donde pega la luz, oscuro (K) abajo. Cabeza redonda con
-// corona brillante y ojos de pupila oscura; cuerpo con panza en sombra (d);
-// manitas (B) a los lados. Cabeza (0-8), torso (9-11), piernas (12-15).
+// ---- Player (crystal being) — 14x16 ----
+// Cold ramp with hue shift: W>H>B>b>d>K (top-down light). Sel-out outline:
+// light (C) on top where the light hits, dark (K) below. Round head with a
+// bright crown and dark-pupil eyes; body with a shaded belly (d); little
+// hands (B) at the sides. Head (0-8), torso (9-11), legs (12-15).
 const PLAYER_IDLE = [
   '.....CCCC.....', '...CCWWWWCC...', '..CWWHHHHWWC..', '.CWHHBBBBHHWC.',
   '.CHBBBBBBBBHC.', 'CHBBBBBBBBBBHC', 'CHBWPBBBBPWBHC', 'CKBBBBBBBBBBKC',
   '..KBBbbbbBBK..', '.BKBBbbbbBBKB.', '..KBbbbbbbBK..', '..KBbdddbBK...',
   '...KBb..bBK...', '...KB....BK...', '...KK....KK...', '..............',
 ];
-// Respiración: cuerpo bajado un pixel (los pies quedan fijos abajo).
+// Breathing: body lowered one pixel (the feet stay fixed at the bottom).
 const PLAYER_IDLE2 = [
   '..............', '.....CCCC.....', '...CCWWWWCC...', '..CWWHHHHWWC..',
   '.CWHHBBBBHHWC.', '.CHBBBBBBBBHC.', 'CHBBBBBBBBBBHC', 'CHBWPBBBBPWBHC',
   'CKBBBBBBBBBBKC', '..KBBbbbbBBK..', '.BKBBbbbbBBKB.', '..KBbbbbbbBK..',
   '..KBbdddbBK...', '...KBb..bBK...', '...KB....BK...', '...KK....KK...',
 ];
-// Parpadeo: ojos cerrados en dos rayitas.
+// Blink: eyes closed into two little lines.
 const PLAYER_BLINK = [
   '.....CCCC.....', '...CCWWWWCC...', '..CWWHHHHWWC..', '.CWHHBBBBHHWC.',
   '.CHBBBBBBBBHC.', 'CHBBBBBBBBBBHC', 'CHBBKKBBKKBBHC', 'CKBBBBBBBBBBKC',
   '..KBBbbbbBBK..', '.BKBBbbbbBBKB.', '..KBbbbbbbBK..', '..KBbdddbBK...',
   '...KBb..bBK...', '...KB....BK...', '...KK....KK...', '..............',
 ];
-// Correr: 4 frames. Piernas alternan apoyo (abiertas) y paso (juntas).
-// run1/run3 = contacto, run2/run4 = pasada. Todos a 16 filas.
+// Running: 4 frames. Legs alternate stance (open) and stride (together).
+// run1/run3 = contact, run2/run4 = passing. All 16 rows.
 const PLAYER_RUN1 = [
   '.....CCCC.....', '...CCWWWWCC...', '..CWWHHHHWWC..', '.CWHHBBBBHHWC.',
   '.CHBBBBBBBBHC.', 'CHBBBBBBBBBBHC', 'CHBWPBBBBPWBHC', 'CKBBBBBBBBBBKC',
@@ -72,7 +72,7 @@ const PLAYER_FALL = [
   'BKBBbbbbBBKB.', '.BKBBbbbbBBKB.', '..KBbbbbbbBK..', '..KBbdddbBK...',
   '..KBb...bBK...', '.Kd.......dK..', '.KK.......KK..', '..............',
 ];
-// Deslizando por la pared: mira a la derecha; el flip lo invierte.
+// Wall sliding: faces right; the flip inverts it.
 const PLAYER_WALL = [
   '.....CCCC.....', '...CCWWWWCC...', '..CWWHHHHWWC..', '.CWHHBBBBHHWC.',
   '.CHBBBBBBBBHC.', 'CHBBBBBBBBBBHC', 'CHBWPBBBBPWBHC', 'CKBBBBBBBBBBKC',

@@ -1,14 +1,14 @@
 // ============================================================
-//  EL JUGADOR
+//  THE PLAYER
 // ------------------------------------------------------------
-//  Física de plataformero con dos detalles de "game feel":
-//   - Coyote time: podés saltar un instante DESPUÉS de salir
-//     del borde (perdona el reflejo tarde).
-//   - Jump buffer: si presionás saltar justo ANTES de tocar el
-//     piso, el salto se guarda y se ejecuta al aterrizar.
-//  Esos dos detalles son los que hacen que un salto "se sienta bien".
-//  Dónde aparece (spawn, checkpoint) lo decide la sesión: acá solo
-//  vive el movimiento, el daño y el dibujo.
+//  Platformer physics with two "game feel" details:
+//   - Coyote time: you can jump a moment AFTER leaving the
+//     ledge (forgives the late reflex).
+//   - Jump buffer: if you press jump just BEFORE touching the
+//     ground, the jump is stored and runs on landing.
+//  Those two details are what make a jump "feel good".
+//  Where it appears (spawn, checkpoint) is decided by the session: here
+//  only movement, damage and drawing live.
 // ============================================================
 
 import { isDown, justPressed } from '../../engine/input';
@@ -25,56 +25,56 @@ import { sfx } from '../sfx';
 
 const MOVE_SPEED = 92;     // px/s horizontal
 const GRAVITY = 680;       // px/s^2
-const JUMP_SPEED = 215;    // velocidad inicial del salto (px/s)
-const MAX_FALL = 280;      // velocidad máxima de caída
-const COYOTE = 0.1;        // segundos de gracia tras dejar el piso
-const JUMP_BUFFER = 0.12;  // segundos que se "recuerda" el salto
-const JUMP_CUT = 0.45;     // al soltar saltar, recortamos el impulso
+const JUMP_SPEED = 215;    // initial jump velocity (px/s)
+const MAX_FALL = 280;      // max fall velocity
+const COYOTE = 0.1;        // grace seconds after leaving the ground
+const JUMP_BUFFER = 0.12;  // seconds the jump is "remembered"
+const JUMP_CUT = 0.45;     // on releasing jump, we cut the impulse
 
-const DOUBLE_JUMP = 0.92;  // fuerza del doble salto relativa al salto normal
+const DOUBLE_JUMP = 0.92;  // double jump strength relative to the normal jump
 
-// Dash: impulso horizontal corto. Mientras dura, la gravedad se suspende.
-const DASH_SPEED = 250;    // px/s durante el dash
-const DASH_TIME = 0.14;    // segundos que dura el impulso
-const DASH_COOLDOWN = 0.5; // espera hasta poder volver a dashear
-const DASH_SQUASH = 0.8;   // achatado horizontal: sensación de velocidad
+// Dash: short horizontal impulse. While it lasts, gravity is suspended.
+const DASH_SPEED = 250;    // px/s during the dash
+const DASH_TIME = 0.14;    // seconds the impulse lasts
+const DASH_COOLDOWN = 0.5; // wait until you can dash again
+const DASH_SQUASH = 0.8;   // horizontal flattening: sense of speed
 
-// Wall slide y wall jump
-const WALL_SLIDE_SPEED = 55; // caída máxima mientras rozás la pared
-const WALL_JUMP_V = 0.98;    // altura del wall jump vs salto normal
-const WALL_JUMP_H = 130;     // empujón horizontal alejándose de la pared
-const WALL_LOCK = 0.14;      // control bloqueado tras el wall jump
+// Wall slide and wall jump
+const WALL_SLIDE_SPEED = 55; // max fall while grazing the wall
+const WALL_JUMP_V = 0.98;    // wall jump height vs normal jump
+const WALL_JUMP_H = 130;     // horizontal push away from the wall
+const WALL_LOCK = 0.14;      // control locked after the wall jump
 
-// Planeo: sostener saltar en el aire frena la caída. La proporción
-// manda en el diseño: ~2 tiles de avance por cada tile de descenso.
-const GLIDE_FALL = 45;       // caída máxima planeando (px/s)
+// Glide: holding jump in the air slows the fall. The ratio
+// drives the design: ~2 tiles forward for each tile of descent.
+const GLIDE_FALL = 45;       // max fall while gliding (px/s)
 
-// Azotón: picada vertical que revienta bloques agrietados ('%').
-const POUND_SPEED = 340;     // px/s de la picada (más que MAX_FALL: pesa)
+// Pound: vertical dive that shatters cracked blocks ('%').
+const POUND_SPEED = 340;     // px/s of the dive (more than MAX_FALL: it's heavy)
 
-// Hielo ('~'): el control llega patinando — acelera y frena de a poco.
-const ICE_GRIP = 4.5;        // por segundo: qué tan rápido "agarra" el pie
+// Ice ('~'): control arrives sliding — accelerates and brakes gradually.
+const ICE_GRIP = 4.5;        // per second: how fast the foot "grips"
 
-// Esquirlas de bloque agrietado al romperse.
+// Shards of a cracked block when it breaks.
 const CRACK_COLORS = ['#e9d6ff', '#b98bff', '#8064b0'];
 
-// Vida y daño
-const MAX_HEALTH = 3;      // corazones
-const HURT_INVULN = 1.1;   // segundos de invulnerabilidad tras un golpe
-const HURT_LOCK = 0.2;     // control bloqueado durante el retroceso
-const KNOCKBACK_X = 150;   // empujón horizontal al recibir daño
-const KNOCKBACK_Y = 150;   // empujón hacia arriba al recibir daño
+// Health and damage
+const MAX_HEALTH = 3;      // hearts
+const HURT_INVULN = 1.1;   // seconds of invulnerability after a hit
+const HURT_LOCK = 0.2;     // control locked during the knockback
+const KNOCKBACK_X = 150;   // horizontal push when taking damage
+const KNOCKBACK_Y = 150;   // upward push when taking damage
 
-const STOMP_BOUNCE = 200;  // rebote hacia arriba tras pisar un enemigo
+const STOMP_BOUNCE = 200;  // upward bounce after stomping an enemy
 
-// Squash & stretch: deformar el sprite da sensación de peso y energía.
-const STRETCH_JUMP = 1.28;    // estirado al despegar (alto y flaco)
-const SQUASH_MAX = 0.38;      // aplastado máximo al aterrizar (bajo y ancho)
-const STRETCH_RECOVER = 11;   // qué tan rápido recupera la forma (por segundo)
+// Squash & stretch: deforming the sprite conveys weight and energy.
+const STRETCH_JUMP = 1.28;    // stretched on takeoff (tall and thin)
+const SQUASH_MAX = 0.38;      // max squash on landing (short and wide)
+const STRETCH_RECOVER = 11;   // how fast it recovers its shape (per second)
 
-// Polvo de la cueva que levantan los pies.
+// Cave dust kicked up by the feet.
 const DUST_COLORS = ['#9b86c4', '#6f5a9e', '#d7c9ec'];
-const DUST_STEP_EVERY = 0.09; // segundos entre motas mientras corre
+const DUST_STEP_EVERY = 0.09; // seconds between motes while running
 
 export class Player {
   x = 0;
@@ -88,12 +88,12 @@ export class Player {
 
   readonly maxHealth = MAX_HEALTH;
   health = MAX_HEALTH;
-  private invulnTimer = 0;  // >0 = invulnerable (parpadea)
-  private hurtLock = 0;     // >0 = control bloqueado por retroceso
-  private stompGrace = 0;   // >0 = recién pisó: no recibe daño (sin parpadeo)
+  private invulnTimer = 0;  // >0 = invulnerable (blinks)
+  private hurtLock = 0;     // >0 = control locked by knockback
+  private stompGrace = 0;   // >0 = just stomped: takes no damage (no blink)
 
-  /** Habilidades desbloqueables: son datos, no código duro.
-   *  Arrancan apagadas; cada reliquia del mundo enciende la suya. */
+  /** Unlockable abilities: they're data, not hardcoded.
+   *  They start off; each relic in the world turns its own on. */
   readonly abilities: Record<AbilityName, boolean> = {
     doubleJump: false,
     dash: false,
@@ -103,20 +103,20 @@ export class Player {
     smash: false,
   };
   private airJumpsLeft = 0;
-  private dashTimer = 0;    // >0 = dash en curso
+  private dashTimer = 0;    // >0 = dash in progress
   private dashCooldown = 0;
-  private wallLock = 0;     // >0 = control bloqueado tras un wall jump
+  private wallLock = 0;     // >0 = control locked after a wall jump
   private wallLockDir: 1 | -1 = 1;
-  private wallSliding = false; // para elegir el sprite de pared
-  private isPounding = false;  // picada de azotón en curso
-  private isGliding = false;   // frenando la caída con el planeo
+  private wallSliding = false; // to pick the wall sprite
+  private isPounding = false;  // pound dive in progress
+  private isGliding = false;   // slowing the fall with the glide
 
-  private launched = false; // impulso externo (resorte): sin recorte de salto
-  private dropTimer = 0;    // >0 = bajando a través de un tablón (los ignora)
+  private launched = false; // external impulse (spring): no jump cut
+  private dropTimer = 0;    // >0 = dropping through a plank (ignores them)
   private coyoteTimer = 0;
   private bufferTimer = 0;
   private animTime = 0;
-  private stretch = 1; // escala vertical: >1 estirado, <1 aplastado, 1 normal
+  private stretch = 1; // vertical scale: >1 stretched, <1 squashed, 1 normal
   private dustTimer = 0;
 
   constructor(
@@ -124,12 +124,12 @@ export class Player {
     private particles: Particles,
   ) {}
 
-  /** Al cambiar de sala, el jugador pasa a colisionar contra la nueva. */
+  /** On changing rooms, the player starts colliding against the new one. */
   setLevel(level: Level): void {
     this.level = level;
   }
 
-  /** Reaparecer en un punto concreto (spawn o checkpoint). */
+  /** Respawn at a specific point (spawn or checkpoint). */
   respawnAt(x: number, y: number): void {
     this.x = x;
     this.y = y;
@@ -154,15 +154,15 @@ export class Player {
     return this.invulnTimer > 0;
   }
 
-  /** ¿Está en plena picada de azotón? (el combate lo lee: la picada
-   *  pisa incluso a los enemigos con púas). */
+  /** Is it in a full pound dive? (combat reads it: the dive
+   *  stomps even spiky enemies). */
   get pounding(): boolean {
     return this.isPounding;
   }
 
-  /** ¿Está "colgado" del planeo? (en el aire, con la habilidad y
-   *  sosteniendo saltar). Las corrientes ascendentes solo empujan
-   *  en este estado: soltar saltar es soltarse del viento. */
+  /** Is it "hanging" on the glide? (in the air, with the ability and
+   *  holding jump). Updrafts only push in this state: releasing
+   *  jump is letting go of the wind. */
   get glideHeld(): boolean {
     return (
       this.abilities.glide &&
@@ -173,57 +173,57 @@ export class Player {
     );
   }
 
-  /** Empuje de una corriente ascendente: acelera hacia arriba hasta la
-   *  velocidad de ascenso. Lo llama systems/devices mientras planea
-   *  dentro de la columna. */
+  /** Push from an updraft: accelerates upward up to the
+   *  rise velocity. Called by systems/devices while gliding
+   *  inside the column. */
   liftBy(dt: number, accel: number, maxRise: number): void {
     this.vy = Math.max(this.vy - accel * dt, -maxRise);
   }
 
-  /** Rebote al pisar un enemigo: salta hacia arriba, recupera el salto
-   *  aéreo (para encadenar) y una gracia breve para no recibir daño del
-   *  mismo enemigo mientras sigue solapado (p. ej. un jefe que sobrevive). */
+  /** Bounce on stomping an enemy: jumps up, regains the air jump
+   *  (to chain) and a brief grace so it takes no damage from the
+   *  same enemy while still overlapping (e.g. a boss that survives). */
   bounce(): void {
     this.vy = -STOMP_BOUNCE;
     this.onGround = false;
     this.airJumpsLeft = 1;
     this.stretch = STRETCH_JUMP;
     this.stompGrace = 0.35;
-    this.isPounding = false; // el rebote cierra la picada
+    this.isPounding = false; // the bounce ends the dive
   }
 
-  /** Lanzamiento de resorte: impulso vertical impuesto desde afuera.
-   *  Marca `launched` para que el recorte de salto variable (soltar la
-   *  tecla achica el brinco) NO se coma este impulso: el resorte manda
-   *  hasta el punto más alto. También recarga el salto aéreo. */
+  /** Spring launch: vertical impulse imposed from the outside.
+   *  Sets `launched` so the variable jump cut (releasing the
+   *  key shortens the hop) does NOT eat this impulse: the spring rules
+   *  up to the highest point. Also recharges the air jump. */
   springLaunch(speed: number): void {
     this.vy = -speed;
     this.onGround = false;
     this.launched = true;
     this.airJumpsLeft = 1;
     this.stretch = STRETCH_JUMP;
-    this.isPounding = false; // el resorte gana: corta la picada
+    this.isPounding = false; // the spring wins: cuts the dive
   }
 
   /**
-   * Recibir daño desde una fuente ubicada en fromX. Devuelve true si
-   * el golpe conectó (false si estaba invulnerable). Quita un corazón,
-   * empuja al jugador lejos de la fuente y activa la invulnerabilidad.
+   * Take damage from a source located at fromX. Returns true if
+   * the hit connected (false if it was invulnerable). Removes a heart,
+   * pushes the player away from the source and triggers invulnerability.
    */
   hurt(fromX: number): boolean {
     if (this.invulnTimer > 0 || this.stompGrace > 0) return false;
     this.health--;
     this.invulnTimer = HURT_INVULN;
     this.hurtLock = HURT_LOCK;
-    this.dashTimer = 0; // un golpe corta el dash
-    this.launched = false; // y también el vuelo de resorte
-    this.isPounding = false; // y la picada de azotón
+    this.dashTimer = 0; // a hit cuts the dash
+    this.launched = false; // and also the spring flight
+    this.isPounding = false; // and the pound dive
     this.wallLock = 0;
     const away: 1 | -1 = this.x + this.w / 2 < fromX ? -1 : 1;
     this.vx = away * KNOCKBACK_X;
     this.vy = -KNOCKBACK_Y;
     this.onGround = false;
-    this.facing = (-away) as 1 | -1; // mira hacia lo que lo golpeó
+    this.facing = (-away) as 1 | -1; // faces what hit it
     return true;
   }
 
@@ -234,11 +234,11 @@ export class Player {
     this.stompGrace = Math.max(0, this.stompGrace - dt);
     this.dropTimer = Math.max(0, this.dropTimer - dt);
 
-    // ¿La picada aterrizó fuera de la física propia? (una plataforma
-    // móvil lo apoyó en el paso de aparatos): cerrar el impacto acá.
+    // Did the dive land outside its own physics? (a moving
+    // platform set it down during the devices pass): close the impact here.
     if (this.isPounding && this.onGround) this.landPound();
 
-    // ---- Azotón: ¿arranca uno? (abajo, en pleno aire) ----
+    // ---- Pound: does one start? (down, mid-air) ----
     if (
       !this.isPounding &&
       this.abilities.pound &&
@@ -249,11 +249,11 @@ export class Player {
     ) {
       this.isPounding = true;
       this.launched = false;
-      this.stretch = STRETCH_JUMP; // se afina en la picada
+      this.stretch = STRETCH_JUMP; // thins out during the dive
       sfx.pound();
     }
 
-    // ---- Dash: ¿arranca uno? ----
+    // ---- Dash: does one start? ----
     this.dashCooldown = Math.max(0, this.dashCooldown - dt);
     if (
       this.dashTimer <= 0 &&
@@ -264,25 +264,25 @@ export class Player {
     ) {
       this.dashTimer = DASH_TIME;
       this.dashCooldown = DASH_COOLDOWN;
-      this.stretch = DASH_SQUASH; // achatado por la velocidad
+      this.stretch = DASH_SQUASH; // flattened by the speed
       sfx.dash();
     }
 
     if (this.isPounding) {
-      // ---- En picada: derecho hacia abajo, sin control (compromiso) ----
+      // ---- Diving: straight down, no control (commitment) ----
       this.vx = 0;
       this.vy = POUND_SPEED;
-      // Líneas de velocidad sobre la cabeza
+      // Speed lines above the head
       this.particles.puff(this.x + this.w / 2, this.y + 1, 1, DUST_COLORS);
     } else if (this.dashTimer > 0) {
-      // ---- En pleno dash: velocidad fija, sin gravedad ni control ----
+      // ---- Mid-dash: fixed speed, no gravity or control ----
       this.dashTimer -= dt;
       this.vx = this.facing * DASH_SPEED;
       this.vy = 0;
-      // Embestida: los bloques agrietados de adelante se hacen pedazos
-      // en vez de frenar el impulso.
+      // Charge: the cracked blocks ahead shatter
+      // instead of stopping the impulse.
       if (this.abilities.smash) this.smashAhead();
-      // Estela de polvo detrás
+      // Dust trail behind
       this.particles.puff(
         this.x + this.w / 2 - this.facing * 4,
         this.y + this.h - 3,
@@ -291,22 +291,22 @@ export class Player {
         -this.facing,
       );
     } else {
-      // ---- Entrada horizontal ----
+      // ---- Horizontal input ----
       let dir = 0;
       if (isDown('left')) dir -= 1;
       if (isDown('right')) dir += 1;
       this.wallLock = Math.max(0, this.wallLock - dt);
       this.hurtLock = Math.max(0, this.hurtLock - dt);
       if (this.hurtLock > 0) {
-        // Retroceso por daño: no hay control, la velocidad se frena sola.
+        // Damage knockback: no control, the velocity brakes on its own.
         this.vx *= 0.86;
       } else if (this.wallLock > 0) {
-        // Tras un wall jump, unos frames de empujón fijo: sin esto,
-        // mantener la tecla hacia la pared te re-pegaría al instante.
+        // After a wall jump, a few frames of fixed push: without this,
+        // holding the key toward the wall would re-stick you instantly.
         this.vx = this.wallLockDir * WALL_JUMP_H;
       } else if (this.onGround && this.onIce()) {
-        // Hielo bajo los pies: el control llega patinando — la velocidad
-        // persigue a la intención en vez de obedecerla al instante.
+        // Ice underfoot: control arrives sliding — the velocity
+        // chases the intention instead of obeying it instantly.
         this.vx += (dir * MOVE_SPEED - this.vx) * Math.min(1, ICE_GRIP * dt);
         if (dir !== 0) this.facing = dir as 1 | -1;
       } else {
@@ -314,19 +314,19 @@ export class Player {
         if (dir !== 0) this.facing = dir as 1 | -1;
       }
 
-      // ---- Temporizadores de coyote y buffer ----
+      // ---- Coyote and buffer timers ----
       this.coyoteTimer = this.onGround ? COYOTE : Math.max(0, this.coyoteTimer - dt);
-      if (this.onGround) this.airJumpsLeft = 1; // pisar recarga el doble salto
+      if (this.onGround) this.airJumpsLeft = 1; // landing recharges the double jump
       this.bufferTimer = justPressed('jump')
         ? JUMP_BUFFER
         : Math.max(0, this.bufferTimer - dt);
 
-      // ---- Saltos: piso (con coyote) > pared > doble salto ----
+      // ---- Jumps: ground (with coyote) > wall > double jump ----
       if (this.bufferTimer > 0) {
         const wall = this.onGround ? 0 : this.wallDir();
         if (this.coyoteTimer > 0 && isDown('down') && this.onPlankOnly()) {
-          // Abajo + saltar sobre un tablón: en vez de saltar, lo atraviesa
-          // hacia abajo (los tablones dejan de frenar por unos frames).
+          // Down + jump on a plank: instead of jumping, drops through
+          // it downward (planks stop blocking for a few frames).
           this.dropTimer = 0.16;
           this.onGround = false;
           this.bufferTimer = 0;
@@ -339,10 +339,10 @@ export class Player {
           this.bufferTimer = 0;
           this.coyoteTimer = 0;
           this.launched = false;
-          this.stretch = STRETCH_JUMP; // despega estirado
+          this.stretch = STRETCH_JUMP; // takes off stretched
           sfx.jump();
         } else if (this.abilities.wallJump && wall !== 0) {
-          // Wall jump: salto en diagonal, alejándose de la pared.
+          // Wall jump: diagonal jump, away from the wall.
           this.vy = -JUMP_SPEED * WALL_JUMP_V;
           this.launched = false;
           this.wallLock = WALL_LOCK;
@@ -350,35 +350,35 @@ export class Player {
           this.facing = this.wallLockDir;
           this.bufferTimer = 0;
           this.stretch = STRETCH_JUMP;
-          // Virutas en el punto de empuje contra la pared
+          // Chips at the push point against the wall
           const px = wall === 1 ? this.x + this.w : this.x;
           this.particles.puff(px, this.y + this.h / 2, 4, DUST_COLORS, -wall);
           sfx.wallJump();
         } else if (this.abilities.doubleJump && this.airJumpsLeft > 0) {
-          // Doble salto: un impulso extra en pleno aire.
+          // Double jump: an extra impulse mid-air.
           this.airJumpsLeft--;
           this.vy = -JUMP_SPEED * DOUBLE_JUMP;
           this.launched = false;
           this.bufferTimer = 0;
           this.stretch = STRETCH_JUMP;
-          // Nubecita bajo los pies: el "apoyo" invisible del segundo salto.
+          // Little cloud underfoot: the invisible "footing" of the second jump.
           this.particles.puff(this.x + this.w / 2, this.y + this.h, 5, DUST_COLORS);
           sfx.doubleJump();
         }
       }
-      // Salto variable: si soltás temprano, el brinco es más bajo.
-      // Un lanzamiento de resorte no se recorta: el impulso es del
-      // resorte, no del dedo (el flag se limpia al pasar el punto
-      // más alto o cuando un salto propio retoma el control).
+      // Variable jump: if you release early, the hop is lower.
+      // A spring launch isn't cut: the impulse is the
+      // spring's, not the finger's (the flag clears on passing the
+      // highest point or when a jump of its own takes back control).
       if (!isDown('jump') && this.vy < 0 && !this.launched) {
         this.vy *= JUMP_CUT;
       }
       if (this.vy >= 0) this.launched = false;
 
-      // ---- Gravedad ----
+      // ---- Gravity ----
       this.vy = Math.min(this.vy + GRAVITY * dt, MAX_FALL);
 
-      // ---- Wall slide: empujar contra la pared en el aire frena la caída ----
+      // ---- Wall slide: pushing against the wall in the air slows the fall ----
       if (
         this.abilities.wallJump &&
         !this.onGround &&
@@ -388,14 +388,14 @@ export class Player {
       ) {
         this.vy = WALL_SLIDE_SPEED;
         this.wallSliding = true;
-        // Virutas de roca al rozar
+        // Rock chips from grazing
         if (Math.random() < 0.35) {
           const px = dir === 1 ? this.x + this.w : this.x;
           this.particles.puff(px, this.y + 3, 1, DUST_COLORS, -dir * 0.3);
         }
       }
 
-      // ---- Planeo: sostener saltar en el aire frena la caída ----
+      // ---- Glide: holding jump in the air slows the fall ----
       if (
         this.abilities.glide &&
         !this.onGround &&
@@ -405,7 +405,7 @@ export class Player {
       ) {
         this.isGliding = true;
         if (this.vy > GLIDE_FALL) this.vy = GLIDE_FALL;
-        // Motitas que se escurren hacia atrás: se lee "estoy flotando".
+        // Motes slipping backward: reads as "I'm floating".
         if (Math.random() < 0.22) {
           this.particles.puff(
             this.x + this.w / 2 - this.facing * 3,
@@ -418,48 +418,48 @@ export class Player {
       }
     }
 
-    // ---- Mover y resolver colisiones, un eje a la vez ----
+    // ---- Move and resolve collisions, one axis at a time ----
     this.x += this.vx * dt;
     this.resolveAxis('x');
-    const fallSpeed = this.vy; // velocidad ANTES de chocar con el piso
+    const fallSpeed = this.vy; // velocity BEFORE hitting the ground
     const wasOnGround = this.onGround;
-    const prevBottom = this.y + this.h; // pies ANTES de mover en Y
+    const prevBottom = this.y + this.h; // feet BEFORE moving in Y
     this.y += this.vy * dt;
     this.onGround = false;
     this.resolveAxis('y');
     this.resolveOneWay(prevBottom);
 
-    // Impacto del azotón: al apoyar los pies revienta lo agrietado.
+    // Pound impact: as the feet touch down it shatters the cracked tiles.
     if (this.isPounding && this.onGround) this.landPound();
 
-    // Aterrizar aplastado: más fuerte el golpe, más chato queda.
+    // Land squashed: the harder the hit, the flatter it stays.
     if (!wasOnGround && this.onGround && fallSpeed > 60) {
       this.stretch = 1 - Math.min(SQUASH_MAX, fallSpeed / 700);
-      // Nube de polvo a los pies, más grande cuanto más fuerte cae.
+      // Dust cloud at the feet, bigger the harder it falls.
       const motes = Math.min(8, Math.round(fallSpeed / 45));
       this.particles.puff(this.x + this.w / 2, this.y + this.h - 1, motes, DUST_COLORS);
     }
 
-    // Pasitos de polvo mientras corre por el suelo.
+    // Little dust steps while running along the ground.
     this.dustTimer -= dt;
     if (this.onGround && this.vx !== 0 && this.dustTimer <= 0) {
       this.dustTimer = DUST_STEP_EVERY;
       this.particles.puff(
-        this.x + this.w / 2 - this.facing * 2, // detrás de los pies
+        this.x + this.w / 2 - this.facing * 2, // behind the feet
         this.y + this.h - 1,
         1,
         DUST_COLORS,
-        -this.facing * 0.6, // el polvo queda flotando hacia atrás
+        -this.facing * 0.6, // the dust lingers floating backward
       );
     }
-    // La deformación vuelve suavemente a la forma normal.
+    // The deformation eases back to the normal shape.
     this.stretch += (1 - this.stretch) * Math.min(1, STRETCH_RECOVER * dt);
     if (Math.abs(this.stretch - 1) < 0.01) this.stretch = 1;
 
     this.animTime += dt;
   }
 
-  /** ¿Hay pared sólida pegada a un costado? -1 izquierda, 1 derecha, 0 nada. */
+  /** Is there a solid wall against a side? -1 left, 1 right, 0 nothing. */
   private wallDir(): -1 | 0 | 1 {
     const top = this.y + 2;
     const bottom = this.y + this.h - 2;
@@ -470,8 +470,8 @@ export class Player {
     return 0;
   }
 
-  /** ¿Está parado SOLO sobre tablones? (ni un tile sólido bajo los pies).
-   *  Es la condición para poder bajarse de uno con abajo + saltar. */
+  /** Is it standing ONLY on planks? (not a single solid tile underfoot).
+   *  It's the condition for dropping off one with down + jump. */
   private onPlankOnly(): boolean {
     const row = Math.floor((this.y + this.h + 1) / TILE);
     const c0 = Math.floor(this.x / TILE);
@@ -484,8 +484,8 @@ export class Player {
     return plank;
   }
 
-  /** ¿Está parado sobre hielo? (todo el apoyo sólido bajo los pies es
-   *  hielo; un solo tile de roca en la mezcla devuelve el agarre). */
+  /** Is it standing on ice? (all the solid footing underfoot is
+   *  ice; a single rock tile in the mix restores the grip). */
   private onIce(): boolean {
     const row = Math.floor((this.y + this.h + 1) / TILE);
     const c0 = Math.floor(this.x / TILE);
@@ -500,9 +500,9 @@ export class Player {
     return ice;
   }
 
-  /** Impacto del azotón: revienta los bloques agrietados bajo los pies.
-   *  Si TODO el apoyo era agrietado, la picada sigue hacia abajo — así
-   *  se encadenan los pisos de una grieta de varias capas. */
+  /** Pound impact: shatters the cracked blocks underfoot.
+   *  If ALL the footing was cracked, the dive continues downward — that's
+   *  how the floors of a multi-layer crack chain together. */
   private landPound(): void {
     const row = Math.floor((this.y + this.h + 1) / TILE);
     const c0 = Math.floor(this.x / TILE);
@@ -519,7 +519,7 @@ export class Player {
     }
     if (broke) sfx.crack();
     if (broke && !support) {
-      // El piso entero se hizo pedazos: la picada continúa.
+      // The whole floor shattered: the dive continues.
       this.onGround = false;
       this.vy = POUND_SPEED;
       return;
@@ -527,8 +527,8 @@ export class Player {
     this.isPounding = false;
   }
 
-  /** Embestida: en pleno dash, la columna agrietada de adelante se hace
-   *  pedazos en vez de frenar el impulso (solo con la habilidad). */
+  /** Charge: mid-dash, the cracked column ahead shatters
+   *  instead of stopping the impulse (only with the ability). */
   private smashAhead(): void {
     const aheadX = this.facing === 1 ? this.x + this.w + 1 : this.x - 1;
     const col = Math.floor(aheadX / TILE);
@@ -545,14 +545,14 @@ export class Player {
   }
 
   /**
-   * Plataformas de un solo sentido: solo frenan la caída si los pies
-   * venían DESDE ARRIBA del tablón. Subiendo (o desde el costado) se
-   * atraviesan sin tocarlas. Con abajo + saltar se bajan a propósito
-   * (dropTimer las apaga unos frames).
+   * One-way platforms: they only stop the fall if the feet
+   * came FROM ABOVE the plank. Going up (or from the side) they
+   * pass through without touching them. With down + jump you drop off
+   * on purpose (dropTimer turns them off for a few frames).
    */
   private resolveOneWay(prevBottom: number): void {
-    if (this.vy < 0) return; // subiendo: siempre se atraviesan
-    if (this.dropTimer > 0) return; // bajando a propósito: no frenan
+    if (this.vy < 0) return; // going up: always passes through
+    if (this.dropTimer > 0) return; // dropping on purpose: they don't stop
     const box = this.box();
     for (const tile of this.level.oneWayTilesIn(box)) {
       if (!overlaps(box, tile)) continue;
@@ -588,16 +588,16 @@ export class Player {
   }
 
   draw(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {
-    // Invulnerable: parpadea (desaparece en frames alternos, ~10 Hz).
+    // Invulnerable: blinks (disappears on alternating frames, ~10 Hz).
     if (this.invulnTimer > 0 && Math.floor(this.invulnTimer * 20) % 2 === 0) return;
 
     const sprite = this.currentSprite();
 
-    // Brillo tenue de cristal detrás del jugador, del color de su skin
+    // Faint crystal glow behind the player, in its skin's color
     drawGlow(ctx, this.x + this.w / 2 - camX, this.y + this.h / 2 - camY, 16, currentSkin().glow, 0.35);
 
-    // Anclado a los pies y deformado: al estirarse pierde ancho y al
-    // aplastarse lo gana (conservación aproximada del "volumen").
+    // Anchored to the feet and deformed: stretching loses width and
+    // squashing gains it (rough "volume" conservation).
     sprite.drawStretched(
       ctx,
       this.x + this.w / 2 - camX,
@@ -609,7 +609,7 @@ export class Player {
   }
 
   private currentSprite() {
-    const s = playerSprites(); // los sprites de la skin activa
+    const s = playerSprites(); // the active skin's sprites
     if (!this.onGround) {
       if (this.wallSliding) return s.wall;
       return this.vy < 0 ? s.jump : s.fall;
@@ -617,7 +617,7 @@ export class Player {
     if (this.vx !== 0) {
       return frameAt(s.run, 12, this.animTime);
     }
-    // Idle vivo: parpadea cada tanto y "respira" despacio.
+    // Living idle: blinks now and then and "breathes" slowly.
     if (this.animTime % 3.3 < 0.15) return s.blink;
     return frameAt([s.idle, s.idle2], 1.6, this.animTime);
   }

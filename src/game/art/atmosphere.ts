@@ -1,47 +1,46 @@
 // ============================================================
-//  ATMÓSFERA de la cueva
+//  Cave ATMOSPHERE
 // ------------------------------------------------------------
-//  Todo lo que da "aire" a la escena sin ser parte de la lógica:
-//  fondo con profundidad (seis capas de parallax temadas por
-//  nivel), rayos de luz, polvo flotante, niebla baja y viñeta.
-//  Espacio de pantalla salvo el parallax.
+//  Everything that gives the scene "air" without being part of
+//  the logic: depth background (six parallax layers themed per
+//  level), light rays, floating dust, low fog and vignette.
+//  Screen space except the parallax.
 // ============================================================
 
 import { drawGlow } from './glow';
 
 // ============================================================
-//  TEMAS por nivel: cada bioma tiene su rampa de color propia
-//  (cavernas violeta, galerías azul profundo, corazón carmesí,
-//  esporas verde biolumínico, glaciar celeste pálido, fragua
-//  naranja sobre carbón) para que entrar a un nivel nuevo se
-//  SIENTA distinto.
+//  Per-level THEMES: each biome has its own color ramp
+//  (cavernas violet, galerias deep blue, corazon crimson,
+//  esporas bioluminescent green, glaciar pale sky-blue, fragua
+//  orange over coal) so entering a new level FEELS different.
 // ============================================================
 interface CaveTheme {
   gradTop: string;
   gradBottom: string;
-  /** Parches de estrato en la pared lejanísima. */
+  /** Strata patches on the farthest wall. */
   strata: string;
-  /** Cristales incrustados en la pared y su destello. */
+  /** Crystals embedded in the wall and their glint. */
   crystals: string[];
   spark: string;
-  /** Silueta lejana: torres del piso y flecos del techo. */
+  /** Distant silhouette: floor towers and ceiling fringe. */
   skyline: string;
-  /** Banda de neblina que separa lo lejano de lo cercano. */
+  /** Haze band that separates the far from the near. */
   haze: string;
-  /** Componentes rgb de los god rays ("r,g,b"). */
+  /** RGB components of the god rays ("r,g,b"). */
   ray: string;
-  /** Capa media: estalactitas/columnas y su borde iluminado. */
+  /** Mid layer: stalactites/columns and their lit edge. */
   mid: string;
   midEdge: string;
   root: string;
-  /** Color de acento: cristales que brillan, hongos, luciérnagas. */
+  /** Accent color: glowing crystals, mushrooms, fireflies. */
   accent: string;
   accentLight: string;
-  /** Capa cercana: montículos y estalagmitas. */
+  /** Near layer: mounds and stalagmites. */
   near: string;
   nearTop: string;
   drip: string;
-  /** Bandas de niebla baja, de lejos a cerca. */
+  /** Low fog bands, from far to near. */
   fog: [string, string, string];
 }
 
@@ -85,7 +84,7 @@ const THEMES: Record<string, CaveTheme> = {
     drip: '#ffb08a',
     fog: ['#96525e', '#703548', '#5e2a3e'],
   },
-  // El jardín de esporas: verde biolumínico, aire húmedo y vivo.
+  // The spore garden: bioluminescent green, humid living air.
   esporas: {
     gradTop: '#0b1d12', gradBottom: '#173f28',
     strata: '#102a1a',
@@ -99,7 +98,7 @@ const THEMES: Record<string, CaveTheme> = {
     drip: '#a8ffd0',
     fog: ['#4fa07b', '#357a5a', '#265e42'],
   },
-  // El glaciar callado: celestes pálidos, luz blanca, quietud.
+  // The silent glacier: pale sky-blues, white light, stillness.
   glaciar: {
     gradTop: '#0e1c30', gradBottom: '#2c5474',
     strata: '#16283e',
@@ -113,7 +112,7 @@ const THEMES: Record<string, CaveTheme> = {
     drip: '#dff6ff',
     fog: ['#7fa8c8', '#5a80a0', '#40607e'],
   },
-  // La fragua del núcleo: brasa naranja sobre carbón negro.
+  // The core's forge: orange embers over black coal.
   fragua: {
     gradTop: '#150a05', gradBottom: '#3a170a',
     strata: '#20100a',
@@ -127,8 +126,8 @@ const THEMES: Record<string, CaveTheme> = {
     drip: '#ffcf6a',
     fog: ['#a06038', '#7a4426', '#5e321c'],
   },
-  // El mapa de niveles: la misma gruta violeta pero con acento dorado
-  // (los cristales-récord del sendero mandan sobre la paleta).
+  // The level map: the same violet grotto but with a gold accent
+  // (the record crystals along the path drive the palette).
   overworld: {
     gradTop: '#150b24', gradBottom: '#28153e',
     strata: '#1c0f30',
@@ -145,17 +144,17 @@ const THEMES: Record<string, CaveTheme> = {
 };
 
 // ============================================================
-//  FONDO con profundidad (parallax: capas a distinta velocidad)
+//  Depth BACKGROUND (parallax: layers at different speeds)
 // ------------------------------------------------------------
-//  Cuanto más lejos está una capa, más lento se mueve respecto
-//  de la cámara. De atrás hacia adelante:
-//    0.10 estratos de la pared lejanísima
-//    0.18 cristales incrustados que titilan
-//    0.30 silueta lejana (torres del piso + flecos del techo)
-//    0.35 rayos de luz diagonales
-//    0.55 estalactitas, columnas, raíces, cristales que brillan
-//    0.78 montículos, estalagmitas y hongos luminosos
-//    1.0  los tiles del nivel (los dibuja el renderer de tiles)
+//  The farther a layer is, the slower it moves relative to the
+//  camera. From back to front:
+//    0.10 strata on the farthest wall
+//    0.18 embedded crystals that twinkle
+//    0.30 distant silhouette (floor towers + ceiling fringe)
+//    0.35 diagonal light rays
+//    0.55 stalactites, columns, roots, glowing crystals
+//    0.78 mounds, stalagmites and glowing mushrooms
+//    1.0  the level tiles (drawn by the tile renderer)
 // ============================================================
 interface Strata { x: number; y: number; w: number; }
 interface WallCrystal { x: number; y: number; color: string; twinkle: number; }
@@ -184,11 +183,11 @@ interface BgLayers {
 }
 
 let bg: BgLayers | null = null;
-let generatedFor = ''; // clave (ancho + variante + tema) del fondo cacheado
+let generatedFor = ''; // key (width + variant + theme) of the cached background
 
 function ensureBackground(worldW: number, viewH: number, variant: number, themeId: string): void {
   const key = `${worldW}:${viewH}:${variant}:${themeId}`;
-  if (generatedFor === key && bg) return; // cada sala genera su propio fondo
+  if (generatedFor === key && bg) return; // each room generates its own background
   generatedFor = key;
   const theme = THEMES[themeId] ?? THEMES.cavernas;
   let seed = 1337 + worldW * 31 + variant * 977 + themeId.length * 53;
@@ -209,12 +208,12 @@ function ensureBackground(worldW: number, viewH: number, variant: number, themeI
       x: rng() * worldW,
       y: 14 + rng() * (viewH - 52),
       color: theme.crystals[Math.floor(rng() * theme.crystals.length)],
-      twinkle: rng() * Math.PI * 2, // fase del centelleo
+      twinkle: rng() * Math.PI * 2, // twinkle phase
     });
   }
 
-  // Silueta lejana: un horizonte de torres de roca y flecos del techo,
-  // la capa que más "cueva gigante" le da a la escena.
+  // Distant silhouette: a horizon of rock towers and ceiling fringe,
+  // the layer that gives the scene the most "giant cave" feel.
   const towers: Tower[] = [];
   for (let x = -16; x < worldW; x += 20 + Math.floor(rng() * 22)) {
     towers.push({ x, w: 12 + Math.floor(rng() * 20), h: 22 + Math.floor(rng() * 34) });
@@ -224,22 +223,22 @@ function ensureBackground(worldW: number, viewH: number, variant: number, themeI
     fringe.push({ x, w: 8 + Math.floor(rng() * 10), len: 6 + Math.floor(rng() * 16) });
   }
 
-  // Rayos de luz que bajan del techo (god rays)
+  // Light rays coming down from the ceiling (god rays)
   const godRays: GodRay[] = [];
   const rayCount = 2 + Math.floor(worldW / 200);
   for (let i = 0; i < rayCount; i++) {
     godRays.push({
       x: rng() * worldW,
       w: 14 + rng() * 22,
-      skew: 12 + rng() * 22, // desplazamiento diagonal hacia abajo
+      skew: 12 + rng() * 22, // diagonal offset downward
       alpha: 0.05 + rng() * 0.05,
       phase: rng() * Math.PI * 2,
     });
   }
 
-  // Capa media: estalactitas (una de cada cinco baja hasta el piso y
-  // se vuelve columna; otras tienen gemas en la punta que laten) y
-  // raíces que se mecen.
+  // Mid layer: stalactites (one in five reaches the floor and
+  // becomes a column; others have pulsing gems at the tip) and
+  // swaying roots.
   const stalactites: Stalactite[] = [];
   const drips: Drip[] = [];
   for (let x = 6; x < worldW; x += 26 + Math.floor(rng() * 18)) {
@@ -247,7 +246,7 @@ function ensureBackground(worldW: number, viewH: number, variant: number, themeI
     const gems = !column && rng() < 0.3;
     const s: Stalactite = { x, w: 6 + Math.floor(rng() * 8), len: 12 + Math.floor(rng() * 24), column, gems };
     stalactites.push(s);
-    // De algunas puntas gotea agua: la gota nace, cae y vuelve a nacer.
+    // Some tips drip water: the drop is born, falls, and is born again.
     if (!column && !gems && rng() < 0.35) {
       drips.push({ x: x + s.w / 2, y0: s.len, period: 2.2 + rng() * 3.5, phase: rng() });
     }
@@ -257,7 +256,7 @@ function ensureBackground(worldW: number, viewH: number, variant: number, themeI
     roots.push({ x: rng() * worldW, len: 10 + Math.floor(rng() * 14), phase: rng() * Math.PI * 2 });
   }
 
-  // Capa cercana: montículos, estalagmitas y hongos luminosos.
+  // Near layer: mounds, stalagmites and glowing mushrooms.
   const mounds: Mound[] = [];
   for (let x = -12; x < worldW; x += 30 + Math.floor(rng() * 26)) {
     mounds.push({ x, w: 28 + Math.floor(rng() * 30), h: 8 + Math.floor(rng() * 13) });
@@ -287,7 +286,7 @@ export function drawBackground(
 ): void {
   const theme = THEMES[themeId] ?? THEMES.cavernas;
 
-  // Degradado base
+  // Base gradient
   const grad = ctx.createLinearGradient(0, 0, 0, viewH);
   grad.addColorStop(0, theme.gradTop);
   grad.addColorStop(1, theme.gradBottom);
@@ -297,8 +296,8 @@ export function drawBackground(
   ensureBackground(worldW, viewH, variant, themeId);
   const L = bg!;
 
-  // Estratos de la pared lejanísima (0.10): bandas de sedimento que
-  // se van angostando hacia abajo (nada de rectángulos duros).
+  // Strata on the farthest wall (0.10): sediment bands that
+  // narrow toward the bottom (no hard rectangles).
   const parStrata = camX * 0.1;
   ctx.fillStyle = theme.strata;
   for (const s of L.strata) {
@@ -310,7 +309,7 @@ export function drawBackground(
     ctx.fillRect(Math.round(x + 10), y + 4, Math.max(2, s.w - 20), 1);
   }
 
-  // Cristales incrustados en la pared (0.18), que titilan
+  // Crystals embedded in the wall (0.18), twinkling
   const parWall = camX * 0.18;
   for (const c of L.wallCrystals) {
     const x = c.x - parWall;
@@ -321,7 +320,7 @@ export function drawBackground(
     ctx.fillRect(Math.round(x), Math.round(c.y - camY * 0.08), s, s);
   }
 
-  // Silueta lejana (0.30): horizonte de torres y flecos del techo
+  // Distant silhouette (0.30): horizon of towers and ceiling fringe
   const parSky = camX * 0.3;
   const skyBase = viewH - 6 + camY * 0.1;
   ctx.fillStyle = theme.skyline;
@@ -350,14 +349,14 @@ export function drawBackground(
     ctx.fill();
   }
 
-  // Banda de neblina de profundidad: separa lo lejano de lo cercano
+  // Depth haze band: separates the far from the near
   const haze = ctx.createLinearGradient(0, viewH * 0.4, 0, viewH);
   haze.addColorStop(0, 'transparent');
   haze.addColorStop(1, theme.haze);
   ctx.fillStyle = haze;
   ctx.fillRect(0, 0, viewW, viewH);
 
-  // Rayos de luz diagonales desde el techo (parallax 0.35, se mecen suave)
+  // Diagonal light rays from the ceiling (parallax 0.35, sway gently)
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   const parRay = camX * 0.35;
@@ -380,8 +379,8 @@ export function drawBackground(
   }
   ctx.restore();
 
-  // Capa media (0.55): estalactitas y columnas con borde iluminado,
-  // raíces que se mecen, cristales que laten y goteras.
+  // Mid layer (0.55): stalactites and columns with a lit edge,
+  // swaying roots, pulsing crystals and drips.
   const parMid = camX * 0.55;
   const midCeil = -camY * 0.18;
   const midFloor = viewH - 10 + camY * 0.12;
@@ -390,10 +389,10 @@ export function drawBackground(
     if (x + s.w < -20 || x > viewW + 20) continue;
     ctx.fillStyle = theme.mid;
     if (s.column) {
-      // Formación gigante: una estalactita y una estalagmita enormes
-      // que casi se tocan. Sin cintura fina en el medio: contra el
-      // degradado esa franja perdía contraste y quedaba flotando una
-      // raya vertical suelta.
+      // Giant formation: an enormous stalactite and stalagmite that
+      // almost touch. No thin waist in the middle: against the
+      // gradient that strip lost contrast and left a loose vertical
+      // line floating.
       const cw = s.w + 4;
       ctx.beginPath();
       ctx.moveTo(x - 2, midCeil);
@@ -414,14 +413,14 @@ export function drawBackground(
       ctx.lineTo(x + s.w / 2, midCeil + s.len);
       ctx.closePath();
       ctx.fill();
-      // Borde iluminado del lado izquierdo (la luz viene de arriba).
+      // Lit edge on the left side (the light comes from above).
       ctx.strokeStyle = theme.midEdge;
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(x + 0.5, midCeil);
       ctx.lineTo(x + s.w / 2 + 0.5, midCeil + s.len);
       ctx.stroke();
-      // Gemas colgando de la punta: crecen DE la roca, nunca flotan.
+      // Gems hanging from the tip: they grow FROM the rock, never float.
       if (s.gems) {
         const tipX = x + s.w / 2;
         const tipY = midCeil + s.len;
@@ -444,7 +443,7 @@ export function drawBackground(
       }
     }
   }
-  // Raíces colgantes: cada segmento se mece más cuanto más abajo está.
+  // Hanging roots: each segment sways more the lower it is.
   ctx.fillStyle = theme.root;
   for (const r of L.roots) {
     const x = r.x - parMid;
@@ -454,7 +453,7 @@ export function drawBackground(
       ctx.fillRect(Math.round(x + sway), Math.round(midCeil + sgm), 1, 2);
     }
   }
-  // Goteras: la gota se asoma en la punta, cae acelerando y renace.
+  // Drips: the drop peeks at the tip, falls accelerating and is reborn.
   ctx.fillStyle = theme.drip;
   for (const d of L.drips) {
     const x = Math.round(d.x - parMid);
@@ -462,7 +461,7 @@ export function drawBackground(
     const p = (time / d.period + d.phase) % 1;
     const y0 = midCeil + d.y0;
     if (p < 0.25) {
-      ctx.fillRect(x, Math.round(y0), 1, 1); // la gota se está formando
+      ctx.fillRect(x, Math.round(y0), 1, 1); // the drop is forming
     } else {
       const q = (p - 0.25) / 0.75;
       const y = y0 + q * q * (midFloor - y0);
@@ -470,7 +469,7 @@ export function drawBackground(
     }
   }
 
-  // Capa cercana (0.78): montículos, estalagmitas y hongos luminosos
+  // Near layer (0.78): mounds, stalagmites and glowing mushrooms
   const parNear = camX * 0.78;
   const baseY = viewH - 16 + camY * 0.2;
   for (const m of L.mounds) {
@@ -501,7 +500,7 @@ export function drawBackground(
     ctx.fill();
   }
   ctx.fillRect(0, baseY + 4, viewW, viewH - baseY - 4);
-  // Hongos: tallo, sombrero y un latido de luz al ras del piso.
+  // Mushrooms: stem, cap and a pulse of light at floor level.
   for (const sh of L.shrooms) {
     const x = Math.round(sh.x - parNear);
     if (x < -6 || x > viewW + 6) continue;
@@ -516,7 +515,7 @@ export function drawBackground(
   }
 }
 
-// ---- Polvo flotante y brasas de cristal (espacio de pantalla) ----
+// ---- Floating dust and crystal embers (screen space) ----
 interface Mote { x: number; y: number; speed: number; phase: number; size: number; }
 interface Ember { x: number; y: number; speed: number; phase: number; }
 let motes: Mote[] = [];
@@ -535,7 +534,7 @@ export function initDust(viewW: number, viewH: number): void {
       size: rng() < 0.3 ? 2 : 1,
     });
   }
-  // Brasas: pocas motas doradas con halo que suben lento.
+  // Embers: a few golden motes with a halo that rise slowly.
   embers = [];
   for (let i = 0; i < 7; i++) {
     embers.push({
@@ -554,7 +553,7 @@ export function drawDust(
   time: number,
   dt: number,
 ): void {
-  // Brasas doradas con glow (detrás del polvo fino)
+  // Golden embers with glow (behind the fine dust)
   for (const e of embers) {
     e.y -= e.speed * dt;
     if (e.y < -4) {
@@ -567,7 +566,7 @@ export function drawDust(
     ctx.fillStyle = '#fff3c0';
     ctx.fillRect(ex, ey, 1, 1);
   }
-  // Polvo fino
+  // Fine dust
   ctx.fillStyle = 'rgba(214, 247, 255, 0.5)';
   for (const m of motes) {
     m.y -= m.speed * dt;
@@ -580,8 +579,8 @@ export function drawDust(
   }
 }
 
-/** Niebla baja: bandas onduladas semitransparentes que derivan por el
- *  piso, para dar profundidad y aire de cueva húmeda. */
+/** Low fog: semitransparent wavy bands drifting along the floor,
+ *  to give depth and the feel of a damp cave. */
 export function drawFog(
   ctx: CanvasRenderingContext2D,
   camX: number,
@@ -610,7 +609,7 @@ export function drawFog(
   ctx.restore();
 }
 
-// ---- Viñeta (oscurece los bordes) cacheada ----
+// ---- Vignette (darkens the edges), cached ----
 let vignette: HTMLCanvasElement | null = null;
 
 export function drawVignette(ctx: CanvasRenderingContext2D, viewW: number, viewH: number): void {

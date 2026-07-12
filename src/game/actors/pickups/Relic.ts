@@ -1,8 +1,8 @@
 // ============================================================
-//  RELIQUIA (recogible de habilidad)
+//  RELIC (ability pickup)
 // ------------------------------------------------------------
-//  Un orbe que respira luz. Recogerlo otorga su habilidad para
-//  siempre (en esta corrida) y lo anuncia en grande en pantalla.
+//  An orb that breathes light. Collecting it grants its ability
+//  forever (in this run) and announces it big on screen.
 // ============================================================
 
 import type { Box } from '../../../engine/canvas';
@@ -14,8 +14,8 @@ import { drawGlow } from '../../art/glow';
 import { sfx } from '../../sfx';
 import { t, type StrKey } from '../../i18n';
 
-// Clave de texto (i18n) del aviso al ganar cada habilidad. Se traduce al
-// mostrarlo, así respeta el idioma activo en ese momento.
+// Text key (i18n) of the notice shown when earning each ability. It's
+// translated on display, so it respects the language active at that moment.
 const ABILITY_KEY: Record<AbilityName, StrKey> = {
   doubleJump: 'ab_doubleJump',
   dash: 'ab_dash',
@@ -36,7 +36,7 @@ const ABILITY_GLOW: Record<AbilityName, string> = {
 
 export class Relic implements Pickup {
   readonly layer = 'pickup' as const;
-  dead = false; // recogida
+  dead = false; // collected
   readonly w = 6;
   readonly h = 6;
 
@@ -52,7 +52,7 @@ export class Relic implements Pickup {
   }
 
   update(): void {
-    // Su animación es de reposo: lee el reloj compartido en draw().
+    // Its animation is idle: it reads the shared clock in draw().
   }
 
   collect(ctx: CollectContext): void {
@@ -70,7 +70,7 @@ export class Relic implements Pickup {
     const cy = this.y + 4 - camY + bob;
     const shine = Math.sin(time * 5 + this.x);
     drawGlow(ctx, cx, cy, 15, ABILITY_GLOW[this.ability], 0.5 + shine * 0.2);
-    // Respira luz: en el pico del pulso, el orbe se enciende (frame 2)
+    // Breathes light: at the peak of the pulse, the orb lights up (frame 2)
     const spr = shine > 0.3 ? sprites.relic2 : sprites.relic;
     spr.draw(ctx, cx - spr.w / 2, cy - spr.h / 2);
   }

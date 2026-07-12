@@ -1,12 +1,12 @@
 // ============================================================
-//  SELECTOR DE IDIOMA (ES / EN) — solo táctil
+//  LANGUAGE SELECTOR (ES / EN) — touch only
 // ------------------------------------------------------------
-//  Un par de botones fijos (arriba a la izquierda) para cambiar
-//  entre español e inglés SIN teclado: solo existen para el modo
-//  táctil, y solo en los menús o en pausa —nunca durante la
-//  partida—. En escritorio/gamepad el idioma vive dentro de los
-//  menús del juego (título y pausa), como en un juego de verdad.
-//  El CSS además los oculta en retrato (ahí manda el aviso de rotar).
+//  A pair of fixed buttons (top left) to switch between Spanish
+//  and English WITHOUT a keyboard: they only exist for touch
+//  mode, and only in menus or on pause —never during the
+//  run—. On desktop/gamepad the language lives inside the game
+//  menus (title and pause), like a real game.
+//  The CSS also hides them in portrait (there the rotate notice rules).
 // ============================================================
 
 import { isTouchMode } from '../engine/input';
@@ -16,12 +16,12 @@ let container: HTMLDivElement | null = null;
 let esBtn: HTMLButtonElement | null = null;
 let enBtn: HTMLButtonElement | null = null;
 
-/** Construye el selector y lo agrega al DOM. Idempotente. */
+/** Builds the selector and adds it to the DOM. Idempotent. */
 export function initLangSwitch(): void {
   if (container) return;
   const wrap = document.createElement('div');
   wrap.className = 'lang-switch';
-  wrap.dataset.show = '0'; // en táctil arranca oculto; syncLangSwitch decide.
+  wrap.dataset.show = '0'; // on touch it starts hidden; syncLangSwitch decides.
   esBtn = makeButton('ES', 'es');
   enBtn = makeButton('EN', 'en');
   wrap.append(esBtn, enBtn);
@@ -29,14 +29,14 @@ export function initLangSwitch(): void {
   container = wrap;
 
   paint();
-  onLangChange(paint); // reflejar el botón activo cuando cambie el idioma.
+  onLangChange(paint); // reflect the active button when the language changes.
 }
 
 /**
- * Muestra el selector solo en modo táctil y solo cuando NO se está
- * jugando (menús) o en pausa. En escritorio nunca: ahí el idioma se
- * cambia desde los menús del juego. Barato: solo toca el DOM cuando
- * cambia el estado a mostrar.
+ * Shows the selector only in touch mode and only when NOT
+ * playing (menus) or on pause. Never on desktop: there the language
+ * is changed from the game menus. Cheap: only touches the DOM when
+ * the show state changes.
  */
 export function syncLangSwitch(ui: { state: string; paused: boolean }): void {
   if (!container) return;
@@ -51,7 +51,7 @@ function makeButton(text: string, lang: Lang): HTMLButtonElement {
   b.className = 'lang-btn';
   b.textContent = text;
   b.setAttribute('aria-label', lang === 'es' ? 'Español' : 'English');
-  // pointerdown además de click: respuesta inmediata en táctil.
+  // pointerdown as well as click: immediate response on touch.
   b.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     setLang(lang);
@@ -60,7 +60,7 @@ function makeButton(text: string, lang: Lang): HTMLButtonElement {
   return b;
 }
 
-/** Resalta el botón del idioma activo. */
+/** Highlights the active language's button. */
 function paint(): void {
   const l = getLang();
   for (const [btn, lang] of [

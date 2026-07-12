@@ -1,14 +1,14 @@
 // ============================================================
-//  PUNTO DE ENTRADA
+//  ENTRY POINT
 // ------------------------------------------------------------
-//  Crea el canvas, la sesión y las escenas, y arranca el bucle.
-//  Todo lo demás vive en /engine (motor reutilizable) y /game
-//  (este juego): la sesión es el estado, las escenas el flujo.
+//  Creates the canvas, the session and the scenes, and starts the loop.
+//  Everything else lives in /engine (reusable engine) and /game
+//  (this game): the session is the state, the scenes the flow.
 // ============================================================
 
-// El CSS ya no se importa acá: se enlaza desde index.html (<link> en el
-// <head>) para que aplique en la primera pintura y no haya flash de
-// contenido sin estilo (FOUC) en desarrollo.
+// CSS is no longer imported here: it's linked from index.html (<link> in the
+// <head>) so it applies on the first paint and there's no flash of
+// unstyled content (FOUC) in development.
 import { setupContext } from './engine/canvas';
 import { initInput, endStep, pollGamepad } from './engine/input';
 import { initAudio } from './engine/audio';
@@ -38,16 +38,16 @@ const session = new GameSession(VIEW_W, VIEW_H);
 const scenes = new SceneManager();
 scenes.replace(new TitleScene(session, scenes));
 
-// Controles táctiles: solo se activan en dispositivos con puntero grueso
-// (móvil/tablet). En escritorio no construye nada ni altera el layout.
+// Touch controls: only activate on devices with a coarse pointer
+// (mobile/tablet). On desktop it builds nothing and doesn't alter the layout.
 initTouchControls(canvas);
 
-// Ganchos de depuración: con la consola del navegador abierta (F12)
-// podés inspeccionar el juego en vivo, p. ej. `__game.player.vy`,
-// prender `__debug.hitboxes = true`, saltar a una sala del nivel
-// actual con `__debug.warp('galeria')` o cargar otro nivel con
+// Debug hooks: with the browser console open (F12) you can
+// inspect the game live, e.g. `__game.player.vy`,
+// turn on `__debug.hitboxes = true`, jump to a room of the current
+// level with `__debug.warp('galeria')` or load another level with
 // `__debug.level('corazon')`.
-// Solo existen en desarrollo: el build de producción no los incluye.
+// They only exist in development: the production build doesn't include them.
 if (import.meta.env.DEV) {
   const dev = window as unknown as Record<string, unknown>;
   dev.__game = session;
@@ -75,9 +75,9 @@ if (import.meta.env.DEV) {
   });
 }
 
-// Textos estáticos de la página (el <title> y el aviso de rotar) en el
-// idioma activo. Todo lo demás vive DENTRO del canvas: la página es solo
-// el marco negro del juego, como en un juego de verdad.
+// Static page text (the <title> and the rotate notice) in the
+// active language. Everything else lives INSIDE the canvas: the page is just
+// the game's black frame, like a real game.
 function localizeChrome(): void {
   document.documentElement.lang = getLang();
   document.title = t('page_title');
@@ -85,8 +85,8 @@ function localizeChrome(): void {
   if (rTitle) rTitle.textContent = t('rotate_title');
   const rSub = document.querySelector('.rotate-sub');
   if (rSub) rSub.textContent = t('rotate_sub');
-  // Ya está el chrome en el idioma correcto: quitamos el velo anti-parpadeo
-  // que puso el script de <head> (no-op si nunca se aplicó).
+  // The chrome is now in the right language: remove the anti-flash veil
+  // that the <head> script put up (no-op if it was never applied).
   document.documentElement.classList.remove('pre-i18n');
 }
 
@@ -95,30 +95,30 @@ initSkinSwitch();
 localizeChrome();
 onLangChange(localizeChrome);
 
-/** El estado de la escena activa más lo que la UI táctil necesita saber.
- *  El botón de dash solo aplica jugando: en el overworld el mando sirve
- *  para navegar el mapa y el dash no existe ahí. */
+/** The active scene's state plus what the touch UI needs to know.
+ *  The dash button only applies while playing: in the overworld the pad is
+ *  used to navigate the map and dash doesn't exist there. */
 function uiState() {
   const ui = scenes.ui;
   return { ...ui, hasDash: ui.state === 'playing' && session.player.abilities.dash };
 }
 
-// Primer frame ya pintado antes de arrancar el bucle: el canvas nunca se
-// muestra vacío esperando al primer requestAnimationFrame.
+// First frame painted before starting the loop: the canvas is never
+// shown empty waiting for the first requestAnimationFrame.
 scenes.draw(ctx);
 
 startLoop(
   (dt) => {
-    pollGamepad(); // leer el estado del control antes de actualizar el juego
+    pollGamepad(); // read the controller state before updating the game
     scenes.update(dt);
-    endStep(); // limpiar "recién presionado" después de cada paso de lógica
+    endStep(); // clear "just pressed" after each logic step
   },
   () => {
     scenes.draw(ctx);
     const ui = uiState();
-    syncTouchUI(ui); // reflejar el estado del juego en la UI táctil
-    syncLangSwitch(ui); // mostrar/ocultar el selector de idioma según el estado
-    syncSkinSwitch(ui); // ídem el selector de skin del personaje
-    syncMusic(scenes.ui, session.level.id); // la canción que le toca a esta pantalla
+    syncTouchUI(ui); // reflect the game state in the touch UI
+    syncLangSwitch(ui); // show/hide the language selector depending on state
+    syncSkinSwitch(ui); // same for the character skin selector
+    syncMusic(scenes.ui, session.level.id); // the track this screen gets
   },
 );

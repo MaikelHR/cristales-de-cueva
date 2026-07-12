@@ -1,33 +1,33 @@
 // ============================================================
 //  AUDIO (Web Audio API)
 // ------------------------------------------------------------
-//  Un mini-sintetizador: cada sonido es un oscilador con una
-//  envolvente de volumen y, opcionalmente, un barrido de
-//  frecuencia. No hay archivos de audio: igual que el arte,
-//  el sonido está "dibujado" por código.
+//  A mini-synthesizer: each sound is an oscillator with a
+//  volume envelope and, optionally, a frequency sweep.
+//  There are no audio files: just like the art, sound is
+//  "drawn" by code.
 //
-//  Todo pasa por un CANAL (sfx o music): un nodo de ganancia por
-//  canal permite mezclar —bajar la música sin tocar los efectos—.
-//  La música la agenda el secuenciador de music.ts sobre este
-//  mismo sintetizador: una canción es una lista de tonos con hora.
+//  Everything goes through a CHANNEL (sfx or music): one gain node
+//  per channel lets us mix —lower the music without touching the sfx—.
+//  Music is scheduled by the music.ts sequencer over this
+//  same synthesizer: a song is a list of tones with timing.
 //
-//  Los navegadores solo permiten sonar tras un gesto del usuario
-//  (tecla, click). initAudio() escucha esos gestos y despierta
-//  el contexto en cuanto ocurre el primero.
+//  Browsers only allow sound after a user gesture (key, click).
+//  initAudio() listens for those gestures and wakes the
+//  context as soon as the first one happens.
 // ============================================================
 
-/** Los timbres del sintetizador: los 4 osciladores clásicos más 'noise'
- *  (ruido blanco filtrado — la batería: bombos de aire, redobles, hi-hats). */
+/** The synthesizer's timbres: the 4 classic oscillators plus 'noise'
+ *  (filtered white noise — the drum kit: airy kicks, rolls, hi-hats). */
 export type ToneType = OscillatorType | 'noise';
 
 export interface ToneOptions {
-  freq: number;          // frecuencia inicial, en Hz (en 'noise': centro del filtro)
-  duration: number;      // duración total, en segundos
-  freqEnd?: number;      // si difiere de freq, barrido exponencial hasta aquí
-  type?: ToneType;       // square (retro), triangle (suave), sawtooth (áspero), sine, noise
-  volume?: number;       // 0..1, por defecto 0.15
-  delay?: number;        // segundos de espera antes de sonar (para arpegios)
-  attack?: number;       // segundos hasta el volumen pleno (largo = colchón/pad)
+  freq: number;          // starting frequency, in Hz (for 'noise': filter center)
+  duration: number;      // total duration, in seconds
+  freqEnd?: number;      // if different from freq, exponential sweep to this
+  type?: ToneType;       // square (retro), triangle (soft), sawtooth (harsh), sine, noise
+  volume?: number;       // 0..1, default 0.15
+  delay?: number;        // seconds to wait before sounding (for arpeggios)
+  attack?: number;       // seconds until full volume (long = pad/cushion)
 }
 
 export type AudioChannel = 'sfx' | 'music';
@@ -37,7 +37,7 @@ const channels = new Map<AudioChannel, GainNode>();
 const volumes: Record<AudioChannel, number> = { sfx: 1, music: 1 };
 
 function channelGain(name: AudioChannel): GainNode {
-  // ctx ya existe cuando se llama (playTone lo garantiza).
+  // ctx already exists when this is called (playTone guarantees it).
   let gain = channels.get(name);
   if (!gain) {
     gain = ctx!.createGain();
@@ -48,14 +48,14 @@ function channelGain(name: AudioChannel): GainNode {
   return gain;
 }
 
-/** Volumen de un canal (0..1). Vale antes o después de despertar el audio. */
+/** A channel's volume (0..1). Works before or after the audio wakes. */
 export function setChannelVolume(name: AudioChannel, volume: number): void {
   volumes[name] = volume;
   const gain = channels.get(name);
   if (gain) gain.gain.value = volume;
 }
 
-/** Llamar una vez al arrancar: despierta el audio con el primer gesto. */
+/** Call once at startup: wakes the audio on the first gesture. */
 export function initAudio(): void {
   const wake = (): void => {
     if (!ctx) ctx = new AudioContext();
@@ -64,20 +64,20 @@ export function initAudio(): void {
   window.addEventListener('keydown', wake);
   window.addEventListener('pointerdown', wake);
 
-  // Gancho de depuración, como window.__game (solo en desarrollo).
+  // Debug hook, like window.__game (dev only).
   if (import.meta.env.DEV) {
     (window as unknown as { __audio: () => AudioContext | null }).__audio = () => ctx;
   }
 }
 
-/** El reloj del audio (segundos), o null si todavía no despertó.
- *  El secuenciador de música (music.ts) agenda notas contra este reloj. */
+/** The audio clock (seconds), or null if it hasn't woken yet.
+ *  The music sequencer (music.ts) schedules notes against this clock. */
 export function audioNow(): number | null {
   return ctx && ctx.state === 'running' ? ctx.currentTime : null;
 }
 
-// Un segundo de ruido blanco, generado una vez y reciclado en loop:
-// filtrado grave suena a bombo de aire, medio a redoble, agudo a hi-hat.
+// One second of white noise, generated once and recycled in a loop:
+// low-filtered sounds like an airy kick, mid like a roll, high like a hi-hat.
 let noiseBuf: AudioBuffer | null = null;
 function noiseBuffer(): AudioBuffer {
   if (!noiseBuf) {
@@ -88,14 +88,14 @@ function noiseBuffer(): AudioBuffer {
   return noiseBuf;
 }
 
-/** Toca un tono por un canal. Si el audio todavía no despertó, no hace nada. */
+/** Plays a tone on a channel. If the audio hasn't woken yet, does nothing. */
 export function playTone(opts: ToneOptions, channel: AudioChannel = 'sfx'): void {
   if (!ctx || ctx.state !== 'running') return;
   const t0 = ctx.currentTime + (opts.delay ?? 0);
   const t1 = t0 + opts.duration;
 
-  // La fuente: un oscilador afinado, o ruido pasado por un filtro de banda
-  // (ahí `freq` es el color del ruido, y `freqEnd` lo barre).
+  // The source: a tuned oscillator, or noise passed through a bandpass filter
+  // (there `freq` is the color of the noise, and `freqEnd` sweeps it).
   let source: AudioScheduledSourceNode;
   let out: AudioNode;
   if (opts.type === 'noise') {
@@ -123,8 +123,8 @@ export function playTone(opts: ToneOptions, channel: AudioChannel = 'sfx'): void
     out = osc;
   }
 
-  // Envolvente: ataque (casi instantáneo por defecto) y caída exponencial
-  // a nada. Un ataque largo convierte el "pluck" en colchón que respira.
+  // Envelope: attack (near-instant by default) and exponential decay
+  // to nothing. A long attack turns the "pluck" into a breathing pad.
   const gain = ctx.createGain();
   const vol = opts.volume ?? 0.15;
   const attack = Math.min(opts.attack ?? 0.005, opts.duration * 0.5);

@@ -1,15 +1,14 @@
 // ============================================================
-//  EL NIVEL (la geometría de una sala)
+//  THE LEVEL (the geometry of a room)
 // ------------------------------------------------------------
-//  Interpreta las filas de tiles de RoomData ('#' sólido, '.' aire,
-//  '-' tablón de un sentido, '^' púas, '%' bloque agrietado,
-//  '~' hielo) y responde consultas de colisión. Cada celda mide
-//  8x8 px. Los bloques agrietados y el hielo SON sólidos; además
-//  llevan su marca propia: el agrietado se puede romper (azotón /
-//  embestida) y el hielo patina bajo los pies.
+//  Interprets RoomData's tile rows ('#' solid, '.' air, '-' one-way
+//  plank, '^' spikes, '%' cracked block, '~' ice) and answers
+//  collision queries. Each cell is 8x8 px. Cracked blocks and ice ARE
+//  solid; they also carry their own mark: the cracked one can be
+//  broken (pound / charge) and ice is slippery underfoot.
 //
-//  Este módulo es LÓGICA PURA: no dibuja ni toca el DOM, así que
-//  se puede testear en Node. El dibujo de los tiles vive en
+//  This module is PURE LOGIC: it doesn't draw or touch the DOM, so it
+//  can be tested in Node. The tile drawing lives in
 //  render/levelTiles.ts.
 // ============================================================
 
@@ -60,45 +59,45 @@ export class Level {
     });
   }
 
-  /** ¿Hay sólido en este píxel del mundo? */
+  /** Is there solid at this world pixel? */
   isSolidAt(px: number, py: number): boolean {
     return this.solidCell(Math.floor(py / TILE), Math.floor(px / TILE));
   }
 
-  /** ¿Sólido en esta celda? Fuera del mapa cuenta como sólido. */
+  /** Solid at this cell? Outside the map counts as solid. */
   solidCell(row: number, col: number): boolean {
     if (row < 0 || row >= this.rows || col < 0 || col >= this.cols) return true;
     return this.solid[row][col];
   }
 
-  /** ¿Tablón de un solo sentido en esta celda? Fuera del mapa, no. */
+  /** One-way plank at this cell? Outside the map, no. */
   oneWayCell(row: number, col: number): boolean {
     if (row < 0 || row >= this.rows || col < 0 || col >= this.cols) return false;
     return this.oneWay[row][col];
   }
 
-  /** ¿Púas en esta celda? Fuera del mapa, no. */
+  /** Spikes at this cell? Outside the map, no. */
   spikeCell(row: number, col: number): boolean {
     if (row < 0 || row >= this.rows || col < 0 || col >= this.cols) return false;
     return this.spike[row][col];
   }
 
-  /** ¿Bloque agrietado (rompible) en esta celda? Fuera del mapa, no. */
+  /** Cracked (breakable) block at this cell? Outside the map, no. */
   crackCell(row: number, col: number): boolean {
     if (row < 0 || row >= this.rows || col < 0 || col >= this.cols) return false;
     return this.crack[row][col];
   }
 
-  /** ¿Hielo (sólido que patina) en esta celda? Fuera del mapa, no. */
+  /** Ice (slippery solid) at this cell? Outside the map, no. */
   icyCell(row: number, col: number): boolean {
     if (row < 0 || row >= this.rows || col < 0 || col >= this.cols) return false;
     return this.icy[row][col];
   }
 
   /**
-   * Rompe un bloque agrietado: la celda pasa a ser aire. Devuelve true
-   * si había algo que romper. El estado vive en ESTA instancia (una por
-   * sala por corrida): al reiniciar el nivel, los bloques vuelven.
+   * Breaks a cracked block: the cell becomes air. Returns true if there
+   * was something to break. The state lives in THIS instance (one per
+   * room per run): on restarting the level, the blocks come back.
    */
   breakCrack(row: number, col: number): boolean {
     if (!this.crackCell(row, col)) return false;
@@ -108,9 +107,9 @@ export class Level {
   }
 
   /**
-   * ¿La caja toca alguna púa? La caja de daño de cada púa es más
-   * chica que su celda (la mitad de abajo, con 1px de margen a los
-   * lados): rozar el borde de la celda no castiga, pisarla sí.
+   * Does the box touch any spike? Each spike's hurt box is smaller
+   * than its cell (the bottom half, with 1px margin on the sides):
+   * grazing the cell's edge doesn't punish, stepping on it does.
    */
   touchesSpike(box: Box): boolean {
     const c0 = Math.max(0, Math.floor(box.x / TILE));
@@ -130,12 +129,12 @@ export class Level {
     return false;
   }
 
-  /** Devuelve las cajas de los tiles sólidos que tocan una caja dada. */
+  /** Returns the boxes of the solid tiles that touch a given box. */
   solidTilesIn(box: Box): Box[] {
     return this.tilesIn(box, this.solid);
   }
 
-  /** Ídem, pero con las plataformas de un solo sentido. */
+  /** Same, but with the one-way platforms. */
   oneWayTilesIn(box: Box): Box[] {
     return this.tilesIn(box, this.oneWay);
   }

@@ -1,11 +1,11 @@
 // ============================================================
-//  SPRITES DEL JUGADOR POR SKIN + ACCESORIO
+//  PLAYER SPRITES BY SKIN + ACCESSORY
 // ------------------------------------------------------------
-//  Hornea los frames del jugador combinando los dos ejes de
-//  personalización: el tint de la skin sobre la paleta base y la
-//  grilla del accesorio superpuesta sobre cada frame. El horneado
-//  es perezoso (la primera vez que se pide cada combinación) y se
-//  cachea: cambiar de look en caliente cuesta un lookup por frame.
+//  Bakes the player frames by combining the two customization
+//  axes: the skin tint over the base palette and the accessory
+//  grid overlaid on each frame. Baking is lazy (the first time
+//  each combination is requested) and cached: swapping the look
+//  on the fly costs one lookup per frame.
 // ============================================================
 
 import { Sprite } from '../../engine/Sprite';
@@ -46,7 +46,7 @@ function bake(skin: SkinDef, acc: AccessoryDef): PlayerSpriteSet {
   };
 }
 
-/** Los sprites del jugador con el look activo (horneados y cacheados). */
+/** The player sprites with the active look (baked and cached). */
 export function playerSprites(): PlayerSpriteSet {
   const skin = currentSkin();
   const acc = currentAccessory();

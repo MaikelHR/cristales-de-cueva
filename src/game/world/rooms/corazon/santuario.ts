@@ -1,16 +1,15 @@
 import type { RoomData } from '../../RoomData';
 
-/** Nivel 3, sala 3 — El santuario: el guardián y la puerta.
- *  Arena limpia de piso firme (la pelea ya es bastante): dos
- *  repisas laterales para tomar altura y un trampolín de tablón
- *  centrado BIEN por encima de la ronda del guardián — dos tiles
- *  largos de aire entre el tablón y su cabeceo más alto, para que
- *  el pisotón en picada caiga limpio y el tablón nunca "atrape" el
- *  salto (un tablón pegado al jefe come el arco del pisotón). El
- *  último cristal flota sobre el tablón — cobrarlo es parte del
- *  duelo. Desde el tablón, abajo + saltar lo atraviesa: el pisotón
- *  en picada cae directo sobre la ronda del guardián. La puerta
- *  espera sobre el altar, cerrada hasta el final. */
+/** Level 3, room 3 — The sanctuary: the guardian and the door.
+ *  A clean arena of solid floor (the fight is already plenty): two
+ *  side ledges for gaining height and a plank springboard centered
+ *  WELL above the guardian's patrol — two full tiles of air between
+ *  the plank and its highest bob, so the diving stomp lands clean
+ *  and the plank never "catches" the jump (a plank stuck to the boss
+ *  eats the stomp arc). The last crystal floats above the plank —
+ *  claiming it is part of the duel. From the plank, down + jump drops
+ *  through it: the diving stomp lands straight onto the guardian's
+ *  patrol. The door waits on the altar, closed until the end. */
 export const santuario: RoomData = {
   id: 'santuario',
   mapPos: { x: 2, y: 0 },

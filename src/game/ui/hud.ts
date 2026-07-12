@@ -1,9 +1,9 @@
 // ============================================================
-//  HUD — corazones, contadores, cronómetro y avisos
+//  HUD — hearts, counters, timer and notices
 // ------------------------------------------------------------
-//  Se dibuja mientras se juega y en las pantallas de fin (detrás
-//  del overlay). `inGame` distingue la partida viva: solo ahí se
-//  muestran las pistas de "qué falta" (jefe / puerta abierta).
+//  Drawn while playing and on the end screens (behind the
+//  overlay). `inGame` marks the live run: only there do the
+//  "what's left" hints show (boss / open door).
 // ============================================================
 
 import type { GameSession } from '../session';
@@ -17,22 +17,21 @@ export function drawHud(
   session: GameSession,
   inGame: boolean,
 ): void {
-  // Corazones de vida (arriba a la izquierda)
+  // Health hearts (top left)
   const player = session.player;
   for (let i = 0; i < player.maxHealth; i++) {
     const heart = i < player.health ? sprites.heartFull : sprites.heartEmpty;
     heart.draw(ctx, 6 + i * 8, 6);
   }
-  // Contador de cristales y puntos, debajo de los corazones
+  // Crystal and points counter, below the hearts
   ctx.font = font(8);
   ctx.textBaseline = 'top';
   ctx.fillStyle = '#ffe25a';
   ctx.fillText(`${t('hud_crystals')} ${session.collected}/${session.totalCrystals}`, 6, 15);
   ctx.fillStyle = '#9b86c4';
   ctx.fillText(`${t('hud_points')} ${session.score}`, 6, 24);
-  // Cronómetro de la partida, arriba al centro (estilo speedrun).
-  // En contrarreloj es EL protagonista: grande, dorado y con la
-  // marca a batir debajo.
+  // Run timer, top center (speedrun style). In time trial it's
+  // THE star: big, golden and with the mark to beat below.
   ctx.textAlign = 'center';
   if (session.mode === 'trial') {
     ctx.fillStyle = '#ffe25a';
@@ -58,7 +57,7 @@ export function drawHud(
       ctx.fillText(t('hud_door_open'), 6, 33);
     }
   }
-  // Aviso grande al ganar una habilidad (se desvanece al final)
+  // Big notice when gaining an ability (fades out at the end)
   if (session.announceTimer > 0) {
     ctx.save();
     ctx.globalAlpha = Math.min(1, session.announceTimer * 2);
@@ -69,8 +68,8 @@ export function drawHud(
     ctx.restore();
     ctx.textAlign = 'left';
   }
-  // Devolver la línea base por defecto: el HUD usa 'top' pero los
-  // overlays y el overworld dibujan con la base normal; si queda
-  // pegada, todos sus textos aparecen corridos 8px hacia abajo.
+  // Restore the default baseline: the HUD uses 'top' but the
+  // overlays and the overworld draw with the normal baseline; if
+  // it lingers, all their text shows shifted 8px downward.
   ctx.textBaseline = 'alphabetic';
 }

@@ -1,13 +1,13 @@
 // ============================================================
 //  SPRITE
 // ------------------------------------------------------------
-//  Toma una grilla de pixeles (filas de texto + paleta) y la
-//  "hornea" UNA vez en un canvas fuera de pantalla. Después se
-//  dibuja con drawImage, que es muy rápido.
+//  Takes a pixel grid (text rows + palette) and "bakes" it ONCE
+//  into an offscreen canvas. After that it's drawn with drawImage,
+//  which is very fast.
 //
-//  Más adelante (Fase 5 del plan) podés reemplazar las grillas
-//  por imágenes PNG de PixelLab/Aseprite sin tocar el resto:
-//  solo cambia cómo se llena este canvas interno.
+//  Later on (Phase 5 of the plan) you can replace the grids with
+//  PNG images from PixelLab/Aseprite without touching the rest:
+//  only how this internal canvas gets filled changes.
 // ============================================================
 
 export type Palette = Record<string, string>;
@@ -30,7 +30,7 @@ export class Sprite {
       const row = grid[y];
       for (let x = 0; x < row.length; x++) {
         const color = palette[row[x]];
-        if (!color) continue; // '.' o desconocido = transparente
+        if (!color) continue; // '.' or unknown = transparent
         ctx.fillStyle = color;
         ctx.fillRect(x, y, 1, 1);
       }
@@ -38,10 +38,10 @@ export class Sprite {
   }
 
   /**
-   * Dibuja el sprite escalado, anclado al CENTRO de su BASE (los pies).
-   * Así, al estirarlo o aplastarlo (squash & stretch), el personaje
-   * crece hacia arriba y a los lados pero nunca se hunde en el piso.
-   * Con scaleX = scaleY = 1 equivale a draw().
+   * Draws the sprite scaled, anchored to the CENTER of its BASE (the feet).
+   * That way, when stretched or squashed (squash & stretch), the character
+   * grows upward and sideways but never sinks into the floor.
+   * With scaleX = scaleY = 1 it's equivalent to draw().
    */
   drawStretched(
     ctx: CanvasRenderingContext2D,
@@ -58,7 +58,7 @@ export class Sprite {
     ctx.restore();
   }
 
-  /** Dibuja el sprite con su esquina superior izquierda en (x, y). */
+  /** Draws the sprite with its top-left corner at (x, y). */
   draw(ctx: CanvasRenderingContext2D, x: number, y: number, flip = false): void {
     const px = Math.round(x);
     const py = Math.round(y);

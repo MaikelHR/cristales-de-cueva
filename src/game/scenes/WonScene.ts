@@ -1,9 +1,9 @@
 // ============================================================
-//  ESCENA: VICTORIA (nivel completado)
+//  SCENE: VICTORY (level completed)
 // ------------------------------------------------------------
-//  El nivel ganado sigue animándose de fondo (partículas y popups
-//  terminan su vida). Una tecla vuelve al mapa de niveles, donde
-//  la victoria ya dejó su marca (y quizás un nodo nuevo abierto).
+//  The won level keeps animating in the background (particles and
+//  popups finish out their life). A key returns to the level map,
+//  where the win already left its mark (and maybe a newly opened node).
 // ============================================================
 
 import { justPressed } from '../../engine/input';

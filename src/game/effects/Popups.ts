@@ -1,8 +1,8 @@
 // ============================================================
-//  POPUPS — textos flotantes "+N"
+//  POPUPS — floating "+N" texts
 // ------------------------------------------------------------
-//  Nacen sobre un enemigo derrotado, suben despacio y se
-//  desvanecen. Viven en coordenadas del MUNDO, como las partículas.
+//  They spawn over a defeated enemy, rise slowly and fade out.
+//  They live in WORLD coordinates, like the particles.
 // ============================================================
 
 import { font } from '../ui/text';

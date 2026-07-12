@@ -1,10 +1,10 @@
 // ============================================================
-//  SALA — una RoomData hecha realidad
+//  ROOM — a RoomData brought to life
 // ------------------------------------------------------------
-//  Instancia la geometría (Level) y los actores (enemigos y
-//  recogibles) a partir de los datos. El estado vive acá y
-//  persiste al salir y volver durante la corrida: un cristal
-//  recogido sigue recogido, un enemigo derrotado sigue muerto.
+//  Instantiates the geometry (Level) and the actors (enemies
+//  and pickups) from the data. State lives here and persists
+//  when you leave and come back during the run: a collected
+//  crystal stays collected, a defeated enemy stays dead.
 // ============================================================
 
 import type { Box } from '../../engine/canvas';
@@ -30,9 +30,9 @@ import { Vent } from '../actors/devices/Vent';
 export class Room {
   readonly level: Level;
   readonly actors: Actor[] = [];
-  /** Dónde aparece el jugador (solo la sala inicial lo tiene). */
+  /** Where the player spawns (only the starting room has it). */
   readonly playerSpawn: Cell | null = null;
-  /** La caja de la puerta (meta), si esta sala la tiene. */
+  /** The door (goal) box, if this room has one. */
   readonly doorBox: Box | null = null;
 
   constructor(readonly data: RoomData, clock: Clock) {

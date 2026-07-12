@@ -1,9 +1,9 @@
 // ============================================================
-//  TRANSICIONES — cruzar de una sala a otra
+//  TRANSITIONS — crossing from one room to another
 // ------------------------------------------------------------
-//  Si el jugador cruzó un borde con salida, el mundo cambia de
-//  sala; acá se actualiza todo lo que depende de eso: colisiones,
-//  cámara, checkpoint y minimapa.
+//  If the player crossed a border with an exit, the world changes
+//  rooms; here we update everything that depends on that: collisions,
+//  camera, checkpoint and minimap.
 // ============================================================
 
 import type { GameSession } from '../session';
@@ -12,7 +12,7 @@ export function handleRoomTransition(session: GameSession): boolean {
   if (!session.world.tryTransition(session.player)) return false;
   session.player.setLevel(session.world.current.level);
   session.makeCamera();
-  // La boca por la que entraste es tu nuevo punto de reaparición.
+  // The mouth you entered through is your new respawn point.
   session.saveCheckpoint();
   session.visited.add(session.world.current.data.id);
   return true;

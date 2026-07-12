@@ -1,13 +1,13 @@
 // ============================================================
-//  BUCLE PRINCIPAL (game loop) con paso de tiempo fijo
+//  MAIN LOOP (game loop) with fixed timestep
 // ------------------------------------------------------------
-//  Separa "actualizar la lógica" de "dibujar". La lógica corre
-//  a 60 pasos por segundo SIEMPRE (paso fijo), aunque la pantalla
-//  vaya más rápido o más lento. Eso hace que la física sea
-//  estable y se sienta igual en cualquier equipo.
+//  Separates "update the logic" from "draw". The logic ALWAYS
+//  runs at 60 steps per second (fixed step), whether the screen
+//  is faster or slower. That keeps physics stable and makes it
+//  feel the same on any machine.
 // ============================================================
 
-const STEP = 1 / 60; // duración de cada paso de lógica, en segundos
+const STEP = 1 / 60; // duration of each logic step, in seconds
 
 export function startLoop(
   update: (dt: number) => void,
@@ -21,7 +21,7 @@ export function startLoop(
     let delta = now - last;
     last = now;
 
-    // Si la pestaña se congeló, evitamos un salto gigante de tiempo.
+    // If the tab froze, avoid a giant time jump.
     if (delta > 0.25) delta = 0.25;
 
     accumulator += delta;

@@ -1,21 +1,21 @@
 // ============================================================
-//  ACCESORIOS DEL PERSONAJE (personalización, eje 2)
+//  CHARACTER ACCESSORIES (customization, axis 2)
 // ------------------------------------------------------------
-//  Un accesorio es una grilla chica (14 de ancho, alineada a las
-//  columnas del jugador) que se SUPERPONE sobre cada frame antes
-//  de hornear: cambia la silueta de verdad (sombrero en punta,
-//  corona, antena...), no solo el color. El ancla es el TOPE DE
-//  LA CABEZA (primera fila con pixeles): así el accesorio
-//  acompaña la respiración del idle (el frame 2 baja un pixel) y
-//  cualquier pose. dy negativo = por encima de la cabeza (el
-//  sprite crece hacia arriba; como se dibuja anclado a los pies,
-//  el gorro sube y los pies no se mueven).
+//  An accessory is a small grid (14 wide, aligned to the
+//  player's columns) that is OVERLAID onto each frame before
+//  baking: it changes the silhouette for real (pointed hat,
+//  crown, antenna...), not just the color. The anchor is the TOP
+//  OF THE HEAD (first row with pixels): this way the accessory
+//  follows the idle breathing (frame 2 drops one pixel) and any
+//  pose. Negative dy = above the head (the sprite grows upward;
+//  since it's drawn anchored to the feet, the hat rises and the
+//  feet don't move).
 //
-//  Claves de color: las que NO son de la rampa del jugador (F, Y,
-//  V, t...) quedan fijas en cualquier skin; K sí es de la rampa,
-//  así que un tallo K se tiñe del contorno de la skin (a propósito:
-//  parece parte del cuerpo). Igual que las skins: datos puros +
-//  preferencia con su propia clave de localStorage. Sin DOM.
+//  Color keys: those NOT from the player ramp (F, Y, V, t...)
+//  stay fixed on any skin; K IS from the ramp, so a K stem takes
+//  the color of the skin's outline (on purpose: it looks like
+//  part of the body). Just like the skins: pure data + a
+//  preference with its own localStorage key. No DOM.
 // ============================================================
 
 import type { StrKey } from './i18n';
@@ -24,15 +24,15 @@ const KEY = 'cristales-accesorio';
 
 export interface AccessoryDef {
   id: string;
-  nameKey: StrKey; // el nombre visible pasa SIEMPRE por i18n
-  grid: readonly string[]; // 14 de ancho; vacía = sin accesorio
-  dy: number; // fila donde entra la grilla, relativa al tope de la cabeza
+  nameKey: StrKey; // the visible name ALWAYS goes through i18n
+  grid: readonly string[]; // 14 wide; empty = no accessory
+  dy: number; // row where the grid enters, relative to the top of the head
 }
 
 export const ACCESSORIES: readonly AccessoryDef[] = [
   { id: 'ninguno', nameKey: 'acc_ninguno', grid: [], dy: 0 },
   {
-    // Gorro en punta (violeta de la cueva) con destello y ala ancha.
+    // Pointed hat (cave violet) with a glint and a wide brim.
     id: 'gorro',
     nameKey: 'acc_gorro',
     dy: -4,
@@ -45,7 +45,7 @@ export const ACCESSORIES: readonly AccessoryDef[] = [
     ],
   },
   {
-    // Corona dorada de tres puntas, apoyada sobre la coronilla.
+    // Golden three-pointed crown, resting on the crown of the head.
     id: 'corona',
     nameKey: 'acc_corona',
     dy: -2,
@@ -55,7 +55,7 @@ export const ACCESSORIES: readonly AccessoryDef[] = [
     ],
   },
   {
-    // Antena con bulbito de luz; el tallo K se tiñe con la skin.
+    // Antenna with a little light bulb; the K stem is tinted by the skin.
     id: 'antena',
     nameKey: 'acc_antena',
     dy: -4,
@@ -67,7 +67,7 @@ export const ACCESSORIES: readonly AccessoryDef[] = [
     ],
   },
   {
-    // Moño rojo ladeado sobre la cabeza.
+    // Red bow tilted on the head.
     id: 'mono',
     nameKey: 'acc_mono',
     dy: -1,
@@ -78,7 +78,7 @@ export const ACCESSORIES: readonly AccessoryDef[] = [
     ],
   },
   {
-    // Bufanda roja al cuello, con la puntita colgando al hombro.
+    // Red scarf around the neck, with the tip dangling to the shoulder.
     id: 'bufanda',
     nameKey: 'acc_bufanda',
     dy: 8,
@@ -91,11 +91,11 @@ export const ACCESSORIES: readonly AccessoryDef[] = [
 ];
 
 /**
- * Superpone la grilla de un accesorio sobre un frame del jugador.
- * Ancla: la primera fila del frame que tiene pixeles (el tope de la
- * cabeza) + dy. Si el accesorio asoma por encima del frame, se
- * anteponen filas vacías (el sprite crece hacia arriba). Los '.'
- * del accesorio son transparentes: no tapan al jugador.
+ * Overlays an accessory's grid onto a player frame.
+ * Anchor: the first row of the frame that has pixels (the top of
+ * the head) + dy. If the accessory pokes above the frame, empty
+ * rows are prepended (the sprite grows upward). The accessory's
+ * '.' are transparent: they don't cover the player.
  */
 export function overlayGrid(
   base: readonly string[],
@@ -114,7 +114,7 @@ export function overlayGrid(
   ];
   acc.forEach((accRow, i) => {
     const y = prepend + start + i;
-    if (y < 0 || y >= rows.length) return; // fuera del frame: se descarta
+    if (y < 0 || y >= rows.length) return; // outside the frame: discarded
     const out = [...rows[y]];
     for (let x = 0; x < accRow.length; x++) {
       if (accRow[x] !== '.') out[x] = accRow[x];
@@ -124,13 +124,13 @@ export function overlayGrid(
   return rows;
 }
 
-/** Accesorio inicial: el guardado si existe; si no, ninguno. */
+/** Initial accessory: the saved one if it exists; otherwise none. */
 function detect(): string {
   try {
     const saved = localStorage.getItem(KEY);
     if (saved && ACCESSORIES.some((a) => a.id === saved)) return saved;
   } catch {
-    // Almacenamiento bloqueado (o Node): arrancamos sin accesorio.
+    // Storage blocked (or Node): start with no accessory.
   }
   return ACCESSORIES[0].id;
 }
@@ -138,35 +138,35 @@ function detect(): string {
 let current: string = detect();
 const listeners = new Set<() => void>();
 
-/** El id del accesorio activo. */
+/** The id of the active accessory. */
 export function getAccessory(): string {
   return current;
 }
 
-/** La definición del accesorio activo (para componer y rotular). */
+/** The active accessory's definition (to compose and label it). */
 export function currentAccessory(): AccessoryDef {
   return ACCESSORIES.find((a) => a.id === current) ?? ACCESSORIES[0];
 }
 
-/** Cambia el accesorio (ids desconocidos se ignoran), guarda y avisa. */
+/** Changes the accessory (unknown ids are ignored), saves and notifies. */
 export function setAccessory(id: string): void {
   if (id === current || !ACCESSORIES.some((a) => a.id === id)) return;
   current = id;
   try {
     localStorage.setItem(KEY, id);
   } catch {
-    // Sin almacenamiento: cambia igual, solo que no se recuerda.
+    // No storage: it still changes, it just isn't remembered.
   }
   for (const fn of listeners) fn();
 }
 
-/** Pasa al accesorio siguiente (dir=1) o anterior (dir=-1), en rueda. */
+/** Moves to the next accessory (dir=1) or previous (dir=-1), wrapping around. */
 export function cycleAccessory(dir: 1 | -1 = 1): void {
   const i = ACCESSORIES.findIndex((a) => a.id === current);
   setAccessory(ACCESSORIES[(i + dir + ACCESSORIES.length) % ACCESSORIES.length].id);
 }
 
-/** Se suscribe a los cambios de accesorio (para re-pintar el DOM táctil). */
+/** Subscribes to accessory changes (to re-paint the touch DOM). */
 export function onAccessoryChange(fn: () => void): void {
   listeners.add(fn);
 }

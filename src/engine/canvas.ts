@@ -1,5 +1,5 @@
 // ============================================================
-//  UTILIDADES: lienzo (canvas) y cajas de colisión (AABB)
+//  UTILITIES: canvas and collision boxes (AABB)
 // ============================================================
 
 export interface Box {
@@ -9,7 +9,7 @@ export interface Box {
   h: number;
 }
 
-/** ¿Se solapan dos rectángulos? (Axis-Aligned Bounding Box) */
+/** Do two rectangles overlap? (Axis-Aligned Bounding Box) */
 export function overlaps(a: Box, b: Box): boolean {
   return (
     a.x < b.x + b.w &&
@@ -24,8 +24,8 @@ export function clamp(value: number, min: number, max: number): number {
 }
 
 /**
- * Prepara el canvas para pixel-art: desactiva el suavizado para que
- * los pixeles se vean nítidos al escalarlos.
+ * Prepares the canvas for pixel-art: disables smoothing so the
+ * pixels stay crisp when scaled up.
  */
 export function setupContext(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
   const ctx = canvas.getContext('2d');

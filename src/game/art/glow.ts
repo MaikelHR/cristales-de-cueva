@@ -1,8 +1,8 @@
 // ============================================================
-//  BRILLOS (glow) — gradientes radiales cacheados
+//  GLOWS — cached radial gradients
 // ------------------------------------------------------------
-//  Cada halo se genera UNA vez por (color, radio) y después se
-//  estampa con drawImage, que es barato por frame.
+//  Each halo is generated ONCE per (color, radius) and then
+//  stamped with drawImage, which is cheap per frame.
 // ============================================================
 
 const glowCache = new Map<string, HTMLCanvasElement>();
@@ -25,7 +25,7 @@ function getGlow(color: string, radius: number): HTMLCanvasElement {
   return c;
 }
 
-/** Dibuja un halo de luz centrado en (cx, cy), sumando luz (no tapa). */
+/** Draws a light halo centered at (cx, cy), adding light (does not cover). */
 export function drawGlow(
   ctx: CanvasRenderingContext2D,
   cx: number,

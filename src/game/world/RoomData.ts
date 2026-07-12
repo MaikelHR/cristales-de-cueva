@@ -1,26 +1,26 @@
 // ============================================================
-//  FORMATO DE SALA (datos, no código)
+//  ROOM FORMAT (data, not code)
 // ------------------------------------------------------------
-//  Una sala son dos cosas separadas:
-//   - `tiles`: la geometría como texto. SOLO seis caracteres:
-//       '#' = bloque sólido   '.' = aire   '-' = tablón de un sentido
-//       '^' = púas (dañan al pisarlas; no son sólidas)
-//       '%' = bloque agrietado (sólido; lo rompen azotón/embestida)
-//       '~' = hielo (sólido; patina bajo los pies)
-//   - `entities`: lo que vive en la sala (enemigos, cristales,
-//     reliquias, resortes, plataformas móviles, el spawn del
-//     jugador, la puerta), cada uno con su celda y sus propiedades
-//     tipadas.
-//  Separarlos permite que una entidad tenga datos propios (p. ej.
-//  qué habilidad da una reliquia) sin inventar más caracteres, y
-//  deja el camino listo para importar desde un editor (LDtk/Tiled):
-//  su salida se traduce a este mismo formato.
-//  Agregar una sala = crear un archivo en rooms/ y sumarlo a index.ts.
+//  A room is two separate things:
+//   - `tiles`: the geometry as text. ONLY six characters:
+//       '#' = solid block   '.' = air   '-' = one-way plank
+//       '^' = spikes (hurt when stepped on; not solid)
+//       '%' = cracked block (solid; broken by pound/dash)
+//       '~' = ice (solid; slippery underfoot)
+//   - `entities`: what lives in the room (enemies, crystals,
+//     relics, springs, moving platforms, the player spawn,
+//     the door), each with its cell and its typed
+//     properties.
+//  Separating them lets an entity carry its own data (e.g.
+//  which ability a relic grants) without inventing more characters, and
+//  keeps the path open for importing from an editor (LDtk/Tiled):
+//  its output maps to this very format.
+//  Adding a room = create a file in rooms/ and register it in index.ts.
 // ============================================================
 
 import type { AbilityName } from '../abilities';
 
-/** Una celda del mapa (coordenadas de tile, no de píxel). */
+/** A map cell (tile coordinates, not pixels). */
 export interface Cell {
   x: number;
   y: number;
@@ -34,39 +34,39 @@ export type EntitySpawn =
   | (Cell & { type: 'relic'; ability: AbilityName })
   | (Cell & { type: 'playerSpawn' })
   | (Cell & { type: 'door' })
-  // Resorte: pisarlo lanza al jugador hacia arriba, más alto que un salto.
+  // Spring: stepping on it launches the player upward, higher than a jump.
   | (Cell & { type: 'spring' })
-  // Plataforma móvil: viaja `range` celdas por `axis` (negativo = hacia
-  // la izquierda/arriba) y vuelve, en un vaivén constante. El jugador
-  // que va parado encima viaja con ella.
+  // Moving platform: travels `range` cells along `axis` (negative = toward
+  // left/up) and back, in a constant back-and-forth. A player standing
+  // on top rides along with it.
   | (Cell & { type: 'platform'; axis: 'x' | 'y'; range: number; speed?: number })
-  // Corriente ascendente: desde la boquilla (x, y) sube `height` celdas.
-  // Solo empuja al jugador que PLANEA dentro de la columna.
+  // Updraft: rises `height` cells from the nozzle at (x, y).
+  // Only pushes a player who is GLIDING inside the column.
   | (Cell & { type: 'vent'; height: number })
-  // Géiser de fuego: boquilla en el piso que entra en erupción cíclica
-  // (columna de llama de 4 celdas). `offset` desfasa su ciclo, para que
-  // varios géiseres alternen.
+  // Fire geyser: a floor nozzle that erupts cyclically
+  // (4-cell flame column). `offset` phase-shifts its cycle, so
+  // multiple geysers alternate.
   | (Cell & { type: 'geyser'; offset?: number });
 
 export interface RoomData {
-  /** Nombre único; las salidas de otras salas apuntan a este id. */
+  /** Unique name; exits from other rooms point to this id. */
   id: string;
-  /** La geometría: filas de '#', '.', '-', '^', '%' y '~'. Todas del mismo largo. */
+  /** The geometry: rows of '#', '.', '-', '^', '%' and '~'. All the same length. */
   tiles: string[];
-  /** Lo que vive en la sala, en celdas del mapa. */
+  /** What lives in the room, in map cells. */
   entities: EntitySpawn[];
-  /** A qué sala se sale por cada borde. Sin salida = pared o vacío. */
+  /** Which room you exit to on each edge. No exit = wall or void. */
   exits?: { left?: string; right?: string };
-  /** Celda que ocupa esta sala en el minimapa. */
+  /** The cell this room occupies on the minimap. */
   mapPos: Cell;
 }
 
 const TILE_CHARS = new Set(['#', '.', '-', '^', '%', '~']);
 
 /**
- * Revisa la integridad de las salas de UN NIVEL y devuelve la lista de
- * problemas (vacía = todo bien). La corren los tests y el arranque en
- * desarrollo: un mapa roto avisa con un mensaje claro, no con un bug raro.
+ * Checks the integrity of ONE LEVEL's rooms and returns the list of
+ * problems (empty = all good). Run by the tests and dev startup:
+ * a broken map warns with a clear message, not a weird bug.
  */
 export function validateRooms(rooms: RoomData[]): string[] {
   const errors: string[] = [];
@@ -104,7 +104,7 @@ export function validateRooms(rooms: RoomData[]): string[] {
     }
   }
 
-  // Invariantes del nivel: hay dónde aparecer y hay una meta.
+  // Level invariants: there's somewhere to spawn and there's a goal.
   const spawns = rooms.flatMap((r) => r.entities.filter((e) => e.type === 'playerSpawn'));
   if (spawns.length !== 1) errors.push(`el nivel necesita exactamente 1 playerSpawn (hay ${spawns.length})`);
   const doors = rooms.flatMap((r) => r.entities.filter((e) => e.type === 'door'));

@@ -1,22 +1,22 @@
 // ============================================================
-//  CONTROLES TÁCTILES (touch): mando en pantalla para móvil
+//  TOUCH CONTROLS: on-screen gamepad for mobile
 // ------------------------------------------------------------
-//  En pantallas táctiles no hay teclado ni gamepad, así que
-//  dibujamos un mando por encima del canvas: cruceta a la
-//  izquierda, salto/dash a la derecha y un botón de pausa. Cada
-//  botón traduce el toque a las mismas ACCIONES que el resto del
-//  juego (left, jump...), reutilizando el input existente; el
-//  juego jamás se entera de que la orden vino de un dedo.
+//  On touch screens there's no keyboard or gamepad, so we draw
+//  a gamepad on top of the canvas: d-pad on the left, jump/dash
+//  on the right and a pause button. Each button translates the
+//  tap into the same ACTIONS as the rest of the game (left,
+//  jump...), reusing the existing input; the game never learns
+//  the command came from a finger.
 //
-//  Dos familias de botón:
-//    - HOLD (mover/saltar/dash): valen mientras se mantengan.
-//    - TAP  (pausa/continuar/reiniciar): valen un instante.
-//  Usamos Pointer Events con captura por dedo (setPointerCapture)
-//  para permitir multitáctil real: sostener "izquierda" y tocar
-//  "saltar" a la vez sin que un dedo le robe el evento al otro.
+//  Two button families:
+//    - HOLD (move/jump/dash): active while held.
+//    - TAP  (pause/resume/restart): active for one instant.
+//  We use Pointer Events with per-finger capture (setPointerCapture)
+//  to allow real multitouch: holding "left" and tapping "jump"
+//  at the same time without one finger stealing the other's event.
 //
-//  En escritorio este módulo NO hace absolutamente nada: si el
-//  puntero no es "coarse" (táctil), salimos antes de tocar el DOM.
+//  On desktop this module does absolutely NOTHING: if the pointer
+//  isn't "coarse" (touch), we bail out before touching the DOM.
 // ============================================================
 
 import { touchButton, releaseAll, setDevice, setTouchMode } from '../engine/input';
@@ -24,29 +24,29 @@ import { t, onLangChange } from './i18n';
 import { bakeControlFaces, bakeMenuFace, type TouchFace } from './ui/touchButtons';
 import type { UiState } from './scenes/Scene';
 
-/** Estado de interfaz que nos pasa el juego para decidir qué mostrar.
- *  `hasDash` indica si ya se desbloqueó el dash (para mostrar su botón). */
+/** Interface state the game passes us to decide what to show.
+ *  `hasDash` says whether dash is already unlocked (to show its button). */
 type TouchUI = UiState & { hasDash: boolean };
 
-/** Modo de visibilidad del mando; el CSS decide qué se ve en cada uno. */
+/** Visibility mode of the gamepad; the CSS decides what shows in each. */
 type TouchMode = 'play' | 'paused' | 'menu';
 
-// Guardamos el último estado conocido para dos cosas: para no tocar
-// el DOM si no cambió (data-mode) y para saber, cuando se toca el
-// canvas, si estamos en un menú (tap = confirmar) o jugando (se ignora).
+// We keep the last known state for two things: to avoid touching
+// the DOM if it didn't change (data-mode) and to know, when the
+// canvas is tapped, whether we're in a menu (tap = confirm) or playing (ignored).
 let currentUi: TouchUI = { state: 'title', paused: false, hasDash: false };
 let container: HTMLDivElement | null = null;
 let currentMode: TouchMode | null = null;
-// El botón de dash: se guarda aparte porque su visibilidad no depende del
-// modo, sino de si ya se desbloqueó el dash (arranca oculto).
+// The dash button: kept apart because its visibility doesn't depend on
+// the mode, but on whether dash is already unlocked (starts hidden).
 let dashBtn: HTMLButtonElement | null = null;
 let currentHasDash = false;
-// Cada botón HOLD registra aquí un "soltador forzado" que limpia su
-// estado (dedos apoyados + resaltado). Lo usa el pánico (perder foco)
-// para no dejar nada trabado sin depender de un evento del navegador.
+// Each HOLD button registers a "forced releaser" here that clears its
+// state (pressed fingers + highlight). Used by the panic path (lost focus)
+// so nothing stays stuck without relying on a browser event.
 const holdResetters: Array<() => void> = [];
 
-/** Acciones que el módulo táctil sabe emitir. */
+/** Actions the touch module knows how to emit. */
 type TouchAction =
   | 'left'
   | 'down'
@@ -59,14 +59,14 @@ type TouchAction =
   | 'quit';
 
 /**
- * Construye el mando táctil y cablea sus eventos. Es idempotente en
- * la práctica: si no es un dispositivo táctil, sale sin dejar rastro.
+ * Builds the touch gamepad and wires its events. In practice idempotent:
+ * if it's not a touch device, it exits without leaving a trace.
  */
 export function initTouchControls(canvas: HTMLCanvasElement): void {
-  // --- Detección de capacidad táctil ---
-  // "pointer: coarse" = puntero impreciso (dedo). maxTouchPoints cubre
-  // navegadores que no reportan bien la media query. En un móvil/tablet
-  // esto ya es true al cargar, así que construimos el mando de una.
+  // --- Touch capability detection ---
+  // "pointer: coarse" = imprecise pointer (finger). maxTouchPoints covers
+  // browsers that don't report the media query well. On a phone/tablet
+  // this is already true at load, so we build the gamepad right away.
   const coarse =
     window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
   if (coarse) {
@@ -74,61 +74,61 @@ export function initTouchControls(canvas: HTMLCanvasElement): void {
     return;
   }
 
-  // Si al cargar NO parece táctil (escritorio, o el navegador todavía no
-  // emula touch), nos quedamos al acecho: en cuanto llegue un toque REAL
-  // encendemos el mando en ese instante. Así también aparece al activar la
-  // emulación táctil de las DevTools sin recargar, y en equipos híbridos
-  // (portátil con pantalla táctil) el primer dedo lo revela.
+  // If at load it does NOT look touch (desktop, or the browser isn't yet
+  // emulating touch), we lie in wait: as soon as a REAL touch arrives we
+  // turn the gamepad on right then. This also makes it appear when you
+  // enable DevTools touch emulation without reloading, and on hybrid
+  // machines (laptop with touch screen) the first finger reveals it.
   const onFirstTouch = (e: PointerEvent): void => {
-    if (e.pointerType !== 'touch') return; // ratón/lápiz de precisión: seguimos en escritorio.
+    if (e.pointerType !== 'touch') return; // precision mouse/stylus: stay on desktop.
     window.removeEventListener('pointerdown', onFirstTouch, true);
     buildTouchControls(canvas);
   };
-  window.addEventListener('pointerdown', onFirstTouch, true); // captura: antes que nadie.
+  window.addEventListener('pointerdown', onFirstTouch, true); // capture: before anyone else.
 }
 
 /**
- * Construye el mando táctil y lo enciende. Sólo se llama cuando ya
- * decidimos que el dispositivo es táctil (al cargar o al primer toque).
+ * Builds the touch gamepad and turns it on. Only called once we've
+ * decided the device is touch (at load or on the first touch).
  */
 function buildTouchControls(canvas: HTMLCanvasElement): void {
-  if (container) return; // ya construido: no dupliques el DOM ni los eventos.
+  if (container) return; // already built: don't duplicate the DOM or events.
 
-  // Marcamos capacidad táctil (flag fijo) y arrancamos en modo táctil.
+  // Flag touch capability (sticky flag) and start in touch mode.
   setTouchMode(true);
   setDevice('touch');
   document.body.classList.add('touch');
 
-  // --- Construcción del DOM (clases FIJAS: el CSS depende de ellas) ---
+  // --- DOM construction (FIXED classes: the CSS depends on them) ---
   const tc = document.createElement('div');
   tc.className = 'tc';
   tc.id = 'tc';
   tc.dataset.mode = 'menu';
 
-  // Los botones NO llevan texto en el DOM: su cara es pixel-art horneado
-  // por código (ui/touchButtons.ts) que el CSS estira sin difuminar. El
-  // aria-label (lectores de pantalla) sí sale del diccionario de idiomas.
-  // Botón de pausa (arriba-derecha).
+  // The buttons carry NO text in the DOM: their face is pixel-art baked
+  // by code (ui/touchButtons.ts) that the CSS stretches without blurring.
+  // The aria-label (screen readers) does come from the language dictionary.
+  // Pause button (top-right).
   const btnPause = makeButton('tc-btn tc-pause', t('tc_pause_aria'));
-  // Cruceta de movimiento (banda izquierda).
+  // Movement d-pad (left band).
   const pad = document.createElement('div');
   pad.className = 'tc-pad';
   const btnLeft = makeButton('tc-btn tc-left', t('tc_left_aria'));
-  // Abajo: navega menús y baja de los tablones (abajo+saltar).
+  // Down: navigates menus and drops through planks (down+jump).
   const btnDown = makeButton('tc-btn tc-down', t('tc_down_aria'));
   const btnRight = makeButton('tc-btn tc-right', t('tc_right_aria'));
   pad.append(btnLeft, btnDown, btnRight);
-  // Acciones (banda derecha).
+  // Actions (right band).
   const actions = document.createElement('div');
   actions.className = 'tc-actions';
   const btnDash = makeButton('tc-btn tc-dash', t('tc_dash_aria'));
-  // El dash arranca bloqueado: ocultamos su botón hasta desbloquearlo
-  // (syncTouchUI lo muestra cuando el juego reporta hasDash).
+  // Dash starts locked: we hide its button until it's unlocked
+  // (syncTouchUI shows it when the game reports hasDash).
   btnDash.style.display = 'none';
   dashBtn = btnDash;
   const btnJump = makeButton('tc-btn tc-jump', t('tc_jump_aria'));
   actions.append(btnDash, btnJump);
-  // Menú de pausa (centro).
+  // Pause menu (center).
   const menu = document.createElement('div');
   menu.className = 'tc-menu';
   const btnResume = makeButton('tc-btn tc-mbtn tc-resume', t('tc_resume'));
@@ -137,8 +137,8 @@ function buildTouchControls(canvas: HTMLCanvasElement): void {
   const btnMap = makeButton('tc-btn tc-mbtn tc-map', t('tc_map'));
   menu.append(btnResume, btnFs, btnRestart, btnMap);
 
-  // Caras pixel-art de los botones de juego (fijas: sus glifos son
-  // iconos, no dependen del idioma).
+  // Pixel-art faces for the gameplay buttons (fixed: their glyphs are
+  // icons, not language-dependent).
   const faces = bakeControlFaces();
   applyFace(btnPause, faces.pause);
   applyFace(btnLeft, faces.left);
@@ -147,9 +147,9 @@ function buildTouchControls(canvas: HTMLCanvasElement): void {
   applyFace(btnDash, faces.dash);
   applyFace(btnJump, faces.jump);
 
-  // Las caras del menú llevan el rótulo HORNEADO con la letra del juego:
-  // se re-hornean al cambiar de idioma y cuando la fuente termina de
-  // cargar (si se hornearon antes, quedó la letra de reserva del sistema).
+  // The menu faces carry their label BAKED in with the game font:
+  // they're re-baked on language change and when the font finishes
+  // loading (if baked earlier, they got the system fallback font).
   const bakeMenus = (): void => {
     applyFace(btnResume, bakeMenuFace(t('tc_resume'), true));
     applyFace(btnFs, bakeMenuFace(t('tc_fs')));
@@ -159,7 +159,7 @@ function buildTouchControls(canvas: HTMLCanvasElement): void {
   bakeMenus();
   void document.fonts.ready.then(bakeMenus);
 
-  // Al cambiar de idioma, re-aplicar aria-labels y re-hornear los rótulos.
+  // On language change, re-apply aria-labels and re-bake the labels.
   const relocalize = (): void => {
     btnPause.setAttribute('aria-label', t('tc_pause_aria'));
     btnLeft.setAttribute('aria-label', t('tc_left_aria'));
@@ -179,34 +179,34 @@ function buildTouchControls(canvas: HTMLCanvasElement): void {
   document.body.appendChild(tc);
   container = tc;
 
-  // --- Cableado de eventos ---
-  // HOLD: valen mientras el dedo se mantenga apoyado.
+  // --- Event wiring ---
+  // HOLD: active while the finger stays pressed.
   bindHold(btnLeft, 'left');
   bindHold(btnDown, 'down');
   bindHold(btnRight, 'right');
   bindHold(btnJump, 'jump');
   bindHold(btnDash, 'dash');
 
-  // TAP: valen un instante (un flanco de "recién presionado").
+  // TAP: active for one instant (a "just pressed" edge).
   bindTap(btnPause, 'pause');
-  bindTap(btnResume, 'pause'); // "Continuar" alterna la misma pausa.
+  bindTap(btnResume, 'pause'); // "Resume" toggles the same pause.
   bindTap(btnRestart, 'restart');
-  bindTap(btnMap, 'quit'); // "Salir al mapa": la pausa la convierte en escena.
+  bindTap(btnMap, 'quit'); // "Exit to map": the pause turns it into a scene.
 
-  // Pantalla completa: sólo si el navegador la soporta para elementos.
+  // Fullscreen: only if the browser supports it for elements.
   bindFullscreen(btnFs);
 
-  // Tap sobre el canvas en modo menú -> confirmar (title/won/gameover).
+  // Tap on the canvas in menu mode -> confirm (title/won/gameover).
   bindCanvasConfirm(canvas);
 
-  // Evitar el menú contextual (mantener pulsado) sobre el mando.
+  // Prevent the context menu (long press) over the gamepad.
   tc.addEventListener('contextmenu', (e) => e.preventDefault());
 
-  // Red de seguridad: si perdemos el foco o la pestaña se oculta,
-  // soltamos TODO lo mantenido para que no quede un botón "trabado".
+  // Safety net: if we lose focus or the tab is hidden, release
+  // EVERYTHING held so no button stays "stuck".
   const panic = (): void => {
     releaseAll();
-    for (const reset of holdResetters) reset(); // vacía los dedos por botón.
+    for (const reset of holdResetters) reset(); // empty the fingers per button.
     clearActiveClasses();
   };
   window.addEventListener('blur', panic);
@@ -216,10 +216,10 @@ function buildTouchControls(canvas: HTMLCanvasElement): void {
 }
 
 /**
- * Sincroniza qué parte del mando se ve según el estado del juego.
- * Sólo toca el DOM si el modo cambió (evita trabajo por frame).
- * El overworld usa el mando de juego (mover + saltar para navegar
- * el mapa), no el modo menú.
+ * Syncs which part of the gamepad shows based on the game state.
+ * Only touches the DOM if the mode changed (avoids per-frame work).
+ * The overworld uses the gameplay gamepad (move + jump to navigate
+ * the map), not menu mode.
  */
 export function syncTouchUI(ui: TouchUI): void {
   currentUi = ui;
@@ -235,8 +235,8 @@ export function syncTouchUI(ui: TouchUI): void {
     currentMode = mode;
     if (container) container.dataset.mode = mode;
   }
-  // El botón de dash solo se muestra una vez desbloqueada la habilidad.
-  // Un mundo nuevo (reset) vuelve a bloquearla, así que también lo re-oculta.
+  // The dash button only shows once the ability is unlocked.
+  // A new world (reset) locks it again, so this re-hides it too.
   if (ui.hasDash !== currentHasDash) {
     currentHasDash = ui.hasDash;
     if (dashBtn) dashBtn.style.display = ui.hasDash ? '' : 'none';
@@ -244,11 +244,11 @@ export function syncTouchUI(ui: TouchUI): void {
 }
 
 // ------------------------------------------------------------
-//  Ayudantes internos
+//  Internal helpers
 // ------------------------------------------------------------
 
-/** Crea un botón sin texto visible (la cara es pixel-art vía CSS);
- *  `label` es el nombre accesible que anuncian los lectores de pantalla. */
+/** Creates a button with no visible text (the face is pixel-art via CSS);
+ *  `label` is the accessible name screen readers announce. */
 function makeButton(className: string, label: string): HTMLButtonElement {
   const b = document.createElement('button');
   b.type = 'button';
@@ -257,60 +257,60 @@ function makeButton(className: string, label: string): HTMLButtonElement {
   return b;
 }
 
-/** Entrega al CSS las dos caras horneadas de un botón: reposo en
- *  --tc-face y presionado en --tc-face-down (la muestra .is-active). */
+/** Hands the CSS a button's two baked faces: idle in --tc-face
+ *  and pressed in --tc-face-down (.is-active shows it). */
 function applyFace(el: HTMLButtonElement, face: TouchFace): void {
   el.style.setProperty('--tc-face', `url(${face.idle})`);
   el.style.setProperty('--tc-face-down', `url(${face.pressed})`);
 }
 
 /**
- * Botón HOLD (mover/saltar/dash): la acción vale mientras el dedo
- * siga apoyado. Capturamos el puntero para que, aunque el dedo se
- * salga del botón, sigamos recibiendo su "up" y no quede pegado.
+ * HOLD button (move/jump/dash): the action is active while the finger
+ * stays pressed. We capture the pointer so that, even if the finger
+ * slides off the button, we still get its "up" and it won't stick.
  */
 function bindHold(el: HTMLButtonElement, action: TouchAction): void {
-  // Un mismo botón puede tener VARIOS dedos encima a la vez (captura por
-  // puntero). Contamos los punteros activos y sólo soltamos la acción
-  // cuando se levanta el ÚLTIMO: así, si un dedo se va, el otro la mantiene.
+  // A single button can have SEVERAL fingers on it at once (pointer
+  // capture). We count the active pointers and only release the action
+  // when the LAST one lifts: so if one finger leaves, the other holds it.
   const pointers = new Set<number>();
   const press = (e: PointerEvent): void => {
-    e.preventDefault(); // corta zoom/scroll; NO cancela la activación de usuario.
+    e.preventDefault(); // cuts zoom/scroll; does NOT cancel the user activation.
     pointers.add(e.pointerId);
     touchButton(action, true);
     try {
       el.setPointerCapture(e.pointerId);
     } catch {
-      // Algunos navegadores rechazan la captura; no es crítico.
+      // Some browsers reject the capture; not critical.
     }
     el.classList.add('is-active');
   };
   const release = (e: PointerEvent): void => {
     pointers.delete(e.pointerId);
-    if (pointers.size > 0) return; // aún queda al menos un dedo apoyado.
+    if (pointers.size > 0) return; // at least one finger still pressed.
     touchButton(action, false);
     el.classList.remove('is-active');
   };
   el.addEventListener('pointerdown', press);
   el.addEventListener('pointerup', release);
-  el.addEventListener('pointercancel', release); // gesto del sistema, etc.
-  el.addEventListener('lostpointercapture', release); // red de seguridad.
-  // Soltador forzado (para el pánico): vacía los dedos y suelta la acción.
+  el.addEventListener('pointercancel', release); // system gesture, etc.
+  el.addEventListener('lostpointercapture', release); // safety net.
+  // Forced releaser (for the panic path): empties the fingers and releases the action.
   holdResetters.push(() => {
     pointers.clear();
     touchButton(action, false);
     el.classList.remove('is-active');
   });
-  // Nunca stopPropagation: dejamos que el evento siga su curso normal.
+  // Never stopPropagation: we let the event run its normal course.
 }
 
 /**
- * Botón TAP (pausa/continuar/reiniciar): un toque = un flanco de
- * "recién presionado". Es un flanco PURO: presionamos y soltamos en el
- * mismo pointerdown, así la acción nunca queda en "down" esperando un
- * pointerup que puede perderse cuando el botón se auto-oculta al actuar
- * (p. ej. al pausar, tc-pause pasa a display:none antes de levantar el
- * dedo). El "recién presionado" queda marcado igual y dispara una vez.
+ * TAP button (pause/resume/restart): a tap = one "just pressed" edge.
+ * It's a PURE edge: we press and release in the same pointerdown, so the
+ * action never stays "down" waiting for a pointerup that could be lost
+ * when the button self-hides on acting (e.g. on pausing, tc-pause goes
+ * display:none before the finger lifts). The "just pressed" is marked
+ * anyway and fires once.
  */
 function bindTap(el: HTMLButtonElement, action: TouchAction): void {
   el.addEventListener('pointerdown', (e) => {
@@ -321,9 +321,9 @@ function bindTap(el: HTMLButtonElement, action: TouchAction): void {
 }
 
 /**
- * Botón de pantalla completa. Feature-detect: si el navegador no
- * expone requestFullscreen sobre elementos (típico iPhone Safari),
- * escondemos el botón. Se activa al levantar el dedo (gesto real).
+ * Fullscreen button. Feature-detect: if the browser doesn't expose
+ * requestFullscreen on elements (typical iPhone Safari), we hide the
+ * button. It fires on lifting the finger (a real gesture).
  */
 function bindFullscreen(el: HTMLButtonElement): void {
   const root = document.documentElement;
@@ -342,11 +342,11 @@ function bindFullscreen(el: HTMLButtonElement): void {
 }
 
 /**
- * Tap sobre el canvas cuando NO estamos jugando (title/won/gameover):
- * cuenta como "confirmar". Escuchamos el "up" a nivel window para
- * soltar aunque el dedo se levante fuera del canvas. En el overworld
- * tampoco confirma: ahí se navega con el mando (un tap descuidado no
- * debe meterte a un nivel).
+ * Tap on the canvas when we're NOT playing (title/won/gameover):
+ * counts as "confirm". We listen for the "up" at the window level to
+ * release even if the finger lifts outside the canvas. In the overworld
+ * it doesn't confirm either: there you navigate with the gamepad (a
+ * careless tap shouldn't drop you into a level).
  */
 function bindCanvasConfirm(canvas: HTMLCanvasElement): void {
   canvas.addEventListener('pointerdown', (e) => {
@@ -361,7 +361,7 @@ function bindCanvasConfirm(canvas: HTMLCanvasElement): void {
   window.addEventListener('pointercancel', release);
 }
 
-/** Quita el resaltado "is-active" de todos los botones del mando. */
+/** Removes the "is-active" highlight from all gamepad buttons. */
 function clearActiveClasses(): void {
   if (!container) return;
   for (const el of container.querySelectorAll('.is-active')) {

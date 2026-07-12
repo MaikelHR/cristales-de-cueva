@@ -1,82 +1,82 @@
 // ============================================================
-//  EFECTOS DE SONIDO del juego
+//  The game's SOUND EFFECTS
 // ------------------------------------------------------------
-//  Cada sonido es un par de números bien elegidos. Tocalos:
-//  cambiá una frecuencia o una duración y escuchá qué pasa.
+//  Each sound is a pair of well-chosen numbers. Play with them:
+//  change a frequency or a duration and listen to what happens.
 // ============================================================
 
 import { playTone } from '../engine/audio';
 
 export const sfx = {
-  /** Salto: barrido rápido hacia arriba. */
+  /** Jump: fast upward sweep. */
   jump(): void {
     playTone({ freq: 220, freqEnd: 520, duration: 0.12, volume: 0.1 });
   },
 
-  /** Doble salto: como el salto pero más agudo, con destello cristalino. */
+  /** Double jump: like the jump but higher-pitched, with a crystalline glint. */
   doubleJump(): void {
     playTone({ freq: 330, freqEnd: 720, duration: 0.11, volume: 0.1 });
     playTone({ freq: 990, duration: 0.06, type: 'triangle', volume: 0.08, delay: 0.03 });
   },
 
-  /** Wall jump: salto con un golpecito seco de roca. */
+  /** Wall jump: a jump with a dry little rock tap. */
   wallJump(): void {
     playTone({ freq: 260, freqEnd: 560, duration: 0.11, volume: 0.1 });
     playTone({ freq: 140, duration: 0.05, volume: 0.08 });
   },
 
-  /** Dash: soplido rápido que cae. */
+  /** Dash: a quick puff that falls. */
   dash(): void {
     playTone({ freq: 520, freqEnd: 160, duration: 0.16, type: 'sawtooth', volume: 0.12 });
   },
 
-  /** Resorte: "boing" elástico que sube de golpe. */
+  /** Spring: an elastic "boing" that shoots upward. */
   spring(): void {
     playTone({ freq: 140, freqEnd: 520, duration: 0.18, type: 'triangle', volume: 0.16 });
     playTone({ freq: 90, duration: 0.05, type: 'square', volume: 0.08 });
   },
 
-  /** Azotón: el silbido de la picada, cayendo en frecuencia. */
+  /** Pound: the whistle of the dive, falling in frequency. */
   pound(): void {
     playTone({ freq: 620, freqEnd: 170, duration: 0.18, type: 'square', volume: 0.12 });
   },
 
-  /** Bloque agrietado que revienta: crujido de esquirlas + golpe sordo. */
+  /** Cracked block bursting: crunch of shards + a dull thud. */
   crack(): void {
     playTone({ freq: 3200, duration: 0.08, type: 'noise', volume: 0.16 });
     playTone({ freq: 240, freqEnd: 90, duration: 0.12, type: 'square', volume: 0.1, delay: 0.02 });
   },
 
-  /** Recibir daño: un "ough" corto y grave. */
+  /** Taking damage: a short, low "ough". */
   hurt(): void {
     playTone({ freq: 200, freqEnd: 80, duration: 0.16, type: 'square', volume: 0.15 });
   },
 
-  /** Pisar un enemigo: un "boink" seco y jugoso. */
+  /** Stomping an enemy: a dry, juicy "boink". */
   stomp(): void {
     playTone({ freq: 420, freqEnd: 130, duration: 0.09, type: 'square', volume: 0.14 });
     playTone({ freq: 700, duration: 0.05, type: 'triangle', volume: 0.1, delay: 0.02 });
   },
 
-  /** Recoger cristal: dos campanitas subiendo. */
+  /** Collecting a crystal: two little bells rising. */
   pickup(): void {
     playTone({ freq: 880, duration: 0.07, type: 'triangle', volume: 0.18 });
     playTone({ freq: 1320, duration: 0.1, type: 'triangle', volume: 0.15, delay: 0.06 });
   },
 
-  /** Morir: zumbido que se desploma a los graves. */
+  /** Dying: a buzz that collapses into the low end. */
   die(): void {
     playTone({ freq: 300, freqEnd: 55, duration: 0.3, type: 'sawtooth', volume: 0.16 });
   },
 
-  /** Reliquia: fanfarria corta — algo importante acaba de pasar. */
+  /** Relic: short fanfare — something important just happened. */
   relic(): void {
     [392, 523, 659, 784, 1047].forEach((freq, i) => {
       playTone({ freq, duration: 0.14, type: 'triangle', volume: 0.14, delay: i * 0.07 });
     });
   },
 
-  /** Ganar: arpegio ascendente (Do-Mi-Sol-Do). */
+  /** Winning: ascending arpeggio (C-E-G-C). */
   win(): void {
     [523, 659, 784, 1047].forEach((freq, i) => {
       playTone({ freq, duration: 0.16, type: 'triangle', volume: 0.14, delay: i * 0.12 });

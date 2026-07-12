@@ -1,11 +1,11 @@
 // ============================================================
-//  CORRIENTE ASCENDENTE (aparato del escenario)
+//  UPDRAFT (stage device)
 // ------------------------------------------------------------
-//  Una boquilla de roca que exhala una columna de aire y esporas.
-//  SOLO empuja al jugador que PLANEA dentro de la columna (sostener
-//  saltar): soltar saltar es soltarse del viento. La regla vive en
-//  systems/devices.ts; acá la caja de la columna y el dibujo (motas
-//  que suben en bucle, deterministas sobre el reloj compartido).
+//  A rock nozzle that exhales a column of air and spores.
+//  ONLY pushes the player who GLIDES inside the column (hold
+//  jump): releasing jump lets go of the wind. The rule lives in
+//  systems/devices.ts; here the column's box and the drawing (motes
+//  rising in a loop, deterministic over the shared clock).
 // ============================================================
 
 import type { Box } from '../../../engine/canvas';
@@ -14,19 +14,19 @@ import type { Clock } from '../../clock';
 import type { Actor } from '../Actor';
 import { drawGlow } from '../../art/glow';
 
-/** Aceleración del empuje (px/s²): debe ganarle a la gravedad (680). */
+/** Push acceleration (px/s²): must beat gravity (680). */
 export const VENT_ACCEL = 1500;
-/** Velocidad máxima de ascenso dentro de la columna (px/s). */
+/** Max rise speed inside the column (px/s). */
 export const VENT_RISE = 88;
 
 export class Vent implements Actor {
   readonly layer = 'device' as const;
-  dead = false; // las corrientes no mueren; el campo es parte de Actor
+  dead = false; // updrafts never die; the field is part of Actor
   x: number;
   y: number;
   readonly w = TILE;
   private readonly heightPx: number;
-  private readonly baseY: number; // tope de la boquilla (donde nace el aire)
+  private readonly baseY: number; // top of the nozzle (where the air is born)
 
   constructor(
     px: number,
@@ -35,18 +35,18 @@ export class Vent implements Actor {
     private clock: Clock,
   ) {
     this.x = px;
-    this.baseY = py + TILE; // el aire nace del tope de la celda-boquilla
+    this.baseY = py + TILE; // the air is born from the top of the nozzle cell
     this.heightPx = heightTiles * TILE;
     this.y = this.baseY - this.heightPx;
   }
 
-  /** La columna de aire completa: de la boquilla hacia arriba. */
+  /** The full air column: from the nozzle upward. */
   box(): Box {
     return { x: this.x + 1, y: this.y, w: this.w - 2, h: this.heightPx };
   }
 
   update(): void {
-    // Su animación es de reposo: lee el reloj compartido en draw().
+    // Its animation is idle: reads the shared clock in draw().
   }
 
   draw(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {
@@ -55,16 +55,16 @@ export class Vent implements Actor {
     const baseY = this.baseY - camY;
     const topY = baseY - this.heightPx;
 
-    // El velo de la columna: un lavado tenue de todo el conducto, para
-    // que el "acá sopla aire" se lea de una mirada, no se adivine.
+    // The column's veil: a faint wash over the whole shaft, so the
+    // "air blows here" reads at a glance, not by guessing.
     const wash = ctx.createLinearGradient(0, topY, 0, baseY);
     wash.addColorStop(0, 'rgba(110, 224, 138, 0)');
     wash.addColorStop(1, 'rgba(110, 224, 138, 0.14)');
     ctx.fillStyle = wash;
     ctx.fillRect(cx - 4, topY, 9, this.heightPx);
 
-    // Dos líneas de corriente: rayas que RECORREN la columna hacia
-    // arriba en fila (el movimiento que delata la dirección del aire).
+    // Two current lines: streaks that TRAVEL up the column in
+    // single file (the motion that gives away the air's direction).
     for (const side of [-2.5, 2.5]) {
       for (let k = 0; k < 4; k++) {
         const p = (time * 0.9 + k * 0.25 + (side > 0 ? 0.12 : 0)) % 1;
@@ -75,8 +75,8 @@ export class Vent implements Actor {
       }
     }
 
-    // Motas de espora, muchas y con estela: cada una con su fase,
-    // su velocidad y su vaivén — la columna está VIVA.
+    // Spore motes, many and trailing: each with its own phase,
+    // speed and sway — the column is ALIVE.
     for (let i = 0; i < 14; i++) {
       const p = (time * (0.5 + (i % 5) * 0.11) + i * 0.13) % 1;
       const my = baseY - 4 - p * (this.heightPx - 6);
@@ -87,7 +87,7 @@ export class Vent implements Actor {
       ctx.globalAlpha = 1;
     }
 
-    // La boquilla: un montículo de roca que EXHALA (late al respirar).
+    // The nozzle: a mound of rock that EXHALES (pulses as it breathes).
     const puff = Math.sin(time * 3 + this.x) * 0.5 + 0.5;
     ctx.fillStyle = '#3a2456';
     ctx.fillRect(cx - 4, Math.round(baseY) - 3, 8, 3);

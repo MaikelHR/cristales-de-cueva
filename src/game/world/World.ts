@@ -1,9 +1,9 @@
 // ============================================================
-//  EL MUNDO (las salas de UN NIVEL y sus conexiones)
+//  THE WORLD (the rooms of ONE LEVEL and their connections)
 // ------------------------------------------------------------
-//  Construye las salas del nivel al crear la corrida y sabe pasar
-//  de una a otra: la transición ocurre cuando el CENTRO del jugador
-//  cruza un borde que tiene salida definida.
+//  Builds the level's rooms when creating the run and knows how to
+//  move between them: the transition happens when the player's CENTER
+//  crosses an edge that has a defined exit.
 // ============================================================
 
 import type { Clock } from '../clock';
@@ -17,7 +17,7 @@ export class World {
   current: Room;
 
   constructor(clock: Clock, roomsData: RoomData[]) {
-    // En desarrollo, un mapa roto avisa fuerte y claro al arrancar.
+    // In development, a broken map warns loud and clear at startup.
     if (import.meta.env.DEV) {
       const problems = validateRooms(roomsData);
       if (problems.length > 0) throw new Error('Salas inválidas:\n' + problems.join('\n'));
@@ -36,20 +36,20 @@ export class World {
     this.current = this.get(id);
   }
 
-  /** Todos los cristales del mundo, para el contador global. */
+  /** All the world's crystals, for the global counter. */
   get allCrystals(): Crystal[] {
     return [...this.rooms.values()].flatMap((r) => r.crystals);
   }
 
-  /** Todas las salas (para el minimapa). */
+  /** All the rooms (for the minimap). */
   get allRooms(): Room[] {
     return [...this.rooms.values()];
   }
 
   /**
-   * Si el centro del jugador cruzó un borde con salida, cambia de
-   * sala y lo recoloca asomando por el borde opuesto de la nueva.
-   * Devuelve true si hubo transición.
+   * If the player's center crossed an edge with an exit, switches
+   * rooms and repositions them peeking in from the opposite edge of
+   * the new one. Returns true if a transition happened.
    */
   tryTransition(player: Player): boolean {
     const exits = this.current.data.exits;

@@ -1,10 +1,10 @@
 // ============================================================
-//  COMBATE — las reglas de contacto jugador <-> enemigos
+//  COMBAT — the player <-> enemy contact rules
 // ------------------------------------------------------------
-//  Pisar desde arriba derrota; de costado o desde abajo, daña.
-//  También dañan los proyectiles (hazards) de los enemigos.
-//  isStomp() es la decisión pura (testeable); el resto aplica las
-//  consecuencias sobre la sesión (puntos, sacudida, hit-stop...).
+//  Stomping from above defeats; from the side or below, it hurts.
+//  Enemy projectiles (hazards) also hurt.
+//  isStomp() is the pure decision (testable); the rest applies the
+//  consequences to the session (points, shake, hit-stop...).
 // ============================================================
 
 import type { Box } from '../../engine/canvas';
@@ -15,11 +15,11 @@ import { sfx } from '../sfx';
 import { t } from '../i18n';
 
 /**
- * ¿El contacto cuenta como pisotón? Lo es si el jugador viene cayendo
- * y sus pies estaban por ENCIMA del enemigo el frame anterior (robusto
- * para enemigos altos y que cabecean, como el jefe). Si no, es golpe.
- * El AZOTÓN (pounding) rompe la regla a favor del jugador: pisa incluso
- * a los enemigos con púas (stompable=false) — es SU respuesta al erizo.
+ * Does the contact count as a stomp? It does if the player is falling
+ * and their feet were ABOVE the enemy on the previous frame (robust
+ * for tall, bobbing enemies like the boss). Otherwise, it's a hit.
+ * The POUND (pounding) breaks the rule in the player's favor: it stomps
+ * even spiky enemies (stompable=false) — it's THE answer to the erizo.
  */
 export function isStomp(
   stompable: boolean,
@@ -34,9 +34,9 @@ export function isStomp(
 }
 
 /**
- * Resuelve los contactos del jugador con los enemigos de la sala
- * actual (cuerpo y proyectiles). A lo sumo un contacto por paso,
- * como máximo daño posible: un corazón por frame.
+ * Resolves the player's contacts with the current room's enemies
+ * (body and projectiles). At most one contact per step, so the most
+ * damage possible is one heart per frame.
  */
 export function resolveEnemyContacts(session: GameSession, dt: number): void {
   const player = session.player;
@@ -54,7 +54,7 @@ export function resolveEnemyContacts(session: GameSession, dt: number): void {
       }
       break;
     }
-    // Proyectiles del enemigo (si dispara)
+    // Enemy projectiles (if it shoots)
     if (e.hazards) {
       let hit = false;
       for (const hz of e.hazards()) {
@@ -69,9 +69,9 @@ export function resolveEnemyContacts(session: GameSession, dt: number): void {
   }
 }
 
-/** Pisar un enemigo: rebota al jugador y clava una micro-pausa de
- *  impacto. Los enemigos con onStomp (el jefe) deciden si el golpe
- *  los derrota; el resto muere de un pisotón. */
+/** Stomp an enemy: bounces the player and adds a micro-pause on
+ *  impact. Enemies with onStomp (the boss) decide whether the hit
+ *  defeats them; the rest die from a single stomp. */
 function stompEnemy(session: GameSession, e: Enemy, eb: Box): void {
   const defeated = e.onStomp ? e.onStomp() : ((e.dead = true), true);
   session.player.bounce();
@@ -81,7 +81,7 @@ function stompEnemy(session: GameSession, e: Enemy, eb: Box): void {
     const count = e.isBoss ? 30 : 12;
     session.particles.burst(eb.x + eb.w / 2, eb.y + eb.h / 2, count, [...e.gooColors]);
     session.camera.shake(e.isBoss ? 4 : 1.5, e.isBoss ? 0.4 : 0.15);
-    // Puntos por monstruo eliminado, con "+N" flotante.
+    // Points for the defeated monster, with a floating "+N".
     const pts = e.isBoss ? 100 : 10;
     session.score += pts;
     session.popups.spawn(eb.x + eb.w / 2, eb.y - 2, '+' + pts);
@@ -90,19 +90,19 @@ function stompEnemy(session: GameSession, e: Enemy, eb: Box): void {
       sfx.relic();
     }
   } else {
-    // Golpe que no derrota (jefe con vida restante): chispas y sacudida chica.
+    // Hit that doesn't defeat (boss with health left): sparks and small shake.
     session.particles.burst(eb.x + eb.w / 2, eb.y, 8, [...e.gooColors]);
     session.camera.shake(1.5, 0.15);
   }
 }
 
-/** Recibir daño de un enemigo: quita un corazón, empuja y da unos
- *  frames de invulnerabilidad. NO congela el mundo: seguís jugando.
- *  Si te deja sin corazones, dispara el game over. */
+/** Take damage from an enemy: removes a heart, knocks back and grants
+ *  a few frames of invulnerability. Does NOT freeze the world: you keep
+ *  playing. If it leaves you with no hearts, it triggers the game over. */
 export function hurtPlayer(session: GameSession, fromX: number): void {
   if (session.deadFrozen) return;
   const player = session.player;
-  if (!player.hurt(fromX)) return; // invulnerable: no pasa nada
+  if (!player.hurt(fromX)) return; // invulnerable: nothing happens
   session.camera.shake(2.5, 0.25);
   session.particles.burst(
     player.x + player.w / 2,

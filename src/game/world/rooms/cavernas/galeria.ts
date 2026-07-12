@@ -1,14 +1,14 @@
 import type { RoomData } from '../../RoomData';
 
-/** Nivel 1, sala 2 — La galería: acá se gana el doble salto.
- *  La reliquia brilla sobre un pedestal bajo (imposible no verla) y
- *  un cristal flota a 7 tiles del piso: el examen inmediato de lo
- *  recién aprendido. Después, el murallón de 6 tiles y arriba un
- *  camino fino con un hueco de 7 tiles; el otro cristal flota ALTO
- *  sobre el hueco — cruzar con línea alta, no de pasada. Caer no
- *  mata: bajo el hueco hay un resorte que devuelve arriba (y abre
- *  la ruta rápida del contrarreloj: corredor de abajo a fondo,
- *  resorte, cristal al vuelo, salir por las plataformas). */
+/** Level 1, room 2 — La galería: this is where you earn the double jump.
+ *  The relic gleams on a low pedestal (impossible to miss) and
+ *  a crystal floats 7 tiles off the floor: the immediate exam of what
+ *  was just learned. Then, the 6-tile wall and above it a
+ *  thin path with a 7-tile gap; the other crystal floats HIGH
+ *  over the gap — cross with a high line, not in passing. Falling doesn't
+ *  kill: below the gap there's a spring that sends you back up (and opens
+ *  the fast time-trial route: bottom corridor to the far end,
+ *  spring, crystal on the fly, exit via the platforms). */
 export const galeria: RoomData = {
   id: 'galeria',
   mapPos: { x: 1, y: 0 },

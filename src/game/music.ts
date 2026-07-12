@@ -1,31 +1,31 @@
 // ============================================================
-//  MÚSICA del juego — la banda sonora, escrita como datos
+//  GAME MUSIC — the soundtrack, written as data
 // ------------------------------------------------------------
-//  Toda la banda sonora crece de UN leitmotiv, "el tema del
-//  cristal": un arpegio que sube (raíz → tercera → quinta
-//  sostenida), un giro que centellea, y una caída a casa.
-//  En La menor: la–do–MI… re–do–re… SI… sol–LA. Cada tema lo
-//  viste distinto —majestuoso, saltarín, melancólico, feroz—
-//  y por eso el juego entero suena a la misma cueva.
+//  The whole soundtrack grows from ONE leitmotiv, "the crystal
+//  theme": an arpeggio that rises (root → third → sharp
+//  fifth), a twist that glimmers, and a fall back home.
+//  In A minor: A–C–E… D–C–D… B… G–A. Each theme dresses it
+//  differently —majestic, bouncy, melancholic, fierce—
+//  and that's why the whole game sounds like the same cave.
 //
-//   · título     "Cristales de Cueva" — el tema, dicho lento y en grande.
-//   · overworld  "El sendero"  — verso saltarín y coro que cita el tema.
-//   · cavernas   — el tema en menor, gotas de agua, un ♭VI que abriga.
-//   · galerias   — riff galopado; el coro es el tema a toda marcha.
-//   · corazon    — riff que baja escalón a escalón (si→la→sol→fa#) y
-//                  el tema oscuro sobre drones; el ♭2 frigio martilla.
-//   · esporas    — vals ligero en Mi menor dórico: bajo que rebota,
-//                  marimba de cristal y esporas que revientan (plip).
-//   · glaciar    — campanas lentas y colchones bajo cero en Re menor;
-//                  casi sin ritmo: el glaciar respira, no marcha.
-//   · fragua     — martilleo de yunque en Fa# menor a toda máquina;
-//                  el coro es el tema con los dientes apretados y el
-//                  ♭2 (sol natural) del corazón vuelve como eco.
+//   · title      "Cristales de Cueva" — the theme, said slow and grand.
+//   · overworld  "El sendero"  — bouncy verse and chorus that quotes the theme.
+//   · cavernas   — the theme in minor, water drops, a ♭VI that shelters.
+//   · galerias   — galloping riff; the chorus is the theme at full tilt.
+//   · corazon    — riff stepping down rung by rung (B→A→G→F#) and
+//                  the dark theme over drones; the Phrygian ♭2 hammers.
+//   · esporas    — light waltz in E Dorian minor: bouncing bass,
+//                  crystal marimba and spores that burst (plip).
+//   · glaciar    — slow bells and sub-zero pads in D minor;
+//                  almost rhythmless: the glacier breathes, doesn't march.
+//   · fragua     — anvil hammering in F# minor at full throttle;
+//                  the chorus is the theme with clenched teeth and the
+//                  ♭2 (G natural) from corazon returns as an echo.
 //
-//  Paleta tímbrica: triangle = campanas de cristal, sine = colchones
-//  y bombos, square = melodía brillante, sawtooth = aspereza, noise =
-//  batería (redobles, hi-hats). La música vive DEBAJO de los sfx:
-//  ninguna nota pasa de 0.08 de volumen (hay un test que lo jura).
+//  Timbral palette: triangle = crystal bells, sine = pads
+//  and kicks, square = bright melody, sawtooth = grit, noise =
+//  drums (snares, hi-hats). The music lives UNDER the sfx:
+//  no note goes above 0.08 volume (there's a test that swears it).
 // ============================================================
 
 import type { Song, SongNote } from '../engine/music';
@@ -34,15 +34,15 @@ import type { ToneType } from '../engine/audio';
 import type { UiState } from './scenes/Scene';
 
 // ------------------------------------------------------------
-// Notación y utilerías de composición
+// Notation and composition helpers
 // ------------------------------------------------------------
 const SEMITONE: Record<string, number> = {
   C: -9, 'C#': -8, D: -7, 'D#': -6, E: -5, F: -4,
   'F#': -3, G: -2, 'G#': -1, A: 0, 'A#': 1, B: 2,
 };
 
-/** 'A4' = La central (440 Hz). Los bemoles se escriben como sostenidos
- *  (Sib = 'A#'): el sintetizador no distingue enarmonías. */
+/** 'A4' = middle A (440 Hz). Flats are written as sharps
+ *  (B♭ = 'A#'): the synth doesn't distinguish enharmonics. */
 function n(name: string): number {
   const match = /^([A-G]#?)(\d)$/.exec(name);
   if (!match) throw new Error(`Nota inválida: "${name}"`);
@@ -50,12 +50,12 @@ function n(name: string): number {
   return 440 * Math.pow(2, semis / 12);
 }
 
-/** k semitonos arriba de una frecuencia (transponer riffs). */
+/** k semitones above a frequency (transpose riffs). */
 function up(freq: number, semis: number): number {
   return freq * Math.pow(2, semis / 12);
 }
 
-/** Una voz: [beat, nota, duración en beats] con un timbre compartido. */
+/** A voice: [beat, note, duration in beats] with a shared timbre. */
 type Line = Array<[number, string, number]>;
 interface VoiceOpts {
   type?: ToneType;
@@ -67,8 +67,8 @@ function voice(line: Line, opts: VoiceOpts): SongNote[] {
   return line.map(([beat, note, beats]) => ({ beat, freq: n(note), beats, ...opts }));
 }
 
-/** Eco cristalino: la misma voz una octava arriba, medio beat después
- *  y más floja — cristales respondiéndose. Envuelve al final del loop. */
+/** Crystalline echo: the same voice an octave up, half a beat later
+ *  and softer — crystals answering each other. Wraps at the end of the loop. */
 function echo(notes: SongNote[], loopBeats: number, factor = 0.3): SongNote[] {
   return notes.map((note) => ({
     ...note,
@@ -78,34 +78,34 @@ function echo(notes: SongNote[], loopBeats: number, factor = 0.3): SongNote[] {
   }));
 }
 
-/** Gota de agua: un "plip" sinusoidal que cae de frecuencia. */
+/** Water drop: a sinusoidal "plip" that falls in frequency. */
 function drip(beat: number, freq = 1568): SongNote {
   return { beat, freq, freqEnd: freq / 2, beats: 0.2, type: 'sine', vol: 0.04 };
 }
 
-// --- La batería (sin samples: seno barrido + ruido filtrado) ---
+// --- The drum kit (no samples: swept sine + filtered noise) ---
 
-/** Bombo: un seno que se desploma de golpe — el "punch" está en la caída. */
+/** Kick: a sine that collapses all at once — the "punch" is in the drop. */
 function kick(beat: number): SongNote {
   return { beat, freq: 160, freqEnd: 45, beats: 0.3, type: 'sine', vol: 0.065 };
 }
 
-/** Redoble: ruido de banda media, seco. */
+/** Snare: mid-band noise, dry. */
 function snare(beat: number, vol = 0.045): SongNote {
   return { beat, freq: 1800, beats: 0.25, type: 'noise', vol };
 }
 
-/** Hi-hat: un suspiro de ruido agudo. */
+/** Hi-hat: a sigh of high noise. */
 function hat(beat: number, vol = 0.02): SongNote {
   return { beat, freq: 8000, beats: 0.15, type: 'noise', vol };
 }
 
-/** Relleno de redoble (semicorcheas que crecen) al doblar una sección. */
+/** Snare fill (growing sixteenth notes) when a section repeats. */
 function fill(beat: number): SongNote[] {
   return [0.028, 0.034, 0.042, 0.05].map((vol, i) => snare(beat + i * 0.25, vol));
 }
 
-/** Arpegio interior en corcheas: recorre el ciclo de notas dado. */
+/** Inner arpeggio in eighth notes: runs through the given note cycle. */
 function arp(fromBeat: number, lengthBeats: number, cycle: string[], vol = 0.03): SongNote[] {
   const freqs = cycle.map(n);
   return Array.from({ length: lengthBeats * 2 }, (_, i) => ({
@@ -118,26 +118,26 @@ function arp(fromBeat: number, lengthBeats: number, cycle: string[], vol = 0.03)
 }
 
 // ------------------------------------------------------------
-// TÍTULO — "Cristales de Cueva" (La menor, 76 bpm, 8 compases)
-// El leitmotiv dicho completo y sin apuro sobre colchones
-// (Am F C G · Am F Dm E). El sol# final es la tercera mayor del
-// acorde de Mi: esa nota agridulce que pide volver a empezar.
+// TITLE — "Cristales de Cueva" (A minor, 76 bpm, 8 bars)
+// The leitmotiv said in full and unhurried over pads
+// (Am F C G · Am F Dm E). The final G# is the major third of
+// the E chord: that bittersweet note that begs to start over.
 // ------------------------------------------------------------
 const titleBells = voice(
   [
-    // El tema (compases 1-2): sube, centellea, cae a casa.
+    // The theme (bars 1-2): rises, glimmers, falls back home.
     [0, 'A4', 0.5], [0.5, 'C5', 0.5], [1, 'E5', 1.5],
     [2.5, 'D5', 0.5], [3, 'C5', 0.5], [3.5, 'D5', 0.5],
     [4, 'B4', 1.5], [5.5, 'G4', 0.5], [6, 'A4', 2],
-    // Secuencia en Do (compases 3-4): la misma frase, un piso más luminosa.
+    // Sequence in C (bars 3-4): the same phrase, a floor brighter.
     [8, 'G4', 0.5], [8.5, 'C5', 0.5], [9, 'E5', 1.5],
     [10.5, 'D5', 0.5], [11, 'C5', 0.5], [11.5, 'D5', 0.5],
     [12, 'B4', 1.5], [13.5, 'D5', 0.5], [14, 'G4', 2],
-    // Respuesta (compases 5-6): trepa hasta el La agudo y baja en volutas.
+    // Response (bars 5-6): climbs to the high A and comes down in curls.
     [16, 'A4', 0.5], [16.5, 'C5', 0.5], [17, 'E5', 1.5],
     [18.5, 'G5', 0.5], [19, 'A5', 1.5], [20.5, 'G5', 0.5],
     [21, 'E5', 1], [22, 'D5', 0.5], [22.5, 'C5', 0.5], [23, 'D5', 1],
-    // Cadencia (compases 7-8): desciende y queda suspendida en el sol#.
+    // Cadence (bars 7-8): descends and hangs suspended on the G#.
     [24, 'F5', 1], [25, 'E5', 1], [26, 'D5', 1.5], [27.5, 'C5', 0.5],
     [28, 'B4', 2], [30, 'G#4', 2],
   ],
@@ -165,14 +165,14 @@ const title: Song = {
 };
 
 // ------------------------------------------------------------
-// OVERWORLD — "El sendero" (Do mayor, 112 bpm, 16 compases)
-// Verso (C Am F G ×2) con bajo rebotado y hi-hats a contratiempo;
-// el CORO (F G Em Am) cita el leitmotiv nota por nota — el mismo
-// tema del título, ahora con sol de tarde. Entra la caja recién
-// en el coro: la clásica subida de energía a mitad de canción.
+// OVERWORLD — "El sendero" (C major, 112 bpm, 16 bars)
+// Verse (C Am F G ×2) with bouncing bass and offbeat hi-hats;
+// the CHORUS (F G Em Am) quotes the leitmotiv note for note — the same
+// title theme, now with afternoon sun. The snare enters only
+// in the chorus: the classic energy lift mid-song.
 // ------------------------------------------------------------
 
-/** Bajo rebotado: raíz y octava alternando en corcheas (boing, boing). */
+/** Bouncing bass: root and octave alternating in eighth notes (boing, boing). */
 function bounce(bar: number, root: string): SongNote[] {
   const low = n(root);
   return Array.from({ length: 8 }, (_, i) => ({
@@ -193,7 +193,7 @@ const overworld: Song = {
   loopBeats: 64,
   notes: [
     ...overworldBars.flatMap((root, bar) => bounce(bar, root)),
-    // Batería: bombo a tierra, hi-hats al aire; la caja espera al coro.
+    // Drums: kick on the beat, hi-hats offbeat; the snare waits for the chorus.
     ...overworldBars.flatMap((_, bar) => [
       kick(bar * 4), kick(bar * 4 + 2),
       hat(bar * 4 + 0.5), hat(bar * 4 + 1.5), hat(bar * 4 + 2.5), hat(bar * 4 + 3.5),
@@ -205,7 +205,7 @@ const overworld: Song = {
     ...fill(31), ...fill(63),
     ...voice(
       [
-        // Verso: una melodía que camina y se sacude el polvo.
+        // Verse: a melody that walks and shakes off the dust.
         [0, 'E4', 0.5], [0.5, 'G4', 0.5], [1, 'C5', 1.5], [2.5, 'B4', 0.5], [3, 'A4', 1],
         [4, 'G4', 0.5], [4.5, 'E4', 0.5], [5, 'A4', 2.5],
         [8, 'F4', 0.5], [8.5, 'A4', 0.5], [9, 'C5', 1.5], [10.5, 'D5', 0.5], [11, 'C5', 1],
@@ -214,7 +214,7 @@ const overworld: Song = {
         [20, 'D5', 0.5], [20.5, 'C5', 0.5], [21, 'A4', 2.5],
         [24, 'F4', 0.5], [24.5, 'A4', 0.5], [25, 'C5', 1], [26, 'D5', 0.5], [26.5, 'E5', 0.5], [27, 'F5', 1],
         [28, 'E5', 0.5], [28.5, 'D5', 0.5], [29, 'B4', 1.5], [30.5, 'G4', 1],
-        // Coro: el tema del cristal, tal cual el título, sobre F-G-Em-Am.
+        // Chorus: the crystal theme, just like the title, over F-G-Em-Am.
         [32, 'A4', 0.5], [32.5, 'C5', 0.5], [33, 'E5', 1.5],
         [34.5, 'D5', 0.5], [35, 'C5', 0.5], [35.5, 'D5', 0.5],
         [36, 'B4', 1.5], [37.5, 'G4', 0.5], [38, 'A4', 1.5], [39.5, 'B4', 0.5],
@@ -223,12 +223,12 @@ const overworld: Song = {
         [48, 'A4', 0.5], [48.5, 'C5', 0.5], [49, 'E5', 1.5], [50.5, 'G5', 0.5], [51, 'A5', 1],
         [52, 'G5', 0.5], [52.5, 'E5', 0.5], [53, 'D5', 1], [54, 'C5', 0.5], [54.5, 'D5', 0.5], [55, 'B4', 1],
         [56, 'C5', 2], [58, 'G4', 0.5], [58.5, 'E4', 0.5], [59, 'G4', 1],
-        // Respiro, y tres notas de anacrusa que empujan de vuelta al verso.
+        // A breath, and three pickup notes that push back into the verse.
         [62, 'G4', 0.5], [62.5, 'A4', 0.5], [63, 'B4', 1],
       ],
       { type: 'square', vol: 0.042 },
     ),
-    // Contravoz cálida solo en el coro: terceras largas bajo la melodía.
+    // Warm counter-voice only in the chorus: long thirds under the melody.
     ...voice(
       [
         [32, 'A3', 3.7], [36, 'B3', 3.7], [40, 'G3', 3.7], [44, 'C4', 3.7],
@@ -240,14 +240,14 @@ const overworld: Song = {
 };
 
 // ------------------------------------------------------------
-// CAVERNAS — nivel 1 (Re menor/dórico, 92 bpm, 16 compases)
-// El leitmotiv en menor, primero desnudo (latido + campana + gotas)
-// y luego octava arriba. La sección B pisa el Si bemol (♭VI prestado)
-// y abriga todo; el Do# final es la dominante que pide volver.
-// Sin batería: acá el ritmo lo llevan el corazón y el agua.
+// CAVERNAS — level 1 (D minor/Dorian, 92 bpm, 16 bars)
+// The leitmotiv in minor, first bare (heartbeat + bell + drops)
+// and then an octave up. Section B steps on the B flat (borrowed ♭VI)
+// and shelters everything; the final C# is the dominant that begs to return.
+// No drums: here the rhythm is carried by the heartbeat and the water.
 // ------------------------------------------------------------
 
-/** Latido: la raíz en negra y su réplica sincopada (tum… tum-tum). */
+/** Heartbeat: the root as a quarter note and its syncopated echo (tum… tum-tum). */
 function heartbeat(bar: number, root: string): Line {
   const b = bar * 4;
   return [[b, root, 1], [b + 2.5, root, 0.5]];
@@ -255,32 +255,32 @@ function heartbeat(bar: number, root: string): Line {
 
 const cavernasMelody = voice(
   [
-    // A: el tema en Re menor, a media voz.
+    // A: the theme in D minor, at half voice.
     [0, 'D4', 0.5], [0.5, 'F4', 0.5], [1, 'A4', 1.5],
     [2.5, 'G4', 0.5], [3, 'F4', 0.5], [3.5, 'G4', 0.5],
     [4, 'E4', 1.5], [5.5, 'C4', 0.5], [6, 'D4', 2],
-    // Secuencia en Do, con el Si natural dórico brillando de paso.
+    // Sequence in C, with the Dorian B natural shining in passing.
     [8, 'E4', 0.5], [8.5, 'G4', 0.5], [9, 'C5', 1.5],
     [10.5, 'B4', 0.5], [11, 'A4', 0.5], [11.5, 'B4', 0.5],
     [12, 'B4', 1.5], [13.5, 'G4', 0.5], [14, 'A4', 2],
-    // El tema otra vez, octava arriba: la cueva se anima a cantar.
+    // The theme again, an octave up: the cave dares to sing.
     [16, 'D5', 0.5], [16.5, 'F5', 0.5], [17, 'A5', 1.5],
     [18.5, 'G5', 0.5], [19, 'F5', 0.5], [19.5, 'G5', 0.5],
     [20, 'E5', 1.5], [21.5, 'C5', 0.5], [22, 'D5', 2],
     [24, 'C5', 1], [25, 'E5', 1], [26, 'G5', 1.5],
     [28, 'F5', 0.5], [28.5, 'E5', 0.5], [29, 'C#5', 1.5], [30.5, 'A4', 1.5],
-    // B: entra el Si bemol (♭VI) y el mismo tema de golpe abriga.
+    // B: the B flat (♭VI) enters and the same theme suddenly shelters.
     [32, 'D5', 0.5], [32.5, 'F5', 0.5], [33, 'A5', 1.5],
     [34.5, 'G5', 0.5], [35, 'F5', 0.5], [35.5, 'G5', 0.5],
     [36, 'E5', 1.5], [37.5, 'C5', 0.5], [38, 'D5', 2],
     [40, 'C5', 0.5], [40.5, 'E5', 0.5], [41, 'G5', 1.5],
     [42.5, 'A5', 0.5], [43, 'G5', 0.5], [43.5, 'E5', 0.5],
     [44, 'D5', 1], [45, 'F5', 1], [46, 'A5', 2],
-    // El tema una vez más, ahora naciendo del propio Si bemol.
+    // The theme once more, now born from the B flat itself.
     [48, 'A#4', 0.5], [48.5, 'D5', 0.5], [49, 'F5', 1.5],
     [50.5, 'E5', 0.5], [51, 'D5', 0.5], [51.5, 'E5', 0.5],
     [52, 'C5', 1.5], [53.5, 'A4', 0.5], [54, 'C5', 2],
-    // Cadencia: baja despacio y el Do# (dominante) deja la puerta abierta.
+    // Cadence: descends slowly and the C# (dominant) leaves the door open.
     [56, 'E5', 1], [57, 'D5', 1], [58, 'C5', 1.5],
     [60, 'C#5', 1.5], [61.5, 'E5', 0.5], [62, 'A4', 2],
   ],
@@ -302,7 +302,7 @@ const cavernas: Song = {
     ),
     ...cavernasMelody,
     ...echo(cavernasMelody, 64),
-    // Arpegio interior solo en la sección B: el agua empieza a correr.
+    // Inner arpeggio only in section B: the water starts to run.
     ...arp(32, 4, ['A#3', 'D4', 'F4', 'D4'], 0.026),
     ...arp(36, 4, ['F3', 'A3', 'C4', 'A3'], 0.026),
     ...arp(40, 4, ['C4', 'E4', 'G4', 'E4'], 0.026),
@@ -311,26 +311,26 @@ const cavernas: Song = {
     ...arp(52, 4, ['F3', 'A3', 'C4', 'A3'], 0.026),
     ...arp(56, 4, ['C4', 'E4', 'G4', 'E4'], 0.026),
     ...arp(60, 4, ['A3', 'C#4', 'E4', 'C#4'], 0.026),
-    // Gotas a deshora, como goteras de verdad.
+    // Drops at odd times, like real leaks.
     drip(7.5), drip(15.25, 1760), drip(23.5, 1319), drip(31),
     drip(39.5, 1976), drip(47.25), drip(55.5, 1760), drip(62.75, 1319),
   ],
 };
 
 // ------------------------------------------------------------
-// GALERÍAS — nivel 2 (Mi menor, 126 bpm, 16 compases)
-// Un riff de bajo con séptima bluesera (mi-mi-MI-re) que no
-// afloja, batería entera y un verso anguloso; en el coro el
-// leitmotiv sale a correr en Mi menor. El Re# del final es la
-// tercera de Si mayor: la puerta con resorte que te devuelve
-// al riff. Es el nivel de púas: la música no se sienta nunca.
+// GALERÍAS — level 2 (E minor, 126 bpm, 16 bars)
+// A bass riff with a bluesy seventh (E-E-E-D) that never
+// lets up, full drums and an angular verse; in the chorus the
+// leitmotiv breaks into a run in E minor. The final D# is the
+// third of B major: the spring-loaded door that sends you back
+// to the riff. It's the spikes level: the music never sits down.
 // ------------------------------------------------------------
 
-/** Riff galopado: raíz insistente, salto de octava, y la séptima
- *  menor de paso — el motor del nivel. */
+/** Galloping riff: insistent root, octave leap, and the minor
+ *  seventh in passing — the engine of the level. */
 function gallop(bar: number, root: string): SongNote[] {
   const low = n(root);
-  const semis = [0, 0, 12, 0, 10, 0, 12, 10]; // ♭7 = la mueca bluesera
+  const semis = [0, 0, 12, 0, 10, 0, 12, 10]; // ♭7 = the bluesy grimace
   return semis.map((s, i) => ({
     beat: bar * 4 + i * 0.5,
     freq: up(low, s),
@@ -349,14 +349,14 @@ const galerias: Song = {
   loopBeats: 64,
   notes: [
     ...galeriasBars.flatMap((root, bar) => gallop(bar, root)),
-    // Batería completa de punta a punta: bombo sincopado, caja al 2 y 4.
+    // Full drums end to end: syncopated kick, snare on 2 and 4.
     ...galeriasBars.flatMap((_, bar) => [
       kick(bar * 4), kick(bar * 4 + 2.5),
       snare(bar * 4 + 1), snare(bar * 4 + 3),
       ...[0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5].map((o) => hat(bar * 4 + o, 0.018)),
     ]),
     ...fill(63),
-    // Puntazos a contratiempo: la quinta del acorde, arriba y seca.
+    // Offbeat stabs: the fifth of the chord, high and dry.
     ...voice(
       galeriasBars.flatMap((root, bar): Line => {
         const fifth = { E2: 'B4', C3: 'G4', D3: 'A4', B2: 'F#4' }[root]!;
@@ -366,7 +366,7 @@ const galerias: Song = {
     ),
     ...voice(
       [
-        // Verso: frases que arrancan, frenan y vuelven a arrancar.
+        // Verse: phrases that start, brake and start again.
         [0, 'B4', 0.5], [0.5, 'E5', 0.5], [1, 'G5', 0.75], [1.75, 'F#5', 0.25],
         [2, 'E5', 0.5], [2.5, 'D5', 0.5], [3, 'B4', 1],
         [4.5, 'A4', 0.5], [5, 'B4', 0.5], [5.5, 'D5', 0.5], [6, 'E5', 1.5],
@@ -381,7 +381,7 @@ const galerias: Song = {
         [26, 'C5', 0.5], [26.5, 'D5', 0.5], [27, 'E5', 1],
         [28, 'F#5', 0.5], [28.5, 'A5', 0.5], [29, 'B5', 1],
         [30, 'A5', 0.5], [30.5, 'F#5', 0.5], [31, 'D5', 1],
-        // Coro: el tema del cristal en Mi menor, a toda marcha.
+        // Chorus: the crystal theme in E minor, at full tilt.
         [32, 'E5', 0.5], [32.5, 'G5', 0.5], [33, 'B5', 1.5],
         [34.5, 'A5', 0.5], [35, 'G5', 0.5], [35.5, 'A5', 0.5],
         [36, 'F#5', 1.5], [37.5, 'D5', 0.5], [38, 'E5', 2],
@@ -391,7 +391,7 @@ const galerias: Song = {
         [50, 'A5', 0.5], [50.5, 'G5', 0.5], [51, 'E5', 1],
         [52, 'D5', 0.5], [52.5, 'F#5', 0.5], [53, 'A5', 1],
         [54, 'B5', 0.5], [54.5, 'A5', 0.5], [55, 'F#5', 1],
-        // Si mayor: el Re# empuja con resorte de vuelta al Mi menor.
+        // B major: the D# springs you back to E minor.
         [56, 'D#5', 1], [57, 'F#5', 1], [58, 'B4', 1.5],
         [60, 'F#4', 0.5], [60.5, 'A4', 0.5], [61, 'B4', 0.5], [61.5, 'D#5', 0.5], [62, 'F#5', 2],
       ],
@@ -401,18 +401,18 @@ const galerias: Song = {
 };
 
 // ------------------------------------------------------------
-// CORAZÓN — nivel 3 (Si menor, 132 bpm, 16 compases)
-// Tema de guardián en dos actos. A: un riff crudo que se repite
-// TRANSPONIÉNDOSE hacia abajo (si→la→sol→fa#), solo riff y
-// batería — la amenaza. B: medio tiempo, drones en el sótano del
-// registro, y el leitmotiv en Si menor cantado en grande; al
-// final el Do natural (♭2 frigio) martilla contra la raíz y cae
-// al Fa# que relanza el riff. El corazón de la cueva late igual
-// que el título: es el mismo tema, con los dientes apretados.
+// CORAZÓN — level 3 (B minor, 132 bpm, 16 bars)
+// A guardian theme in two acts. A: a raw riff that repeats
+// TRANSPOSING downward (B→A→G→F#), riff and
+// drums only — the threat. B: half time, drones in the basement of
+// the register, and the leitmotiv in B minor sung grand; at the
+// end the C natural (Phrygian ♭2) hammers against the root and falls
+// to the F# that relaunches the riff. The heart of the cave beats just
+// like the title: it's the same theme, with clenched teeth.
 // ------------------------------------------------------------
 
-/** El riff del guardián: raíz doble, octava, quinta, sexta menor
- *  que muerde, y la escalera ♭3–4 que empalma con el bajado. */
+/** The guardian riff: doubled root, octave, fifth, minor sixth
+ *  that bites, and the ♭3–4 staircase that splices into the step-down. */
 function guardianRiff(bar: number, root: string): SongNote[] {
   const low = n(root);
   const hits: Array<[number, number, number]> = [
@@ -430,17 +430,17 @@ function guardianRiff(bar: number, root: string): SongNote[] {
 
 const corazonLead = voice(
   [
-    // El tema del cristal en Si menor, largo y encima de todo.
+    // The crystal theme in B minor, long and on top of everything.
     [32, 'B4', 0.5], [32.5, 'D5', 0.5], [33, 'F#5', 1.5],
     [34.5, 'E5', 0.5], [35, 'D5', 0.5], [35.5, 'E5', 0.5],
     [36, 'C#5', 1.5], [37.5, 'A4', 0.5], [38, 'B4', 2],
-    // La respuesta trepa hasta el Si agudo y planea bajando.
+    // The response climbs to the high B and glides down.
     [40, 'B4', 0.5], [40.5, 'D5', 0.5], [41, 'F#5', 1.5],
     [42.5, 'A5', 0.5], [43, 'B5', 1.5], [44.5, 'A5', 0.5],
     [45, 'F#5', 1], [46, 'E5', 0.5], [46.5, 'D5', 0.5], [47, 'E5', 1],
     [48, 'G5', 1], [49, 'F#5', 1], [50, 'E5', 1.5], [51.5, 'D5', 0.5],
     [52, 'C#5', 1.5], [53.5, 'B4', 0.5], [54, 'F#5', 2],
-    // El ♭2 frigio: do natural martillando contra si, y caída al fa#.
+    // The Phrygian ♭2: C natural hammering against B, and a fall to F#.
     [56, 'E5', 1], [57, 'D5', 1], [58, 'C5', 1.5], [59.5, 'B4', 0.5],
     [60, 'C5', 0.5], [60.5, 'B4', 0.5], [61, 'C5', 0.5], [61.5, 'B4', 0.5],
     [62, 'F#4', 2],
@@ -453,7 +453,7 @@ const corazon: Song = {
   bpm: 132,
   loopBeats: 64,
   notes: [
-    // Acto A (compases 1-8): el riff bajando la escalera, dos vueltas.
+    // Act A (bars 1-8): the riff walking down the staircase, two rounds.
     ...['B2', 'A2', 'G2', 'F#2', 'B2', 'A2', 'G2', 'F#2']
       .flatMap((root, bar) => guardianRiff(bar, root)),
     ...Array.from({ length: 8 }, (_, bar) => [
@@ -462,7 +462,7 @@ const corazon: Song = {
       ...[0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5].map((o) => hat(bar * 4 + o, 0.016)),
     ]).flat(),
     ...fill(31),
-    // Acto B (compases 9-16): drones en el sótano y el tema en grande.
+    // Act B (bars 9-16): drones in the basement and the theme writ large.
     ...voice(
       [
         [32, 'B1', 8], [32, 'F#2', 8], [40, 'G2', 8], [40, 'D3', 8],
@@ -476,19 +476,19 @@ const corazon: Song = {
     ...arp(56, 8, ['G3', 'C4', 'E4', 'C4']),
     ...corazonLead,
     ...echo(corazonLead, 64, 0.25),
-    // Medio tiempo: bombo a tierra, caja al 3 — el gigante camina.
+    // Half time: kick on the beat, snare on 3 — the giant walks.
     ...Array.from({ length: 8 }, (_, i) => [kick((i + 8) * 4), snare((i + 8) * 4 + 2)]).flat(),
     ...fill(63),
   ],
 };
 
 // ------------------------------------------------------------
-// ESPORAS — nivel 4 (Mi menor dórico, 104 bpm, 16 compases)
-// El jardín respira: bajo rebotado (boing, boing), el tema del
-// cristal dicho en marimba de cristal (Mi menor: mi→sol→si), y en
-// la sección B el arpegio-agua corre mientras entra la caja. Las
-// gotas agudas son esporas que revientan. El Do# dórico asoma de
-// paso: este verde no es triste, es vivo.
+// ESPORAS — level 4 (E Dorian minor, 104 bpm, 16 bars)
+// The garden breathes: bouncing bass (boing, boing), the crystal
+// theme said on a crystal marimba (E minor: E→G→B), and in
+// section B the water-arpeggio runs while the snare enters. The
+// high drops are spores bursting. The Dorian C# peeks in
+// passing: this green isn't sad, it's alive.
 // ------------------------------------------------------------
 
 const esporasBars = ['E2', 'C2', 'G2', 'D2', 'E2', 'C2', 'G2', 'D2',
@@ -496,21 +496,21 @@ const esporasBars = ['E2', 'C2', 'G2', 'D2', 'E2', 'C2', 'G2', 'D2',
 
 const esporasMelody = voice(
   [
-    // A: el tema en Mi menor, a paso de jardín.
+    // A: the theme in E minor, at a garden pace.
     [0, 'E4', 0.5], [0.5, 'G4', 0.5], [1, 'B4', 1.5],
     [2.5, 'A4', 0.5], [3, 'G4', 0.5], [3.5, 'A4', 0.5],
     [4, 'F#4', 1.5], [5.5, 'D4', 0.5], [6, 'E4', 2],
-    // Secuencia en Sol: la misma frase, un piso más luminosa.
+    // Sequence in G: the same phrase, a floor brighter.
     [8, 'G4', 0.5], [8.5, 'B4', 0.5], [9, 'D5', 1.5],
     [10.5, 'C5', 0.5], [11, 'B4', 0.5], [11.5, 'C5', 0.5],
     [12, 'A4', 1.5], [13.5, 'F#4', 0.5], [14, 'G4', 2],
-    // Respuesta: trepa al Mi agudo y baja en volutas.
+    // Response: climbs to the high E and comes down in curls.
     [16, 'E4', 0.5], [16.5, 'G4', 0.5], [17, 'B4', 1.5],
     [18.5, 'D5', 0.5], [19, 'E5', 1.5], [20.5, 'D5', 0.5],
     [21, 'B4', 1], [22, 'A4', 0.5], [22.5, 'G4', 0.5], [23, 'A4', 1],
     [24, 'C5', 1], [25, 'B4', 1], [26, 'A4', 1.5], [27.5, 'G4', 0.5],
     [28, 'F#4', 2], [30, 'F#4', 0.5], [30.5, 'A4', 0.5], [31, 'B4', 1],
-    // B: el tema octava arriba, con el agua corriendo debajo.
+    // B: the theme an octave up, with the water running underneath.
     [32, 'E5', 0.5], [32.5, 'G5', 0.5], [33, 'B5', 1.5],
     [34.5, 'A5', 0.5], [35, 'G5', 0.5], [35.5, 'A5', 0.5],
     [36, 'F#5', 1.5], [37.5, 'D5', 0.5], [38, 'E5', 2],
@@ -520,7 +520,7 @@ const esporasMelody = voice(
     [50, 'A5', 0.5], [50.5, 'G5', 0.5], [51, 'E5', 1],
     [52, 'C5', 0.5], [52.5, 'E5', 0.5], [53, 'A5', 1],
     [54, 'G5', 0.5], [54.5, 'E5', 0.5], [55, 'D5', 1],
-    // Cadencia: baja al Si (dominante) con el C# dórico de guiño.
+    // Cadence: descends to the B (dominant) with the Dorian C# as a wink.
     [56, 'E5', 1], [57, 'D5', 1], [58, 'B4', 1.5], [59.5, 'A4', 0.5],
     [60, 'G4', 0.5], [60.5, 'A4', 0.5], [61, 'B4', 0.5], [61.5, 'C#5', 0.5], [62, 'E5', 2],
   ],
@@ -533,7 +533,7 @@ const esporas: Song = {
   loopBeats: 64,
   notes: [
     ...esporasBars.flatMap((root, bar) => bounce(bar, root)),
-    // Batería suave: bombo a tierra, hats al aire; la caja espera a B.
+    // Soft drums: kick on the beat, hats offbeat; the snare waits for B.
     ...esporasBars.flatMap((_, bar) => [
       kick(bar * 4), kick(bar * 4 + 2),
       hat(bar * 4 + 0.5, 0.016), hat(bar * 4 + 1.5, 0.016),
@@ -546,7 +546,7 @@ const esporas: Song = {
     ...fill(31), ...fill(63),
     ...esporasMelody,
     ...echo(esporasMelody, 64),
-    // El agua de la sección B: arpegio interior en corcheas.
+    // The water of section B: inner arpeggio in eighth notes.
     ...arp(32, 4, ['E3', 'G3', 'B3', 'G3'], 0.024),
     ...arp(36, 4, ['C3', 'E3', 'G3', 'E3'], 0.024),
     ...arp(40, 4, ['G3', 'B3', 'D4', 'B3'], 0.024),
@@ -555,35 +555,35 @@ const esporas: Song = {
     ...arp(52, 4, ['C3', 'E3', 'G3', 'E3'], 0.024),
     ...arp(56, 4, ['A2', 'C3', 'E3', 'C3'], 0.024),
     ...arp(60, 4, ['B2', 'D#3', 'F#3', 'D#3'], 0.024),
-    // Esporas que revientan, a deshora.
+    // Spores bursting, at odd times.
     drip(7.25, 1976), drip(15.5, 1568), drip(23.75, 2093),
     drip(39.25, 1760), drip(47.5, 2349), drip(55.75, 1976), drip(63.25, 1568),
   ],
 };
 
 // ------------------------------------------------------------
-// GLACIAR — nivel 5 (Re menor, 72 bpm, 8 compases largos)
-// Campanas de cristal MUY espaciadas dicen el tema (re→fa→la) y
-// dejan que el eco conteste; colchones de seno en el sótano y un
-// viento de ruido filtrado que pasa de a ratos. Sin batería: el
-// glaciar no marcha, respira. El La mayor del final (Do#) es el
-// único calor de la sala.
+// GLACIAR — level 5 (D minor, 72 bpm, 8 long bars)
+// VERY spaced-out crystal bells say the theme (D→F→A) and
+// let the echo answer; sine pads in the basement and a
+// wind of filtered noise that passes now and then. No drums: the
+// glacier doesn't march, it breathes. The final A major (C#) is the
+// only warmth in the room.
 // ------------------------------------------------------------
 
 const glaciarBells = voice(
   [
-    // El tema, lento y desnudo.
+    // The theme, slow and bare.
     [0, 'D5', 1], [1, 'F5', 1], [2, 'A5', 2.5],
     [5.5, 'G5', 0.5], [6, 'E5', 1.5], [7.5, 'C5', 0.5], [8, 'D5', 3],
     [12, 'A4', 0.5], [12.5, 'C5', 0.5], [13, 'F5', 2.5],
-    // Otra vez, y esta vez se anima a subir.
+    // Again, and this time it dares to climb.
     [16, 'D5', 1], [17, 'F5', 1], [18, 'A5', 1.5], [19.5, 'G5', 0.5],
     [20, 'F5', 0.5], [20.5, 'G5', 0.5], [21, 'E5', 2.5],
     [24, 'C5', 1], [25, 'E5', 1], [26, 'G5', 2.5], [29, 'F5', 0.5], [29.5, 'E5', 1.5],
-    // La cima: el tema tocando el Re agudo, como sol sobre el hielo.
+    // The summit: the theme touching the high D, like sun on the ice.
     [32, 'D5', 1], [33, 'F5', 1], [34, 'A5', 2], [37, 'A#5', 1], [38, 'A5', 1], [39, 'F5', 1],
     [40, 'G5', 1], [41, 'A#5', 1], [42, 'D6', 2.5], [45, 'C6', 0.5], [45.5, 'A5', 1.5],
-    // El deshielo: La mayor (Do#) y la caída suave a casa.
+    // The thaw: A major (C#) and the soft fall back home.
     [48, 'E5', 1], [49, 'C#5', 1], [50, 'E5', 2], [52.5, 'A5', 1.5], [54, 'G5', 1], [55, 'E5', 1],
     [56, 'D5', 1], [57, 'F5', 1], [58, 'A5', 2], [60.5, 'F5', 1], [61.5, 'E5', 0.5], [62, 'D5', 2],
   ],
@@ -595,7 +595,7 @@ const glaciar: Song = {
   bpm: 72,
   loopBeats: 64,
   notes: [
-    // Colchones bajo cero, de a dos voces por acorde largo.
+    // Sub-zero pads, two voices per long chord.
     ...voice(
       [
         [0, 'D2', 7.5], [0, 'A2', 7.5], [8, 'A#1', 7.5], [8, 'F2', 7.5],
@@ -607,30 +607,30 @@ const glaciar: Song = {
     ),
     ...glaciarBells,
     ...echo(glaciarBells, 64, 0.35),
-    // El viento: suspiros largos de ruido filtrado que van y vienen.
+    // The wind: long sighs of filtered noise that come and go.
     { beat: 4, freq: 520, beats: 6, type: 'noise', vol: 0.016, attack: 2.5 },
     { beat: 26, freq: 640, beats: 5, type: 'noise', vol: 0.014, attack: 2 },
     { beat: 44, freq: 480, beats: 6, type: 'noise', vol: 0.016, attack: 2.5 },
-    // Goteras congeladas: plips agudos, contados.
+    // Frozen leaks: high plips, counted.
     drip(11.5, 2093), drip(23.25, 1760), drip(35.5, 2349),
     drip(47.75, 1976), drip(59.25, 2093),
-    // Un brillo interior solo en la cima (compases 9-12).
+    // An inner shimmer only at the summit (bars 9-12).
     ...arp(32, 4, ['D4', 'F4', 'A4', 'F4'], 0.02),
     ...arp(40, 4, ['A#3', 'D4', 'G4', 'D4'], 0.02),
   ],
 };
 
 // ------------------------------------------------------------
-// FRAGUA — nivel 6 (Fa# menor, 138 bpm, 16 compases)
-// El yunque no para: riff-martillo de sierra con la octava y la ♭7
-// golpeando, batería entera, y CLINES de metal a contratiempo. El
-// coro es el tema del cristal en Fa# menor forjado en grande; al
-// final vuelve el ♭2 (sol natural) del corazón — el guardián ígneo
-// y el de cristal son hermanos y sus temas también.
+// FRAGUA — level 6 (F# minor, 138 bpm, 16 bars)
+// The anvil doesn't stop: sawtooth hammer-riff with the octave and the ♭7
+// pounding, full drums, and metal CLANGS offbeat. The
+// chorus is the crystal theme in F# minor forged large; at the
+// end the ♭2 (G natural) from corazon returns — the igneous guardian
+// and the crystal one are brothers, and so are their themes.
 // ------------------------------------------------------------
 
-/** El martilleo del yunque: raíz doblada, octava, la ♭7 que muerde
- *  y la quinta que apuntala — ocho golpes por compás, sin piedad. */
+/** The anvil's hammering: doubled root, octave, the ♭7 that bites
+ *  and the fifth that props it up — eight hits per bar, no mercy. */
 function hammer(bar: number, root: string): SongNote[] {
   const low = n(root);
   const semis = [0, 0, 12, 0, 10, 0, 7, 10];
@@ -648,7 +648,7 @@ const fraguaBars = ['F#2', 'F#2', 'D3', 'E3', 'F#2', 'F#2', 'D3', 'E3',
 
 const fraguaLead = voice(
   [
-    // Verso: frases que golpean y rebotan como chispas.
+    // Verse: phrases that strike and bounce like sparks.
     [0, 'C#5', 0.5], [0.5, 'F#5', 0.5], [1, 'A5', 0.75], [1.75, 'G#5', 0.25],
     [2, 'F#5', 0.5], [2.5, 'E5', 0.5], [3, 'C#5', 1],
     [4.5, 'B4', 0.5], [5, 'C#5', 0.5], [5.5, 'E5', 0.5], [6, 'F#5', 1.5],
@@ -663,7 +663,7 @@ const fraguaLead = voice(
     [26, 'D5', 0.5], [26.5, 'E5', 0.5], [27, 'F#5', 1],
     [28, 'G#5', 0.5], [28.5, 'B5', 0.5], [29, 'C#6', 1],
     [30, 'B5', 0.5], [30.5, 'G#5', 0.5], [31, 'E5', 1],
-    // Coro: el tema del cristal, forjado en Fa# menor.
+    // Chorus: the crystal theme, forged in F# minor.
     [32, 'F#5', 0.5], [32.5, 'A5', 0.5], [33, 'C#6', 1.5],
     [34.5, 'B5', 0.5], [35, 'A5', 0.5], [35.5, 'B5', 0.5],
     [36, 'G#5', 1.5], [37.5, 'E5', 0.5], [38, 'F#5', 2],
@@ -672,7 +672,7 @@ const fraguaLead = voice(
     [45, 'C#6', 1], [46, 'B5', 0.5], [46.5, 'A5', 0.5], [47, 'B5', 1],
     [48, 'D6', 1], [49, 'C#6', 1], [50, 'B5', 1.5], [51.5, 'A5', 0.5],
     [52, 'G#5', 1.5], [53.5, 'F#5', 0.5], [54, 'C#6', 2],
-    // El ♭2 heredado del corazón: sol natural martillando contra fa#.
+    // The ♭2 inherited from corazon: G natural hammering against F#.
     [56, 'B5', 1], [57, 'A5', 1], [58, 'G5', 1], [59, 'F#5', 1],
     [60, 'G5', 0.5], [60.5, 'F#5', 0.5], [61, 'G5', 0.5], [61.5, 'F#5', 0.5],
     [62, 'C#5', 2],
@@ -686,14 +686,14 @@ const fragua: Song = {
   loopBeats: 64,
   notes: [
     ...fraguaBars.flatMap((root, bar) => hammer(bar, root)),
-    // Batería entera de punta a punta: la fragua nunca descansa.
+    // Full drums end to end: the forge never rests.
     ...fraguaBars.flatMap((_, bar) => [
       kick(bar * 4), kick(bar * 4 + 2.5),
       snare(bar * 4 + 1), snare(bar * 4 + 3),
       ...[0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5].map((o) => hat(bar * 4 + o, 0.016)),
     ]),
     ...fill(31), ...fill(63),
-    // Clines de yunque: dos golpes metálicos agudos a contratiempo.
+    // Anvil clangs: two high metallic hits offbeat.
     ...voice(
       fraguaBars.flatMap((root, bar): Line => {
         const clink = { 'F#2': 'C#6', D3: 'A5', E3: 'B5', 'C#3': 'G#5' }[root]!;
@@ -707,11 +707,11 @@ const fragua: Song = {
 };
 
 // ------------------------------------------------------------
-// El director: qué suena según la pantalla activa.
+// The director: what plays depending on the active screen.
 // ------------------------------------------------------------
 
-/** Tema de cada nivel, por id. Un nivel futuro sin tema propio
- *  hereda el de cavernas hasta que alguien se lo componga. */
+/** Each level's theme, by id. A future level without its own theme
+ *  inherits cavernas' until someone composes one for it. */
 export const LEVEL_SONGS: Record<string, Song> = {
   cavernas,
   galerias,
@@ -724,10 +724,10 @@ export const LEVEL_SONGS: Record<string, Song> = {
 export const SONGS: Song[] = [title, overworld, ...Object.values(LEVEL_SONGS)];
 
 /**
- * Llamar una vez por frame con el estado de la escena activa: elige la
- * canción que corresponde y avanza el secuenciador. En pausa la música
- * no se corta: se agacha (duck), como tapándose con una manta.
- * En victoria/derrota se calla del todo: ahí mandan los stingers de sfx.
+ * Call once per frame with the active scene's state: picks the
+ * matching song and advances the sequencer. On pause the music
+ * doesn't cut out: it ducks, like pulling a blanket over itself.
+ * On victory/defeat it goes fully silent: there the sfx stingers rule.
  */
 export function syncMusic(ui: UiState, levelId: string): void {
   switch (ui.state) {

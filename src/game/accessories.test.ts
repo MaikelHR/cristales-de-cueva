@@ -1,13 +1,12 @@
 // ============================================================
-//  Tests de los accesorios del personaje
+//  Character accessory tests
 // ------------------------------------------------------------
-//  Dos frentes: la integridad de los DATOS (ids únicos, grillas
-//  que caben en el frame y solo usan claves de la paleta) y la
-//  COMPOSICIÓN (overlayGrid ancla al tope de la cabeza, hace
-//  crecer el sprite hacia arriba para los gorros, respeta la
-//  transparencia y acompaña la respiración del idle). Se testea
-//  contra las grillas REALES del jugador: si un frame cambia de
-//  forma, esto avisa. El horneado (DOM) no se testea acá.
+//  Two fronts: DATA integrity (unique ids, grids that fit inside
+//  the frame and only use palette keys) and COMPOSITION
+//  (overlayGrid anchors to the top of the head, grows the sprite
+//  upward for hats, respects transparency, and follows the idle
+//  breathing). Tested against the REAL player grids: if a frame
+//  changes shape, this flags it. Baking (DOM) is not tested here.
 // ============================================================
 
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -22,7 +21,7 @@ import {
 import { PLAYER_GRIDS } from './art/playerGrids';
 import { PALETTE } from './art/palette';
 
-const FRAME_W = 14; // el ancho del frame del jugador
+const FRAME_W = 14; // the player frame width
 
 describe('ACCESSORIES (datos)', () => {
   it('tiene ids únicos y arranca con "ninguno" (grilla vacía)', () => {
@@ -54,22 +53,22 @@ describe('overlayGrid (composición)', () => {
 
   it('un gorro hace crecer el frame hacia arriba y el ala pisa la coronilla', () => {
     const out = overlayGrid(PLAYER_GRIDS.idle, gorro.grid, gorro.dy);
-    expect(out).toHaveLength(PLAYER_GRIDS.idle.length + 4); // 4 filas nuevas arriba
-    expect(out[4]).toBe('...MFFFFFFf...'); // el ala, sobre la fila 0 original
-    expect(out[5]).toBe(PLAYER_GRIDS.idle[1]); // el resto del cuerpo, intacto
+    expect(out).toHaveLength(PLAYER_GRIDS.idle.length + 4); // 4 new rows on top
+    expect(out[4]).toBe('...MFFFFFFf...'); // the brim, over the original row 0
+    expect(out[5]).toBe(PLAYER_GRIDS.idle[1]); // the rest of the body, intact
   });
 
   it('acompaña la respiración: en idle2 (cabeza un pixel más abajo) el gorro baja igual', () => {
     const out = overlayGrid(PLAYER_GRIDS.idle2, gorro.grid, gorro.dy);
-    expect(out).toHaveLength(PLAYER_GRIDS.idle2.length + 3); // una fila menos de brote
-    expect(out[4]).toBe('...MFFFFFFf...'); // el ala cae sobre el MISMO tope de cabeza
+    expect(out).toHaveLength(PLAYER_GRIDS.idle2.length + 3); // one less row of growth
+    expect(out[4]).toBe('...MFFFFFFf...'); // the brim lands on the SAME head top
   });
 
   it('los puntos del accesorio son transparentes: no borran al jugador', () => {
     const out = overlayGrid(PLAYER_GRIDS.idle, bufanda.grid, bufanda.dy);
-    expect(out[8]).toBe('..KVVVVVVVVK..'); // bufanda al cuello, contorno K intacto
-    expect(out[9].slice(0, 5)).toBe('.BKVv'); // la puntita cuelga sobre el hombro
-    expect(out).toHaveLength(PLAYER_GRIDS.idle.length); // nada crece hacia arriba
+    expect(out[8]).toBe('..KVVVVVVVVK..'); // scarf at the neck, K outline intact
+    expect(out[9].slice(0, 5)).toBe('.BKVv'); // the tail hangs over the shoulder
+    expect(out).toHaveLength(PLAYER_GRIDS.idle.length); // nothing grows upward
   });
 
   it('compone limpio sobre TODOS los frames con TODOS los accesorios', () => {

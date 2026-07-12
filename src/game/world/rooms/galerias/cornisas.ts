@@ -1,15 +1,15 @@
 import type { RoomData } from '../../RoomData';
 
-/** Nivel 2, sala 1 — Las cornisas: púas y resorte, presentados.
- *  Una franja corta de púas que se salta (la lección barata, con su
- *  cristal encima: saltarla bien ES cobrar), un campo de púas que se
- *  cruza brincando de piedra en piedra con un volador encima, y al
- *  final una mesa de 9 tiles que ningún salto alcanza: el resorte de
- *  su base hace la demostración solo.
- *  Junto a la salida, una ranura de 4 tiles cuelga del techo con un
- *  cristal adentro: se ve al pasar y NO se alcanza — pide el salto
- *  de pared que espera en la chimenea. Es la promesa del nivel: al
- *  volver con la reliquia, la ranura está justo sobre la entrada. */
+/** Level 2, room 1 — Las cornisas: spikes and spring, introduced.
+ *  A short strip of spikes you jump (the cheap lesson, with its
+ *  crystal on top: jumping it well IS the payout), a spike field you
+ *  cross by hopping stone to stone with a flyer above, and at
+ *  the end a 9-tile table no jump reaches: the spring at
+ *  its base does the demo on its own.
+ *  Next to the exit, a 4-tile slot hangs from the ceiling with a
+ *  crystal inside: you see it going by and can NOT reach it — it asks for the
+ *  wall jump waiting in the chimney. It's the level's promise: coming
+ *  back with the relic, the slot sits right above the entrance. */
 export const cornisas: RoomData = {
   id: 'cornisas',
   mapPos: { x: 0, y: 0 },

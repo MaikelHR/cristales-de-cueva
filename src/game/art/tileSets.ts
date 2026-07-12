@@ -1,15 +1,15 @@
 // ============================================================
-//  TILES POR BIOMA
+//  TILES PER BIOME
 // ------------------------------------------------------------
-//  El terreno es parte de la identidad de cada bioma: no alcanza
-//  con teñir el fondo (un jardín verde sobre roca violeta se ve
-//  postizo). Cada set cambia la SUPERFICIE (el tile de tope tiene
-//  su propia grilla: musgo con brotes, costra con brasas...) y la
-//  rampa de la roca, además de los colores de rim-light que usa
-//  levelTiles. Los tiles-lenguaje ('%' agrietado, '~' hielo, púas
-//  y tablones) NO cambian por bioma: significan lo mismo en todos.
-//  Los niveles 1-3 comparten la roca violeta original (sus
-//  atmósferas violeta/azul/carmesí la iluminan distinto).
+//  The terrain is part of each biome's identity: it's not enough
+//  to tint the background (a green garden over violet rock looks
+//  fake). Each set changes the SURFACE (the top tile has its own
+//  grid: moss with sprouts, crust with embers...) and the rock's
+//  color ramp, plus the rim-light colors that levelTiles uses.
+//  The language tiles ('%' cracked, '~' ice, spikes and planks)
+//  do NOT change per biome: they mean the same in all of them.
+//  Levels 1-3 share the original violet rock (their violet/blue/
+//  crimson atmospheres light it differently).
 // ============================================================
 
 import { Sprite, type Palette } from '../../engine/Sprite';
@@ -20,14 +20,14 @@ export interface TileSet {
   fill: Sprite;
   fill2: Sprite;
   fill3: Sprite;
-  /** Rim-light de las caras expuestas (izquierda más clara) y sombra. */
+  /** Rim-light of the exposed faces (left side lighter) and shadow. */
   rimL: string;
   rimR: string;
   shadow: string;
 }
 
-// Las mismas formas de relleno que la roca original (comparten las
-// letras r/o/s/m/t): lo que cambia por bioma es la rampa de color.
+// The same fill shapes as the original rock (they share the
+// r/o/s/m/t letters): what changes per biome is the color ramp.
 const FILL = [
   'rrrorrrr', 'rorrrrro', 'rrrrorrr', 'orrrrrro',
   'rrrorrrr', 'rrrrrror', 'rorrrrrr', 'ssssssss',
@@ -41,16 +41,16 @@ const FILL3 = [
   'rrrsrrrr', 'rrrrsror', 'rorrrrrr', 'ssssssss',
 ];
 
-// --- Esporas: roca de jardín — musgo arriba, brotes que asoman ---
+// --- Esporas: garden rock — moss on top, sprouts poking through ---
 const MOSS_PALETTE: Palette = {
   r: '#2b4636', o: '#3e6248', s: '#152819',
   m: '#5ce06a', t: '#a8ffd0',
   G: '#8fe6a0', g: '#3e8a58',
 };
 const MOSS_TOP = [
-  '.G..G.G.', // brotes que asoman de la alfombra
-  'GgGGgGGg', // el musgo que se pisa
-  'ggrrrrgg', // y sus flecos colgando en la juntura
+  '.G..G.G.', // sprouts poking out of the carpet
+  'GgGGgGGg', // the moss you walk on
+  'ggrrrrgg', // and its fringe hanging at the seam
   'orrrrrro',
   'rrrorrrr',
   'rrrrrror',
@@ -58,14 +58,14 @@ const MOSS_TOP = [
   'ssssssss',
 ];
 
-// --- Fragua: obsidiana carbonizada con brasas vivas en la costra ---
+// --- Fragua: charred obsidian with live embers in the crust ---
 const COAL_PALETTE: Palette = {
   r: '#2a1712', o: '#3d2419', s: '#140a06',
   m: '#d0662a', t: '#ff9a3a',
   E: '#ffd23a',
 };
 const COAL_TOP = [
-  'oostEsoo', // la costra pisoteable, con brasas en las ranuras
+  'oostEsoo', // the walkable crust, with embers in the grooves
   'oooootoo',
   'rrrsorrr',
   'orrrrrro',
@@ -96,8 +96,8 @@ const SETS: Record<string, TileSet> = {
   },
 };
 
-// La roca violeta original, como set por defecto (niveles 1-3,
-// glaciar — cuyo terreno propio ya es el hielo — y el que venga).
+// The original violet rock, as the default set (levels 1-3,
+// glaciar — whose own terrain is already ice — and whatever comes next).
 const DEFAULT_SET: TileSet = {
   top: sprites.tileTop,
   fill: sprites.tileFill,
@@ -108,7 +108,7 @@ const DEFAULT_SET: TileSet = {
   shadow: '#160b24',
 };
 
-/** El set de tiles del nivel dado (el violeta original si no tiene). */
+/** The tile set for the given level (the original violet if it has none). */
 export function tileSetFor(levelId: string): TileSet {
   return SETS[levelId] ?? DEFAULT_SET;
 }

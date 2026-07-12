@@ -1,15 +1,15 @@
 // ============================================================
-//  SKINS DEL PERSONAJE (personalización)
+//  CHARACTER SKINS (customization)
 // ------------------------------------------------------------
-//  El ser de cristal viene en varios "minerales": cada skin es la
-//  MISMA grilla de pixeles con la rampa de color re-pintada (tint
-//  sobre las claves del jugador en la paleta) más el color de su
-//  halo. Acá viven los datos y la preferencia elegida; el horneado
-//  de sprites por skin está en art/playerSkins.ts (necesita DOM).
+//  The crystal being comes in several "minerals": each skin is the
+//  SAME pixel grid with the color ramp re-painted (tint over the
+//  player's keys in the palette) plus its halo color. The data and
+//  the chosen preference live here; the per-skin sprite baking is
+//  in art/playerSkins.ts (needs the DOM).
 //
-//  La elección persiste igual que el idioma: su propia clave de
-//  localStorage, envuelta en try/catch. Este módulo es puro y
-//  carga en Node (testeable) porque no toca el DOM.
+//  The choice persists just like the language: its own localStorage
+//  key, wrapped in try/catch. This module is pure and loads in Node
+//  (testable) because it never touches the DOM.
 // ============================================================
 
 import type { Palette } from '../engine/Sprite';
@@ -19,15 +19,15 @@ const KEY = 'cristales-skin';
 
 export interface SkinDef {
   id: string;
-  nameKey: StrKey; // el nombre visible pasa SIEMPRE por i18n
-  glow: string;    // color del halo del personaje (en juego y en el mapa)
-  tint: Palette;   // re-pintado de la rampa del jugador; vacío = look original
+  nameKey: StrKey; // the visible name ALWAYS goes through i18n
+  glow: string;    // character halo color (in game and on the map)
+  tint: Palette;   // re-paint of the player's ramp; empty = original look
 }
 
-// Las rampas conservan la estructura de valores de la original
-// (K contorno oscuro, C contorno claro, B cuerpo, b sombra, d panza,
-//  H cabeza, W destello) con el hue shifting propio de cada mineral.
-// La pupila P queda oscura en todas: los ojos son la identidad.
+// The ramps keep the value structure of the original
+// (K dark outline, C light outline, B body, b shadow, d belly,
+//  H head, W highlight) with each mineral's own hue shifting.
+// The pupil P stays dark in all of them: the eyes are the identity.
 export const SKINS: readonly SkinDef[] = [
   { id: 'cristal', nameKey: 'skin_cristal', glow: '#3aa6d6', tint: {} },
   {
@@ -68,13 +68,13 @@ export const SKINS: readonly SkinDef[] = [
   },
 ];
 
-/** Skin inicial: la guardada si existe; si no, la original. */
+/** Initial skin: the saved one if it exists; otherwise the original. */
 function detect(): string {
   try {
     const saved = localStorage.getItem(KEY);
     if (saved && SKINS.some((s) => s.id === saved)) return saved;
   } catch {
-    // Almacenamiento bloqueado (o Node): arrancamos con la original.
+    // Storage blocked (or Node): we start with the original.
   }
   return SKINS[0].id;
 }
@@ -82,35 +82,35 @@ function detect(): string {
 let current: string = detect();
 const listeners = new Set<() => void>();
 
-/** El id de la skin activa. */
+/** The id of the active skin. */
 export function getSkin(): string {
   return current;
 }
 
-/** La definición de la skin activa (para pintar y rotular). */
+/** The definition of the active skin (for drawing and labeling). */
 export function currentSkin(): SkinDef {
   return SKINS.find((s) => s.id === current) ?? SKINS[0];
 }
 
-/** Cambia la skin (ids desconocidos se ignoran), la guarda y avisa. */
+/** Changes the skin (unknown ids are ignored), saves it and notifies. */
 export function setSkin(id: string): void {
   if (id === current || !SKINS.some((s) => s.id === id)) return;
   current = id;
   try {
     localStorage.setItem(KEY, id);
   } catch {
-    // Sin almacenamiento: cambia igual, solo que no se recuerda.
+    // No storage: it still changes, it just isn't remembered.
   }
   for (const fn of listeners) fn();
 }
 
-/** Pasa a la skin siguiente (dir=1) o anterior (dir=-1), en rueda. */
+/** Moves to the next skin (dir=1) or previous (dir=-1), wrapping around. */
 export function cycleSkin(dir: 1 | -1 = 1): void {
   const i = SKINS.findIndex((s) => s.id === current);
   setSkin(SKINS[(i + dir + SKINS.length) % SKINS.length].id);
 }
 
-/** Se suscribe a los cambios de skin (para re-pintar el DOM táctil). */
+/** Subscribes to skin changes (to re-paint the touch DOM). */
 export function onSkinChange(fn: () => void): void {
   listeners.add(fn);
 }

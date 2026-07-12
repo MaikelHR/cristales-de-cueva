@@ -2,6 +2,6 @@ import { defineConfig } from 'vite';
 
 // https://vite.dev/config/
 export default defineConfig({
-  // Para GitHub Pages (proyecto), descomentá y poné el nombre del repo:
+  // For GitHub Pages (project), uncomment and set the repo name:
   // base: '/cristales-de-la-cueva/',
 });

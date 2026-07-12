@@ -1,12 +1,12 @@
 // ============================================================
-//  GÉISER DE FUEGO (peligro del escenario)
+//  FIRE GEYSER (stage hazard)
 // ------------------------------------------------------------
-//  Una boquilla de piedra clavada en el piso que entra en erupción
-//  en ciclo fijo: quieto -> chisporrotea (el aviso) -> columna de
-//  llama de 4 tiles. No es un bicho pero vive en la capa 'enemy'
-//  porque su llama daña vía hazards(), igual que un proyectil: cero
-//  reglas nuevas. No se lo puede pisar ni matar; pasarlo es cuestión
-//  de LEER su ritmo. `offset` desfasa el ciclo entre géiseres.
+//  A stone nozzle set in the floor that erupts on a fixed cycle:
+//  idle -> sputters (the warning) -> a 4-tile flame column. It's not
+//  a creature but lives in the 'enemy' layer because its flame hurts
+//  via hazards(), just like a projectile: zero new rules. It can't be
+//  stomped or killed; getting past it is about READING its rhythm.
+//  `offset` staggers the cycle between geysers.
 // ============================================================
 
 import type { Box } from '../../../engine/canvas';
@@ -14,11 +14,11 @@ import { TILE } from '../../world/Level';
 import { drawGlow } from '../../art/glow';
 import type { Enemy } from './Enemy';
 
-const QUIET = 2.1;  // segundos en reposo (la ventana para pasar)
-const WARN = 0.55;  // chisporroteo de aviso
-const ERUPT = 0.9;  // erupción
+const QUIET = 2.1;  // seconds at rest (the window to get past)
+const WARN = 0.55;  // warning sputter
+const ERUPT = 0.9;  // eruption
 const PERIOD = QUIET + WARN + ERUPT;
-const FLAME_H = 4 * TILE; // la columna sube 4 tiles desde la boquilla
+const FLAME_H = 4 * TILE; // the column rises 4 tiles from the nozzle
 
 export class Geyser implements Enemy {
   readonly layer = 'enemy' as const;
@@ -26,7 +26,7 @@ export class Geyser implements Enemy {
   y: number;
   readonly w = TILE;
   readonly h = TILE;
-  dead = false; // nunca muere: es piedra
+  dead = false; // never dies: it's stone
   readonly stompable = false;
   readonly gooColors = ['#ff9a3a', '#ffd23a', '#ffe8c0'];
 
@@ -38,8 +38,8 @@ export class Geyser implements Enemy {
     this.t = offset;
   }
 
-  /** El cuerpo no daña (se camina por encima de la boquilla quieta):
-   *  la caja vive fuera del mundo y TODO el daño va por hazards(). */
+  /** The body doesn't hurt (you walk over the idle nozzle): the box
+   *  lives outside the world and ALL damage goes through hazards(). */
   box(): Box {
     return { x: -99, y: -99, w: 0, h: 0 };
   }
@@ -66,7 +66,7 @@ export class Geyser implements Enemy {
     const cx = px + this.w / 2;
     const { state, p } = this.phase();
 
-    // La boquilla: un anillo de piedra oscura con la boca al rojo.
+    // The nozzle: a ring of dark stone with a red-hot mouth.
     ctx.fillStyle = '#38180c';
     ctx.fillRect(px, py + 4, this.w, 4);
     ctx.fillStyle = '#4e2814';
@@ -75,7 +75,7 @@ export class Geyser implements Enemy {
     ctx.fillRect(px + 2, py + 3, this.w - 4, 1);
 
     if (state === 'warn') {
-      // Chispas que saltan de la boca: "apártate".
+      // Sparks jumping from the mouth: "step aside".
       drawGlow(ctx, cx, py + 2, 8, '#ffb03a', 0.3 + p * 0.3);
       ctx.fillStyle = '#ffd23a';
       for (let i = 0; i < 3; i++) {
@@ -84,7 +84,7 @@ export class Geyser implements Enemy {
         ctx.fillRect(Math.round(sx), Math.round(sy), 1, 1);
       }
     } else if (state === 'erupt') {
-      // La columna: núcleo claro, lenguas que serpentean, glow fuerte.
+      // The column: bright core, winding tongues, strong glow.
       const topY = py - FLAME_H;
       drawGlow(ctx, cx, py - FLAME_H / 2, 18, '#ff9a3a', 0.55);
       for (let yy = 0; yy < FLAME_H; yy += 2) {
@@ -97,7 +97,7 @@ export class Geyser implements Enemy {
       }
       ctx.fillStyle = '#ffe8c0';
       ctx.fillRect(Math.round(cx) - 1, py - 6, 2, 5);
-      // La punta parpadea al morir la erupción.
+      // The tip flickers as the eruption dies.
       if (p > 0.75) {
         ctx.fillStyle = '#ff7a2a';
         ctx.fillRect(Math.round(cx), topY - 2, 1, 2);

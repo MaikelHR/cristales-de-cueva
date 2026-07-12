@@ -1,14 +1,14 @@
 import type { RoomData } from '../../RoomData';
 
-/** Nivel 4, sala 1 — El vergel: la antesala del jardín.
- *  Entrada segura, una zanja que paga (el idioma de los hoyos), un
- *  sombrero-tablón con cristal que pide un salto, y el cruce de púas
- *  vigilado por el ESPORERO desde su montículo: se miran sus arcos y
- *  se elige el momento. El anzuelo del nivel: un cristal sobre una
- *  losa flotante alta, imposible sin PLANEO — el pilar colgante
- *  bloquea todo arco diagonal desde la izquierda. Se cobra al volver:
- *  la escalera de tablones junto a la salida sube a la percha y desde
- *  ahí se planea hasta la losa (salto + doble salto + planeo). */
+/** Level 4, room 1 — The orchard: the garden's antechamber.
+ *  Safe entry, a ditch that pays off (the language of holes), a
+ *  plank-hat with a crystal that asks for a jump, and the spike
+ *  crossing watched by the SPITTER from its mound: you read its arcs
+ *  and pick the moment. The level's lure: a crystal atop a high
+ *  floating slab, impossible without GLIDE — the hanging pillar
+ *  blocks every diagonal arc from the left. It's collected on the way
+ *  back: the plank staircase by the exit climbs to the perch, and from
+ *  there you glide to the slab (jump + double jump + glide). */
 export const vergel: RoomData = {
   id: 'vergel',
   mapPos: { x: 0, y: 0 },

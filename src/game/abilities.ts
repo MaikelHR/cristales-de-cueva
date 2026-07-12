@@ -1,8 +1,8 @@
 // ============================================================
-//  HABILIDADES DESBLOQUEABLES
+//  UNLOCKABLE ABILITIES
 // ------------------------------------------------------------
-//  El vocabulario compartido entre los datos de sala (qué reliquia
-//  hay), el jugador (qué sabe hacer) y la interfaz (qué anunciar).
+//  The shared vocabulary between room data (which relic there is),
+//  the player (what it knows how to do), and the UI (what to announce).
 // ============================================================
 
 export type AbilityName = 'doubleJump' | 'dash' | 'wallJump' | 'glide' | 'pound' | 'smash';

@@ -1,10 +1,10 @@
 // ============================================================
-//  PANTALLA COMPLETA
+//  FULLSCREEN
 // ------------------------------------------------------------
-//  El alternador que usan los menús del juego (título y pausa) y
-//  el botón del mando táctil. Feature-detect: en navegadores que
-//  no exponen requestFullscreen sobre elementos (iPhone Safari),
-//  los menús directamente no ofrecen la opción.
+//  The toggle used by the game's menus (title and pause) and the
+//  touch-controls button. Feature-detect: on browsers that don't
+//  expose requestFullscreen on elements (iPhone Safari), the menus
+//  simply don't offer the option.
 // ============================================================
 
 export function fullscreenAvailable(): boolean {
