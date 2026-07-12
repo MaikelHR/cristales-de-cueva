@@ -17,10 +17,15 @@ import { Slime } from '../actors/enemies/Slime';
 import { Flyer } from '../actors/enemies/Flyer';
 import { Chaser } from '../actors/enemies/Chaser';
 import { Boss } from '../actors/enemies/Boss';
+import { Spitter } from '../actors/enemies/Spitter';
+import { Erizo } from '../actors/enemies/Erizo';
+import { Geyser } from '../actors/enemies/Geyser';
+import { Ariete } from '../actors/enemies/Ariete';
 import { Crystal } from '../actors/pickups/Crystal';
 import { Relic } from '../actors/pickups/Relic';
 import { Spring } from '../actors/devices/Spring';
 import { MovingPlatform } from '../actors/devices/MovingPlatform';
+import { Vent } from '../actors/devices/Vent';
 
 export class Room {
   readonly level: Level;
@@ -48,6 +53,18 @@ export class Room {
         case 'boss':
           this.actors.push(new Boss(px, py));
           break;
+        case 'spitter':
+          this.actors.push(new Spitter(px, py, this.level));
+          break;
+        case 'erizo':
+          this.actors.push(new Erizo(px, py, this.level));
+          break;
+        case 'geyser':
+          this.actors.push(new Geyser(px, py, e.offset));
+          break;
+        case 'ariete':
+          this.actors.push(new Ariete(px, py, this.level));
+          break;
         case 'crystal':
           this.actors.push(new Crystal(px + 1, py + 1, clock));
           break;
@@ -59,6 +76,9 @@ export class Room {
           break;
         case 'platform':
           this.actors.push(new MovingPlatform(px, py, e.axis, e.range, e.speed));
+          break;
+        case 'vent':
+          this.actors.push(new Vent(px, py, e.height, clock));
           break;
         case 'playerSpawn':
           this.playerSpawn = { x: px, y: py };

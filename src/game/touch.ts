@@ -21,6 +21,7 @@
 
 import { touchButton, releaseAll, setDevice, setTouchMode } from '../engine/input';
 import { t, onLangChange } from './i18n';
+import { bakeControlFaces, bakeMenuFace, type TouchFace } from './ui/touchButtons';
 import type { UiState } from './scenes/Scene';
 
 /** Estado de interfaz que nos pasa el juego para decidir qué mostrar.
@@ -104,50 +105,73 @@ function buildTouchControls(canvas: HTMLCanvasElement): void {
   tc.id = 'tc';
   tc.dataset.mode = 'menu';
 
-  // Cada botón lleva su glifo/rótulo VISIBLE (lo que se ve) y un
-  // aria-label (lo que anuncia un lector de pantalla). Ambos salen del
-  // diccionario de idiomas (i18n) y se re-aplican al cambiar de idioma.
+  // Los botones NO llevan texto en el DOM: su cara es pixel-art horneado
+  // por código (ui/touchButtons.ts) que el CSS estira sin difuminar. El
+  // aria-label (lectores de pantalla) sí sale del diccionario de idiomas.
   // Botón de pausa (arriba-derecha).
-  const btnPause = makeButton('tc-btn tc-pause', t('tc_pause_aria'), '‖');
-  // Cruceta de movimiento (abajo-izquierda).
+  const btnPause = makeButton('tc-btn tc-pause', t('tc_pause_aria'));
+  // Cruceta de movimiento (banda izquierda).
   const pad = document.createElement('div');
   pad.className = 'tc-pad';
-  const btnLeft = makeButton('tc-btn tc-left', t('tc_left_aria'), '◀');
-  // Abajo va en el medio: navega menús y baja de los tablones (abajo+saltar).
-  const btnDown = makeButton('tc-btn tc-down', t('tc_down_aria'), '▼');
-  const btnRight = makeButton('tc-btn tc-right', t('tc_right_aria'), '▶');
+  const btnLeft = makeButton('tc-btn tc-left', t('tc_left_aria'));
+  // Abajo: navega menús y baja de los tablones (abajo+saltar).
+  const btnDown = makeButton('tc-btn tc-down', t('tc_down_aria'));
+  const btnRight = makeButton('tc-btn tc-right', t('tc_right_aria'));
   pad.append(btnLeft, btnDown, btnRight);
-  // Acciones (abajo-derecha).
+  // Acciones (banda derecha).
   const actions = document.createElement('div');
   actions.className = 'tc-actions';
-  const btnDash = makeButton('tc-btn tc-dash', t('tc_dash_aria'), t('tc_dash_text'));
+  const btnDash = makeButton('tc-btn tc-dash', t('tc_dash_aria'));
   // El dash arranca bloqueado: ocultamos su botón hasta desbloquearlo
   // (syncTouchUI lo muestra cuando el juego reporta hasDash).
   btnDash.style.display = 'none';
   dashBtn = btnDash;
-  const btnJump = makeButton('tc-btn tc-jump', t('tc_jump_aria'), t('tc_jump_text'));
+  const btnJump = makeButton('tc-btn tc-jump', t('tc_jump_aria'));
   actions.append(btnDash, btnJump);
   // Menú de pausa (centro).
   const menu = document.createElement('div');
   menu.className = 'tc-menu';
-  const btnResume = makeButton('tc-btn tc-mbtn tc-resume', t('tc_resume'), t('tc_resume'));
-  const btnFs = makeButton('tc-btn tc-mbtn tc-fs', t('tc_fs'), t('tc_fs'));
-  const btnRestart = makeButton('tc-btn tc-mbtn tc-restart', t('tc_restart'), t('tc_restart'));
-  const btnMap = makeButton('tc-btn tc-mbtn tc-map', t('tc_map'), t('tc_map'));
+  const btnResume = makeButton('tc-btn tc-mbtn tc-resume', t('tc_resume'));
+  const btnFs = makeButton('tc-btn tc-mbtn tc-fs', t('tc_fs'));
+  const btnRestart = makeButton('tc-btn tc-mbtn tc-restart', t('tc_restart'));
+  const btnMap = makeButton('tc-btn tc-mbtn tc-map', t('tc_map'));
   menu.append(btnResume, btnFs, btnRestart, btnMap);
 
-  // Al cambiar de idioma, re-aplicar rótulos y aria-labels de cada botón.
+  // Caras pixel-art de los botones de juego (fijas: sus glifos son
+  // iconos, no dependen del idioma).
+  const faces = bakeControlFaces();
+  applyFace(btnPause, faces.pause);
+  applyFace(btnLeft, faces.left);
+  applyFace(btnDown, faces.down);
+  applyFace(btnRight, faces.right);
+  applyFace(btnDash, faces.dash);
+  applyFace(btnJump, faces.jump);
+
+  // Las caras del menú llevan el rótulo HORNEADO con la letra del juego:
+  // se re-hornean al cambiar de idioma y cuando la fuente termina de
+  // cargar (si se hornearon antes, quedó la letra de reserva del sistema).
+  const bakeMenus = (): void => {
+    applyFace(btnResume, bakeMenuFace(t('tc_resume'), true));
+    applyFace(btnFs, bakeMenuFace(t('tc_fs')));
+    applyFace(btnRestart, bakeMenuFace(t('tc_restart')));
+    applyFace(btnMap, bakeMenuFace(t('tc_map')));
+  };
+  bakeMenus();
+  void document.fonts.ready.then(bakeMenus);
+
+  // Al cambiar de idioma, re-aplicar aria-labels y re-hornear los rótulos.
   const relocalize = (): void => {
     btnPause.setAttribute('aria-label', t('tc_pause_aria'));
     btnLeft.setAttribute('aria-label', t('tc_left_aria'));
     btnDown.setAttribute('aria-label', t('tc_down_aria'));
     btnRight.setAttribute('aria-label', t('tc_right_aria'));
-    setLabel(btnDash, t('tc_dash_aria'), t('tc_dash_text'));
-    setLabel(btnJump, t('tc_jump_aria'), t('tc_jump_text'));
-    setLabel(btnResume, t('tc_resume'), t('tc_resume'));
-    setLabel(btnFs, t('tc_fs'), t('tc_fs'));
-    setLabel(btnRestart, t('tc_restart'), t('tc_restart'));
-    setLabel(btnMap, t('tc_map'), t('tc_map'));
+    btnDash.setAttribute('aria-label', t('tc_dash_aria'));
+    btnJump.setAttribute('aria-label', t('tc_jump_aria'));
+    btnResume.setAttribute('aria-label', t('tc_resume'));
+    btnFs.setAttribute('aria-label', t('tc_fs'));
+    btnRestart.setAttribute('aria-label', t('tc_restart'));
+    btnMap.setAttribute('aria-label', t('tc_map'));
+    bakeMenus();
   };
   onLangChange(relocalize);
 
@@ -223,21 +247,21 @@ export function syncTouchUI(ui: TouchUI): void {
 //  Ayudantes internos
 // ------------------------------------------------------------
 
-/** Crea un botón accesible: `text` es el glifo/rótulo visible y `label`
- *  el nombre accesible que anuncian los lectores de pantalla. */
-function makeButton(className: string, label: string, text: string): HTMLButtonElement {
+/** Crea un botón sin texto visible (la cara es pixel-art vía CSS);
+ *  `label` es el nombre accesible que anuncian los lectores de pantalla. */
+function makeButton(className: string, label: string): HTMLButtonElement {
   const b = document.createElement('button');
   b.type = 'button';
   b.className = className;
-  b.textContent = text;
   b.setAttribute('aria-label', label);
   return b;
 }
 
-/** Actualiza el rótulo visible y el aria-label de un botón (cambio de idioma). */
-function setLabel(el: HTMLButtonElement, label: string, text: string): void {
-  el.textContent = text;
-  el.setAttribute('aria-label', label);
+/** Entrega al CSS las dos caras horneadas de un botón: reposo en
+ *  --tc-face y presionado en --tc-face-down (la muestra .is-active). */
+function applyFace(el: HTMLButtonElement, face: TouchFace): void {
+  el.style.setProperty('--tc-face', `url(${face.idle})`);
+  el.style.setProperty('--tc-face-down', `url(${face.pressed})`);
 }
 
 /**

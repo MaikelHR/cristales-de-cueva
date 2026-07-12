@@ -18,6 +18,8 @@ import { t } from '../i18n';
  * ¿El contacto cuenta como pisotón? Lo es si el jugador viene cayendo
  * y sus pies estaban por ENCIMA del enemigo el frame anterior (robusto
  * para enemigos altos y que cabecean, como el jefe). Si no, es golpe.
+ * El AZOTÓN (pounding) rompe la regla a favor del jugador: pisa incluso
+ * a los enemigos con púas (stompable=false) — es SU respuesta al erizo.
  */
 export function isStomp(
   stompable: boolean,
@@ -25,9 +27,10 @@ export function isStomp(
   feetY: number,
   dt: number,
   enemyTop: number,
+  pounding = false,
 ): boolean {
   const prevFeetY = feetY - playerVy * dt;
-  return stompable && playerVy > 0 && prevFeetY <= enemyTop + 4;
+  return (stompable || pounding) && playerVy > 0 && prevFeetY <= enemyTop + 4;
 }
 
 /**
@@ -44,8 +47,11 @@ export function resolveEnemyContacts(session: GameSession, dt: number): void {
     const eb = e.box();
     if (overlaps(pbox, eb)) {
       const feetY = pbox.y + pbox.h;
-      if (isStomp(e.stompable, player.vy, feetY, dt, eb.y)) stompEnemy(session, e, eb);
-      else hurtPlayer(session, eb.x + eb.w / 2);
+      if (isStomp(e.stompable, player.vy, feetY, dt, eb.y, player.pounding)) {
+        stompEnemy(session, e, eb);
+      } else {
+        hurtPlayer(session, eb.x + eb.w / 2);
+      }
       break;
     }
     // Proyectiles del enemigo (si dispara)

@@ -36,6 +36,17 @@ export const sfx = {
     playTone({ freq: 90, duration: 0.05, type: 'square', volume: 0.08 });
   },
 
+  /** Azotón: el silbido de la picada, cayendo en frecuencia. */
+  pound(): void {
+    playTone({ freq: 620, freqEnd: 170, duration: 0.18, type: 'square', volume: 0.12 });
+  },
+
+  /** Bloque agrietado que revienta: crujido de esquirlas + golpe sordo. */
+  crack(): void {
+    playTone({ freq: 3200, duration: 0.08, type: 'noise', volume: 0.16 });
+    playTone({ freq: 240, freqEnd: 90, duration: 0.12, type: 'square', volume: 0.1, delay: 0.02 });
+  },
+
   /** Recibir daño: un "ough" corto y grave. */
   hurt(): void {
     playTone({ freq: 200, freqEnd: 80, duration: 0.16, type: 'square', volume: 0.15 });

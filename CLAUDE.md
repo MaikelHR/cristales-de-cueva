@@ -59,17 +59,35 @@ Before considering a change done: `npm test` and `npm run build` must both pass.
 ## Levels and rooms are data
 
 `src/game/world/rooms/<level>/*.ts`: geometry as ASCII rows (`#` solid, `.` air, `-`
-one-way plank, `^` spikes ONLY) + a typed `entities` list (tile coords, e.g.
-`{ type: 'relic', ability: 'dash', x: 47, y: 9 }` or
-`{ type: 'platform', axis: 'x', range: 6, x: 8, y: 15 }`). Never put entity characters
-in the tile grid. Levels register in `rooms/index.ts` (`LEVELS`, in overworld order —
-completing one unlocks the next); `validateLevels` + `rooms.test.ts` enforce integrity
-(row lengths, reciprocal exits, one playerSpawn + a door per level, connected rooms
-open their borders at matching rows — transitions preserve player y). Each level's
-`startAbilities` are what previous levels taught; its new ability comes from a relic
-inside. Design metrics (TILE=8): jump ≈ 4 tiles high, double jump ≈ 7, spring = 9,
-wall-jump chimneys 4 wide; a dash gate is ~14 tiles at same height (impossible without
-dash, comfortable with it). Level 1 id ('cavernas') is pinned in save.ts for migration.
+one-way plank, `^` spikes, `%` cracked block — solid until broken by pound-from-above
+or smash-dash, `~` ice — solid, slippery underfoot; ONLY these six) + a typed
+`entities` list (tile coords, e.g. `{ type: 'relic', ability: 'dash', x: 47, y: 9 }`,
+`{ type: 'platform', axis: 'x', range: 6, x: 8, y: 15 }`,
+`{ type: 'vent', height: 13, x: 50, y: 17 }` — updraft column that ONLY lifts a gliding
+player, or `{ type: 'geyser', offset: 1.2, x: 26, y: 17 }` — cyclic flame column,
+4 tiles tall, offsets stagger multiple geysers). Never put entity characters in the
+tile grid. Enemies: slime, flyer, chaser, spitter (static, lobs arcing spores, inflates
+first as telegraph), erizo (spiky — stomping it HURTS, only a pound kills it), boss,
+ariete (grounded ram boss: paces → rears up → charges, smashing `%` barricades in its
+path; stompable ONLY while stunned after slamming a wall — 3 hits, each slam rains
+embers and enrages it. Bosses must not share a silhouette/moveset/arena shape with a
+previous boss — each fight gets its own verb). Levels register in
+`rooms/index.ts` (`LEVELS`, in overworld order — completing one unlocks the next);
+`validateLevels` + `rooms.test.ts` enforce integrity (row lengths, reciprocal exits,
+one playerSpawn + a door per level, connected rooms open their borders at matching
+rows — transitions preserve player y). Each level's `startAbilities` are what previous
+levels taught; its new ability comes from a relic inside (order so far: doubleJump →
+wallJump → dash → glide → pound → smash). Design metrics (TILE=8): jump ≈ 4 tiles high
+(34px; jump+double ≈ 62px — a ledge whose top sits >62px above the feet can't be
+mounted: use TALL walls, not thin roofs, to block route skips), double jump ≈ 7,
+spring = 9, wall-jump chimneys 4 wide (a single tall wall is ALSO climbable by repeated
+wall jumps — cap or overhang anything that must not be scaled); a dash gate is ~14
+tiles at same height; gliding falls ~1 tile per 2 tiles forward (a glide gate = 19+
+tile gap; jump+double+dash tops out ~16-17 tiles); vents lift ~11 tiles/s while
+gliding; crack walls must span the FULL passable cross-section (a crack doorway framed
+in rock — one open flank and players walk around it) and pound chains down through
+stacked crack floors; geyser flames need ≥2 tiles of clearance under any plank players
+stand on. Level 1 id ('cavernas') is pinned in save.ts for migration.
 
 ## Level design standards (the bar every room must clear)
 
@@ -102,8 +120,18 @@ Hard-won from playtesting. Check ALL of these before calling a room done:
   ability, and its exam may quote skills from earlier levels. Each level must
   introduce ≥1 genuinely NEW mechanic (ability, device, enemy, rule — not just
   harder numbers); target ~5 new mechanics per world. Each level also gets its
-  own visual identity (palette/atmosphere/music) — never a re-skin of a
-  previous level's look.
+  own visual identity — and identity means BIOME, not a hue swap: the terrain
+  itself must change (a tile set in `art/tileSets.ts` — mossy tops, ember
+  crust — or a mechanical tile like glaciar's ice), matched atmosphere and
+  music, plus biome-native devices/enemies. A level that's "the same rooms in
+  a different color" fails this bar (glaciar passes it: you SLIDE on its
+  ground).
+- **Devices must telegraph their interaction**: if a device only works with
+  an input held (vents lift only while gliding), its idle visual has to
+  scream the verb — a dense rising column, not a few faint motes (the vent
+  playtest complaint). Same for windows of opportunity: geysers sputter
+  before erupting, the spitter inflates, the ariete rears up before charging,
+  its core glows when stompable.
 - **Work the grid like a surveyor**: before editing a room, print its tiles
   with a column ruler (node one-liner) and verify row widths, border openings
   matching the neighbor rooms, and the design metrics above. `npm test`
@@ -118,13 +146,24 @@ Player-facing text is **neutral LatAm Spanish (tuteo)** + English,
   language) and Pause menu (resume/restart/fullscreen/language/exit to map), navigated
   with the 'up'/'down'/'confirm' actions (keys can map to SEVERAL actions: ↑/W = jump+up,
   space = jump+confirm). 'down' (S/↓, d-pad/stick, touch ▼) also drops the player
-  through one-way planks with down+jump (Player.onPlankOnly + dropTimer). The touch pause menu stays DOM buttons (touch.ts); its "exit to
+  through one-way planks with down+jump (Player.onPlankOnly + dropTimer). The later
+  abilities reuse existing inputs on EVERY device (no new buttons): glide = hold jump
+  while falling (vents only push while `player.glideHeld`), pound = press down in
+  mid-air (breaks `%` under feet on landing; `player.pounding` lets isStomp defeat
+  spiky enemies), smash = the normal dash shatters `%` ahead once unlocked. The touch pause menu stays DOM buttons (touch.ts); its "exit to
   map" arrives as the 'quit' action; the ES/EN DOM chip is touch-only, menus-only.
   Both languages must have every key (the `en` table is typed to enforce it).
 - Behavior-preserving details matter here (game feel): coyote time, jump buffer,
   hit-stop, the shared animation `Clock` also ticking on menus. Don't "simplify" them away.
 - Touch UI: ability buttons (dash) only appear once unlocked (`syncTouchUI` via
   `scenes.ui` + `hasDash`). Keep the `UiState` shape stable — touch.ts/langSwitch depend on it.
+  On touch the canvas cedes a side gutter per side (`--tc-gutter` in style.css) and the
+  controls live ONLY in those letterbox bands — they must never cover gameplay. Button
+  faces are code-baked pixel-art sprites (`ui/touchButtons.ts`: cave-violet pad/pause,
+  crystal-gold jump, player-cyan dash; menu labels baked with the game `font()`), served
+  as data-URLs in `--tc-face`/`--tc-face-down` and stretched with `image-rendering:
+  pixelated` — keep CSS button aspect = native sprite aspect so pixels stay square. New
+  on-screen buttons go in the gutters; widening a cluster must grow `--tc-gutter` too.
 - Character customization has two axes, both pure-data modules with their own
   localStorage preference (like the language): `skins.ts` (palette tints over the player
   ramp only) and `accessories.ts` (small grids overlaid per-frame anchored to the head
@@ -142,4 +181,5 @@ Player-facing text is **neutral LatAm Spanish (tuteo)** + English,
 
 Browser console: `__game` (session), `__scenes`, `__debug.hitboxes = true`,
 `__debug.warp('<room-id>')` (rooms of the CURRENT level, e.g. 'galeria', 'chimenea'),
-`__debug.level('cavernas' | 'galerias' | 'corazon')`, `__sprites`, `__audio()`.
+`__debug.level('cavernas' | 'galerias' | 'corazon' | 'esporas' | 'glaciar' | 'fragua')`,
+`__sprites`, `__audio()`.

@@ -45,6 +45,19 @@ const WALL_JUMP_V = 0.98;    // altura del wall jump vs salto normal
 const WALL_JUMP_H = 130;     // empujón horizontal alejándose de la pared
 const WALL_LOCK = 0.14;      // control bloqueado tras el wall jump
 
+// Planeo: sostener saltar en el aire frena la caída. La proporción
+// manda en el diseño: ~2 tiles de avance por cada tile de descenso.
+const GLIDE_FALL = 45;       // caída máxima planeando (px/s)
+
+// Azotón: picada vertical que revienta bloques agrietados ('%').
+const POUND_SPEED = 340;     // px/s de la picada (más que MAX_FALL: pesa)
+
+// Hielo ('~'): el control llega patinando — acelera y frena de a poco.
+const ICE_GRIP = 4.5;        // por segundo: qué tan rápido "agarra" el pie
+
+// Esquirlas de bloque agrietado al romperse.
+const CRACK_COLORS = ['#e9d6ff', '#b98bff', '#8064b0'];
+
 // Vida y daño
 const MAX_HEALTH = 3;      // corazones
 const HURT_INVULN = 1.1;   // segundos de invulnerabilidad tras un golpe
@@ -85,6 +98,9 @@ export class Player {
     doubleJump: false,
     dash: false,
     wallJump: false,
+    glide: false,
+    pound: false,
+    smash: false,
   };
   private airJumpsLeft = 0;
   private dashTimer = 0;    // >0 = dash en curso
@@ -92,6 +108,8 @@ export class Player {
   private wallLock = 0;     // >0 = control bloqueado tras un wall jump
   private wallLockDir: 1 | -1 = 1;
   private wallSliding = false; // para elegir el sprite de pared
+  private isPounding = false;  // picada de azotón en curso
+  private isGliding = false;   // frenando la caída con el planeo
 
   private launched = false; // impulso externo (resorte): sin recorte de salto
   private dropTimer = 0;    // >0 = bajando a través de un tablón (los ignora)
@@ -124,6 +142,8 @@ export class Player {
     this.stompGrace = 0;
     this.launched = false;
     this.dropTimer = 0;
+    this.isPounding = false;
+    this.isGliding = false;
   }
 
   box(): Box {
@@ -132,6 +152,32 @@ export class Player {
 
   get invulnerable(): boolean {
     return this.invulnTimer > 0;
+  }
+
+  /** ¿Está en plena picada de azotón? (el combate lo lee: la picada
+   *  pisa incluso a los enemigos con púas). */
+  get pounding(): boolean {
+    return this.isPounding;
+  }
+
+  /** ¿Está "colgado" del planeo? (en el aire, con la habilidad y
+   *  sosteniendo saltar). Las corrientes ascendentes solo empujan
+   *  en este estado: soltar saltar es soltarse del viento. */
+  get glideHeld(): boolean {
+    return (
+      this.abilities.glide &&
+      !this.onGround &&
+      isDown('jump') &&
+      this.dashTimer <= 0 &&
+      !this.isPounding
+    );
+  }
+
+  /** Empuje de una corriente ascendente: acelera hacia arriba hasta la
+   *  velocidad de ascenso. Lo llama systems/devices mientras planea
+   *  dentro de la columna. */
+  liftBy(dt: number, accel: number, maxRise: number): void {
+    this.vy = Math.max(this.vy - accel * dt, -maxRise);
   }
 
   /** Rebote al pisar un enemigo: salta hacia arriba, recupera el salto
@@ -143,6 +189,7 @@ export class Player {
     this.airJumpsLeft = 1;
     this.stretch = STRETCH_JUMP;
     this.stompGrace = 0.35;
+    this.isPounding = false; // el rebote cierra la picada
   }
 
   /** Lanzamiento de resorte: impulso vertical impuesto desde afuera.
@@ -155,6 +202,7 @@ export class Player {
     this.launched = true;
     this.airJumpsLeft = 1;
     this.stretch = STRETCH_JUMP;
+    this.isPounding = false; // el resorte gana: corta la picada
   }
 
   /**
@@ -169,6 +217,7 @@ export class Player {
     this.hurtLock = HURT_LOCK;
     this.dashTimer = 0; // un golpe corta el dash
     this.launched = false; // y también el vuelo de resorte
+    this.isPounding = false; // y la picada de azotón
     this.wallLock = 0;
     const away: 1 | -1 = this.x + this.w / 2 < fromX ? -1 : 1;
     this.vx = away * KNOCKBACK_X;
@@ -180,14 +229,35 @@ export class Player {
 
   update(dt: number): void {
     this.wallSliding = false;
+    this.isGliding = false;
     this.invulnTimer = Math.max(0, this.invulnTimer - dt);
     this.stompGrace = Math.max(0, this.stompGrace - dt);
     this.dropTimer = Math.max(0, this.dropTimer - dt);
+
+    // ¿La picada aterrizó fuera de la física propia? (una plataforma
+    // móvil lo apoyó en el paso de aparatos): cerrar el impacto acá.
+    if (this.isPounding && this.onGround) this.landPound();
+
+    // ---- Azotón: ¿arranca uno? (abajo, en pleno aire) ----
+    if (
+      !this.isPounding &&
+      this.abilities.pound &&
+      !this.onGround &&
+      justPressed('down') &&
+      this.dashTimer <= 0 &&
+      this.hurtLock <= 0
+    ) {
+      this.isPounding = true;
+      this.launched = false;
+      this.stretch = STRETCH_JUMP; // se afina en la picada
+      sfx.pound();
+    }
 
     // ---- Dash: ¿arranca uno? ----
     this.dashCooldown = Math.max(0, this.dashCooldown - dt);
     if (
       this.dashTimer <= 0 &&
+      !this.isPounding &&
       justPressed('dash') &&
       this.abilities.dash &&
       this.dashCooldown === 0
@@ -198,11 +268,20 @@ export class Player {
       sfx.dash();
     }
 
-    if (this.dashTimer > 0) {
+    if (this.isPounding) {
+      // ---- En picada: derecho hacia abajo, sin control (compromiso) ----
+      this.vx = 0;
+      this.vy = POUND_SPEED;
+      // Líneas de velocidad sobre la cabeza
+      this.particles.puff(this.x + this.w / 2, this.y + 1, 1, DUST_COLORS);
+    } else if (this.dashTimer > 0) {
       // ---- En pleno dash: velocidad fija, sin gravedad ni control ----
       this.dashTimer -= dt;
       this.vx = this.facing * DASH_SPEED;
       this.vy = 0;
+      // Embestida: los bloques agrietados de adelante se hacen pedazos
+      // en vez de frenar el impulso.
+      if (this.abilities.smash) this.smashAhead();
       // Estela de polvo detrás
       this.particles.puff(
         this.x + this.w / 2 - this.facing * 4,
@@ -225,6 +304,11 @@ export class Player {
         // Tras un wall jump, unos frames de empujón fijo: sin esto,
         // mantener la tecla hacia la pared te re-pegaría al instante.
         this.vx = this.wallLockDir * WALL_JUMP_H;
+      } else if (this.onGround && this.onIce()) {
+        // Hielo bajo los pies: el control llega patinando — la velocidad
+        // persigue a la intención en vez de obedecerla al instante.
+        this.vx += (dir * MOVE_SPEED - this.vx) * Math.min(1, ICE_GRIP * dt);
+        if (dir !== 0) this.facing = dir as 1 | -1;
       } else {
         this.vx = dir * MOVE_SPEED;
         if (dir !== 0) this.facing = dir as 1 | -1;
@@ -310,6 +394,28 @@ export class Player {
           this.particles.puff(px, this.y + 3, 1, DUST_COLORS, -dir * 0.3);
         }
       }
+
+      // ---- Planeo: sostener saltar en el aire frena la caída ----
+      if (
+        this.abilities.glide &&
+        !this.onGround &&
+        !this.wallSliding &&
+        this.vy > 0 &&
+        isDown('jump')
+      ) {
+        this.isGliding = true;
+        if (this.vy > GLIDE_FALL) this.vy = GLIDE_FALL;
+        // Motitas que se escurren hacia atrás: se lee "estoy flotando".
+        if (Math.random() < 0.22) {
+          this.particles.puff(
+            this.x + this.w / 2 - this.facing * 3,
+            this.y + 2,
+            1,
+            DUST_COLORS,
+            -this.facing * 0.4,
+          );
+        }
+      }
     }
 
     // ---- Mover y resolver colisiones, un eje a la vez ----
@@ -322,6 +428,9 @@ export class Player {
     this.onGround = false;
     this.resolveAxis('y');
     this.resolveOneWay(prevBottom);
+
+    // Impacto del azotón: al apoyar los pies revienta lo agrietado.
+    if (this.isPounding && this.onGround) this.landPound();
 
     // Aterrizar aplastado: más fuerte el golpe, más chato queda.
     if (!wasOnGround && this.onGround && fallSpeed > 60) {
@@ -373,6 +482,66 @@ export class Player {
       if (this.level.oneWayCell(row, col)) plank = true;
     }
     return plank;
+  }
+
+  /** ¿Está parado sobre hielo? (todo el apoyo sólido bajo los pies es
+   *  hielo; un solo tile de roca en la mezcla devuelve el agarre). */
+  private onIce(): boolean {
+    const row = Math.floor((this.y + this.h + 1) / TILE);
+    const c0 = Math.floor(this.x / TILE);
+    const c1 = Math.floor((this.x + this.w) / TILE);
+    let ice = false;
+    for (let col = c0; col <= c1; col++) {
+      if (this.level.solidCell(row, col)) {
+        if (!this.level.icyCell(row, col)) return false;
+        ice = true;
+      }
+    }
+    return ice;
+  }
+
+  /** Impacto del azotón: revienta los bloques agrietados bajo los pies.
+   *  Si TODO el apoyo era agrietado, la picada sigue hacia abajo — así
+   *  se encadenan los pisos de una grieta de varias capas. */
+  private landPound(): void {
+    const row = Math.floor((this.y + this.h + 1) / TILE);
+    const c0 = Math.floor(this.x / TILE);
+    const c1 = Math.floor((this.x + this.w) / TILE);
+    let broke = false;
+    let support = false;
+    for (let col = c0; col <= c1; col++) {
+      if (this.level.breakCrack(row, col)) {
+        this.particles.burst(col * TILE + 4, row * TILE + 4, 8, CRACK_COLORS);
+        broke = true;
+      } else if (this.level.solidCell(row, col) || this.level.oneWayCell(row, col)) {
+        support = true;
+      }
+    }
+    if (broke) sfx.crack();
+    if (broke && !support) {
+      // El piso entero se hizo pedazos: la picada continúa.
+      this.onGround = false;
+      this.vy = POUND_SPEED;
+      return;
+    }
+    this.isPounding = false;
+  }
+
+  /** Embestida: en pleno dash, la columna agrietada de adelante se hace
+   *  pedazos en vez de frenar el impulso (solo con la habilidad). */
+  private smashAhead(): void {
+    const aheadX = this.facing === 1 ? this.x + this.w + 1 : this.x - 1;
+    const col = Math.floor(aheadX / TILE);
+    const r0 = Math.floor((this.y + 1) / TILE);
+    const r1 = Math.floor((this.y + this.h - 1) / TILE);
+    let broke = false;
+    for (let row = r0; row <= r1; row++) {
+      if (this.level.breakCrack(row, col)) {
+        this.particles.burst(col * TILE + 4, row * TILE + 4, 8, CRACK_COLORS);
+        broke = true;
+      }
+    }
+    if (broke) sfx.crack();
   }
 
   /**

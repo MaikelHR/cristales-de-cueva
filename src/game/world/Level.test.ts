@@ -78,4 +78,25 @@ describe('Level', () => {
     // En la celda de al lado, a la misma altura: no pincha.
     expect(level.touchesSpike({ x: TILE + 1, y: TILE + 6, w: 6, h: 11 })).toBe(false);
   });
+
+  it('los bloques agrietados son sólidos hasta que se rompen', () => {
+    const level = new Level(['#####', '#.%.#', '#####']);
+    expect(level.crackCell(1, 2)).toBe(true);
+    expect(level.solidCell(1, 2)).toBe(true); // agrietado = sólido
+    expect(level.breakCrack(1, 2)).toBe(true);
+    expect(level.crackCell(1, 2)).toBe(false); // roto = aire
+    expect(level.solidCell(1, 2)).toBe(false);
+    expect(level.breakCrack(1, 2)).toBe(false); // no se rompe dos veces
+    expect(level.breakCrack(1, 1)).toBe(false); // el aire no se rompe
+    expect(level.breakCrack(0, 0)).toBe(false); // la roca tampoco
+    expect(level.crackCell(-1, 2)).toBe(false); // fuera del mapa, no
+  });
+
+  it('el hielo es sólido y lleva su propia marca', () => {
+    const level = new Level(['#####', '#.~.#', '#####']);
+    expect(level.icyCell(1, 2)).toBe(true);
+    expect(level.solidCell(1, 2)).toBe(true); // hielo = sólido
+    expect(level.icyCell(0, 0)).toBe(false);  // la roca no patina
+    expect(level.icyCell(-1, 2)).toBe(false); // fuera del mapa, no
+  });
 });

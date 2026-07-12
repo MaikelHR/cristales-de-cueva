@@ -26,7 +26,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, session: GameSession): 
     session.level.id, // cada nivel tiene su propio tema de color
   );
 
-  drawLevelTiles(ctx, room.level, camX, camY, viewW, viewH);
+  drawLevelTiles(ctx, room.level, camX, camY, viewW, viewH, session.level.id);
   drawDoor(ctx, session, camX, camY);
   for (const d of room.devices) {
     d.draw(ctx, camX, camY); // aparatos primero: se pisa SOBRE ellos

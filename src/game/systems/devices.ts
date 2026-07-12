@@ -1,18 +1,22 @@
 // ============================================================
 //  APARATOS — las reglas de la capa 'device'
 // ------------------------------------------------------------
-//  Resortes y plataformas móviles interactúan con la FÍSICA del
-//  jugador, así que su orden dentro del paso importa:
+//  Resortes, plataformas móviles y corrientes ascendentes
+//  interactúan con la FÍSICA del jugador, así que su orden dentro
+//  del paso importa:
 //   1. carryAndAdvanceDevices — ANTES de la física del jugador:
 //      las plataformas se mueven y arrastran a su pasajero.
 //   2. resolveDeviceContacts — DESPUÉS de la física: aterrizar en
-//      plataformas (se comportan como tablones de un sentido) y
-//      pisar resortes (lanzan hacia arriba).
+//      plataformas (se comportan como tablones de un sentido),
+//      pisar resortes (lanzan hacia arriba) y recibir el empuje de
+//      una corriente (solo si el jugador PLANEA dentro de ella).
 // ============================================================
 
+import { overlaps } from '../../engine/canvas';
 import type { GameSession } from '../session';
 import { MovingPlatform } from '../actors/devices/MovingPlatform';
 import { Spring, SPRING_SPEED } from '../actors/devices/Spring';
+import { Vent, VENT_ACCEL, VENT_RISE } from '../actors/devices/Vent';
 import { sfx } from '../sfx';
 
 const DUST_COLORS = ['#9b86c4', '#6f5a9e', '#d7c9ec'];
@@ -61,6 +65,12 @@ export function resolveDeviceContacts(session: GameSession, dt: number): void {
         player.springLaunch(SPRING_SPEED);
         session.particles.puff(b.x + b.w / 2, b.y + b.h, 6, DUST_COLORS);
         sfx.spring();
+      }
+    } else if (d instanceof Vent) {
+      // La corriente solo empuja al que planea dentro de la columna:
+      // soltar saltar es soltarse del viento (y bajarse a voluntad).
+      if (player.glideHeld && overlaps(player.box(), b)) {
+        player.liftBy(dt, VENT_ACCEL, VENT_RISE);
       }
     }
   }

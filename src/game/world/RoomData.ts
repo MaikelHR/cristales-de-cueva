@@ -2,9 +2,11 @@
 //  FORMATO DE SALA (datos, no código)
 // ------------------------------------------------------------
 //  Una sala son dos cosas separadas:
-//   - `tiles`: la geometría como texto. SOLO cuatro caracteres:
+//   - `tiles`: la geometría como texto. SOLO seis caracteres:
 //       '#' = bloque sólido   '.' = aire   '-' = tablón de un sentido
 //       '^' = púas (dañan al pisarlas; no son sólidas)
+//       '%' = bloque agrietado (sólido; lo rompen azotón/embestida)
+//       '~' = hielo (sólido; patina bajo los pies)
 //   - `entities`: lo que vive en la sala (enemigos, cristales,
 //     reliquias, resortes, plataformas móviles, el spawn del
 //     jugador, la puerta), cada uno con su celda y sus propiedades
@@ -24,7 +26,7 @@ export interface Cell {
   y: number;
 }
 
-export type EnemyKind = 'slime' | 'flyer' | 'chaser' | 'boss';
+export type EnemyKind = 'slime' | 'flyer' | 'chaser' | 'boss' | 'spitter' | 'erizo' | 'ariete';
 
 export type EntitySpawn =
   | (Cell & { type: EnemyKind })
@@ -37,12 +39,19 @@ export type EntitySpawn =
   // Plataforma móvil: viaja `range` celdas por `axis` (negativo = hacia
   // la izquierda/arriba) y vuelve, en un vaivén constante. El jugador
   // que va parado encima viaja con ella.
-  | (Cell & { type: 'platform'; axis: 'x' | 'y'; range: number; speed?: number });
+  | (Cell & { type: 'platform'; axis: 'x' | 'y'; range: number; speed?: number })
+  // Corriente ascendente: desde la boquilla (x, y) sube `height` celdas.
+  // Solo empuja al jugador que PLANEA dentro de la columna.
+  | (Cell & { type: 'vent'; height: number })
+  // Géiser de fuego: boquilla en el piso que entra en erupción cíclica
+  // (columna de llama de 4 celdas). `offset` desfasa su ciclo, para que
+  // varios géiseres alternen.
+  | (Cell & { type: 'geyser'; offset?: number });
 
 export interface RoomData {
   /** Nombre único; las salidas de otras salas apuntan a este id. */
   id: string;
-  /** La geometría: filas de '#', '.', '-' y '^'. Todas del mismo largo. */
+  /** La geometría: filas de '#', '.', '-', '^', '%' y '~'. Todas del mismo largo. */
   tiles: string[];
   /** Lo que vive en la sala, en celdas del mapa. */
   entities: EntitySpawn[];
@@ -52,7 +61,7 @@ export interface RoomData {
   mapPos: Cell;
 }
 
-const TILE_CHARS = new Set(['#', '.', '-', '^']);
+const TILE_CHARS = new Set(['#', '.', '-', '^', '%', '~']);
 
 /**
  * Revisa la integridad de las salas de UN NIVEL y devuelve la lista de

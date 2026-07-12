@@ -14,6 +14,13 @@
 //   · galerias   — riff galopado; el coro es el tema a toda marcha.
 //   · corazon    — riff que baja escalón a escalón (si→la→sol→fa#) y
 //                  el tema oscuro sobre drones; el ♭2 frigio martilla.
+//   · esporas    — vals ligero en Mi menor dórico: bajo que rebota,
+//                  marimba de cristal y esporas que revientan (plip).
+//   · glaciar    — campanas lentas y colchones bajo cero en Re menor;
+//                  casi sin ritmo: el glaciar respira, no marcha.
+//   · fragua     — martilleo de yunque en Fa# menor a toda máquina;
+//                  el coro es el tema con los dientes apretados y el
+//                  ♭2 (sol natural) del corazón vuelve como eco.
 //
 //  Paleta tímbrica: triangle = campanas de cristal, sine = colchones
 //  y bombos, square = melodía brillante, sawtooth = aspereza, noise =
@@ -476,12 +483,243 @@ const corazon: Song = {
 };
 
 // ------------------------------------------------------------
+// ESPORAS — nivel 4 (Mi menor dórico, 104 bpm, 16 compases)
+// El jardín respira: bajo rebotado (boing, boing), el tema del
+// cristal dicho en marimba de cristal (Mi menor: mi→sol→si), y en
+// la sección B el arpegio-agua corre mientras entra la caja. Las
+// gotas agudas son esporas que revientan. El Do# dórico asoma de
+// paso: este verde no es triste, es vivo.
+// ------------------------------------------------------------
+
+const esporasBars = ['E2', 'C2', 'G2', 'D2', 'E2', 'C2', 'G2', 'D2',
+  'E2', 'C2', 'G2', 'B2', 'E2', 'C2', 'A2', 'B2'];
+
+const esporasMelody = voice(
+  [
+    // A: el tema en Mi menor, a paso de jardín.
+    [0, 'E4', 0.5], [0.5, 'G4', 0.5], [1, 'B4', 1.5],
+    [2.5, 'A4', 0.5], [3, 'G4', 0.5], [3.5, 'A4', 0.5],
+    [4, 'F#4', 1.5], [5.5, 'D4', 0.5], [6, 'E4', 2],
+    // Secuencia en Sol: la misma frase, un piso más luminosa.
+    [8, 'G4', 0.5], [8.5, 'B4', 0.5], [9, 'D5', 1.5],
+    [10.5, 'C5', 0.5], [11, 'B4', 0.5], [11.5, 'C5', 0.5],
+    [12, 'A4', 1.5], [13.5, 'F#4', 0.5], [14, 'G4', 2],
+    // Respuesta: trepa al Mi agudo y baja en volutas.
+    [16, 'E4', 0.5], [16.5, 'G4', 0.5], [17, 'B4', 1.5],
+    [18.5, 'D5', 0.5], [19, 'E5', 1.5], [20.5, 'D5', 0.5],
+    [21, 'B4', 1], [22, 'A4', 0.5], [22.5, 'G4', 0.5], [23, 'A4', 1],
+    [24, 'C5', 1], [25, 'B4', 1], [26, 'A4', 1.5], [27.5, 'G4', 0.5],
+    [28, 'F#4', 2], [30, 'F#4', 0.5], [30.5, 'A4', 0.5], [31, 'B4', 1],
+    // B: el tema octava arriba, con el agua corriendo debajo.
+    [32, 'E5', 0.5], [32.5, 'G5', 0.5], [33, 'B5', 1.5],
+    [34.5, 'A5', 0.5], [35, 'G5', 0.5], [35.5, 'A5', 0.5],
+    [36, 'F#5', 1.5], [37.5, 'D5', 0.5], [38, 'E5', 2],
+    [40, 'C5', 0.5], [40.5, 'E5', 0.5], [41, 'G5', 1.5],
+    [42.5, 'F#5', 0.5], [43, 'G5', 1], [44, 'A5', 1.5], [45.5, 'G5', 0.5], [46, 'E5', 1.5],
+    [48, 'D5', 0.5], [48.5, 'G5', 0.5], [49, 'B5', 1],
+    [50, 'A5', 0.5], [50.5, 'G5', 0.5], [51, 'E5', 1],
+    [52, 'C5', 0.5], [52.5, 'E5', 0.5], [53, 'A5', 1],
+    [54, 'G5', 0.5], [54.5, 'E5', 0.5], [55, 'D5', 1],
+    // Cadencia: baja al Si (dominante) con el C# dórico de guiño.
+    [56, 'E5', 1], [57, 'D5', 1], [58, 'B4', 1.5], [59.5, 'A4', 0.5],
+    [60, 'G4', 0.5], [60.5, 'A4', 0.5], [61, 'B4', 0.5], [61.5, 'C#5', 0.5], [62, 'E5', 2],
+  ],
+  { type: 'triangle', vol: 0.045 },
+);
+
+const esporas: Song = {
+  id: 'esporas',
+  bpm: 104,
+  loopBeats: 64,
+  notes: [
+    ...esporasBars.flatMap((root, bar) => bounce(bar, root)),
+    // Batería suave: bombo a tierra, hats al aire; la caja espera a B.
+    ...esporasBars.flatMap((_, bar) => [
+      kick(bar * 4), kick(bar * 4 + 2),
+      hat(bar * 4 + 0.5, 0.016), hat(bar * 4 + 1.5, 0.016),
+      hat(bar * 4 + 2.5, 0.016), hat(bar * 4 + 3.5, 0.016),
+    ]),
+    ...esporasBars.slice(8).flatMap((_, i) => {
+      const bar = i + 8;
+      return [snare(bar * 4 + 1, 0.032), snare(bar * 4 + 3, 0.032)];
+    }),
+    ...fill(31), ...fill(63),
+    ...esporasMelody,
+    ...echo(esporasMelody, 64),
+    // El agua de la sección B: arpegio interior en corcheas.
+    ...arp(32, 4, ['E3', 'G3', 'B3', 'G3'], 0.024),
+    ...arp(36, 4, ['C3', 'E3', 'G3', 'E3'], 0.024),
+    ...arp(40, 4, ['G3', 'B3', 'D4', 'B3'], 0.024),
+    ...arp(44, 4, ['D3', 'F#3', 'A3', 'F#3'], 0.024),
+    ...arp(48, 4, ['E3', 'G3', 'B3', 'G3'], 0.024),
+    ...arp(52, 4, ['C3', 'E3', 'G3', 'E3'], 0.024),
+    ...arp(56, 4, ['A2', 'C3', 'E3', 'C3'], 0.024),
+    ...arp(60, 4, ['B2', 'D#3', 'F#3', 'D#3'], 0.024),
+    // Esporas que revientan, a deshora.
+    drip(7.25, 1976), drip(15.5, 1568), drip(23.75, 2093),
+    drip(39.25, 1760), drip(47.5, 2349), drip(55.75, 1976), drip(63.25, 1568),
+  ],
+};
+
+// ------------------------------------------------------------
+// GLACIAR — nivel 5 (Re menor, 72 bpm, 8 compases largos)
+// Campanas de cristal MUY espaciadas dicen el tema (re→fa→la) y
+// dejan que el eco conteste; colchones de seno en el sótano y un
+// viento de ruido filtrado que pasa de a ratos. Sin batería: el
+// glaciar no marcha, respira. El La mayor del final (Do#) es el
+// único calor de la sala.
+// ------------------------------------------------------------
+
+const glaciarBells = voice(
+  [
+    // El tema, lento y desnudo.
+    [0, 'D5', 1], [1, 'F5', 1], [2, 'A5', 2.5],
+    [5.5, 'G5', 0.5], [6, 'E5', 1.5], [7.5, 'C5', 0.5], [8, 'D5', 3],
+    [12, 'A4', 0.5], [12.5, 'C5', 0.5], [13, 'F5', 2.5],
+    // Otra vez, y esta vez se anima a subir.
+    [16, 'D5', 1], [17, 'F5', 1], [18, 'A5', 1.5], [19.5, 'G5', 0.5],
+    [20, 'F5', 0.5], [20.5, 'G5', 0.5], [21, 'E5', 2.5],
+    [24, 'C5', 1], [25, 'E5', 1], [26, 'G5', 2.5], [29, 'F5', 0.5], [29.5, 'E5', 1.5],
+    // La cima: el tema tocando el Re agudo, como sol sobre el hielo.
+    [32, 'D5', 1], [33, 'F5', 1], [34, 'A5', 2], [37, 'A#5', 1], [38, 'A5', 1], [39, 'F5', 1],
+    [40, 'G5', 1], [41, 'A#5', 1], [42, 'D6', 2.5], [45, 'C6', 0.5], [45.5, 'A5', 1.5],
+    // El deshielo: La mayor (Do#) y la caída suave a casa.
+    [48, 'E5', 1], [49, 'C#5', 1], [50, 'E5', 2], [52.5, 'A5', 1.5], [54, 'G5', 1], [55, 'E5', 1],
+    [56, 'D5', 1], [57, 'F5', 1], [58, 'A5', 2], [60.5, 'F5', 1], [61.5, 'E5', 0.5], [62, 'D5', 2],
+  ],
+  { type: 'triangle', vol: 0.05, attack: 0.05 },
+);
+
+const glaciar: Song = {
+  id: 'glaciar',
+  bpm: 72,
+  loopBeats: 64,
+  notes: [
+    // Colchones bajo cero, de a dos voces por acorde largo.
+    ...voice(
+      [
+        [0, 'D2', 7.5], [0, 'A2', 7.5], [8, 'A#1', 7.5], [8, 'F2', 7.5],
+        [16, 'F2', 7.5], [16, 'C3', 7.5], [24, 'C2', 7.5], [24, 'G2', 7.5],
+        [32, 'D2', 7.5], [32, 'A2', 7.5], [40, 'G1', 7.5], [40, 'D2', 7.5],
+        [48, 'A1', 7.5], [48, 'E2', 7.5], [56, 'D2', 7.5], [56, 'A2', 7.5],
+      ],
+      { type: 'sine', vol: 0.05, attack: 1.8 },
+    ),
+    ...glaciarBells,
+    ...echo(glaciarBells, 64, 0.35),
+    // El viento: suspiros largos de ruido filtrado que van y vienen.
+    { beat: 4, freq: 520, beats: 6, type: 'noise', vol: 0.016, attack: 2.5 },
+    { beat: 26, freq: 640, beats: 5, type: 'noise', vol: 0.014, attack: 2 },
+    { beat: 44, freq: 480, beats: 6, type: 'noise', vol: 0.016, attack: 2.5 },
+    // Goteras congeladas: plips agudos, contados.
+    drip(11.5, 2093), drip(23.25, 1760), drip(35.5, 2349),
+    drip(47.75, 1976), drip(59.25, 2093),
+    // Un brillo interior solo en la cima (compases 9-12).
+    ...arp(32, 4, ['D4', 'F4', 'A4', 'F4'], 0.02),
+    ...arp(40, 4, ['A#3', 'D4', 'G4', 'D4'], 0.02),
+  ],
+};
+
+// ------------------------------------------------------------
+// FRAGUA — nivel 6 (Fa# menor, 138 bpm, 16 compases)
+// El yunque no para: riff-martillo de sierra con la octava y la ♭7
+// golpeando, batería entera, y CLINES de metal a contratiempo. El
+// coro es el tema del cristal en Fa# menor forjado en grande; al
+// final vuelve el ♭2 (sol natural) del corazón — el guardián ígneo
+// y el de cristal son hermanos y sus temas también.
+// ------------------------------------------------------------
+
+/** El martilleo del yunque: raíz doblada, octava, la ♭7 que muerde
+ *  y la quinta que apuntala — ocho golpes por compás, sin piedad. */
+function hammer(bar: number, root: string): SongNote[] {
+  const low = n(root);
+  const semis = [0, 0, 12, 0, 10, 0, 7, 10];
+  return semis.map((s, i) => ({
+    beat: bar * 4 + i * 0.5,
+    freq: up(low, s),
+    beats: 0.4,
+    type: 'sawtooth' as const,
+    vol: 0.038,
+  }));
+}
+
+const fraguaBars = ['F#2', 'F#2', 'D3', 'E3', 'F#2', 'F#2', 'D3', 'E3',
+  'D3', 'E3', 'F#2', 'F#2', 'D3', 'E3', 'C#3', 'C#3'];
+
+const fraguaLead = voice(
+  [
+    // Verso: frases que golpean y rebotan como chispas.
+    [0, 'C#5', 0.5], [0.5, 'F#5', 0.5], [1, 'A5', 0.75], [1.75, 'G#5', 0.25],
+    [2, 'F#5', 0.5], [2.5, 'E5', 0.5], [3, 'C#5', 1],
+    [4.5, 'B4', 0.5], [5, 'C#5', 0.5], [5.5, 'E5', 0.5], [6, 'F#5', 1.5],
+    [8, 'A5', 0.75], [8.75, 'F#5', 0.25], [9, 'D5', 0.5], [9.5, 'F#5', 0.5],
+    [10, 'A5', 0.5], [10.5, 'B5', 0.5], [11, 'A5', 1],
+    [12, 'G#5', 0.5], [12.5, 'E5', 0.5], [13, 'B4', 0.75], [13.75, 'C#5', 0.25],
+    [14, 'E5', 0.5], [14.5, 'G#5', 0.5], [15, 'B5', 1],
+    [16, 'C#5', 0.5], [16.5, 'F#5', 0.5], [17, 'A5', 0.75], [17.75, 'G#5', 0.25],
+    [18, 'F#5', 0.5], [18.5, 'E5', 0.5], [19, 'C#5', 1],
+    [20.5, 'B4', 0.5], [21, 'C#5', 0.5], [21.5, 'E5', 0.5], [22, 'F#5', 1.5],
+    [24, 'B5', 0.5], [24.5, 'A5', 0.5], [25, 'F#5', 0.75], [25.75, 'E5', 0.25],
+    [26, 'D5', 0.5], [26.5, 'E5', 0.5], [27, 'F#5', 1],
+    [28, 'G#5', 0.5], [28.5, 'B5', 0.5], [29, 'C#6', 1],
+    [30, 'B5', 0.5], [30.5, 'G#5', 0.5], [31, 'E5', 1],
+    // Coro: el tema del cristal, forjado en Fa# menor.
+    [32, 'F#5', 0.5], [32.5, 'A5', 0.5], [33, 'C#6', 1.5],
+    [34.5, 'B5', 0.5], [35, 'A5', 0.5], [35.5, 'B5', 0.5],
+    [36, 'G#5', 1.5], [37.5, 'E5', 0.5], [38, 'F#5', 2],
+    [40, 'F#5', 0.5], [40.5, 'A5', 0.5], [41, 'C#6', 1.5],
+    [42.5, 'E6', 0.5], [43, 'F#6', 1.5], [44.5, 'E6', 0.5],
+    [45, 'C#6', 1], [46, 'B5', 0.5], [46.5, 'A5', 0.5], [47, 'B5', 1],
+    [48, 'D6', 1], [49, 'C#6', 1], [50, 'B5', 1.5], [51.5, 'A5', 0.5],
+    [52, 'G#5', 1.5], [53.5, 'F#5', 0.5], [54, 'C#6', 2],
+    // El ♭2 heredado del corazón: sol natural martillando contra fa#.
+    [56, 'B5', 1], [57, 'A5', 1], [58, 'G5', 1], [59, 'F#5', 1],
+    [60, 'G5', 0.5], [60.5, 'F#5', 0.5], [61, 'G5', 0.5], [61.5, 'F#5', 0.5],
+    [62, 'C#5', 2],
+  ],
+  { type: 'square', vol: 0.044 },
+);
+
+const fragua: Song = {
+  id: 'fragua',
+  bpm: 138,
+  loopBeats: 64,
+  notes: [
+    ...fraguaBars.flatMap((root, bar) => hammer(bar, root)),
+    // Batería entera de punta a punta: la fragua nunca descansa.
+    ...fraguaBars.flatMap((_, bar) => [
+      kick(bar * 4), kick(bar * 4 + 2.5),
+      snare(bar * 4 + 1), snare(bar * 4 + 3),
+      ...[0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5].map((o) => hat(bar * 4 + o, 0.016)),
+    ]),
+    ...fill(31), ...fill(63),
+    // Clines de yunque: dos golpes metálicos agudos a contratiempo.
+    ...voice(
+      fraguaBars.flatMap((root, bar): Line => {
+        const clink = { 'F#2': 'C#6', D3: 'A5', E3: 'B5', 'C#3': 'G#5' }[root]!;
+        return [[bar * 4 + 1.75, clink, 0.2], [bar * 4 + 3.75, clink, 0.2]];
+      }),
+      { type: 'square', vol: 0.02 },
+    ),
+    ...fraguaLead,
+    ...echo(fraguaLead, 64, 0.22),
+  ],
+};
+
+// ------------------------------------------------------------
 // El director: qué suena según la pantalla activa.
 // ------------------------------------------------------------
 
 /** Tema de cada nivel, por id. Un nivel futuro sin tema propio
  *  hereda el de cavernas hasta que alguien se lo componga. */
-export const LEVEL_SONGS: Record<string, Song> = { cavernas, galerias, corazon };
+export const LEVEL_SONGS: Record<string, Song> = {
+  cavernas,
+  galerias,
+  corazon,
+  esporas,
+  glaciar,
+  fragua,
+};
 
 export const SONGS: Song[] = [title, overworld, ...Object.values(LEVEL_SONGS)];
 

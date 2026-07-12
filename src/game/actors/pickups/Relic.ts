@@ -20,12 +20,18 @@ const ABILITY_KEY: Record<AbilityName, StrKey> = {
   doubleJump: 'ab_doubleJump',
   dash: 'ab_dash',
   wallJump: 'ab_wallJump',
+  glide: 'ab_glide',
+  pound: 'ab_pound',
+  smash: 'ab_smash',
 };
 
 const ABILITY_GLOW: Record<AbilityName, string> = {
   doubleJump: '#7ce0ff',
   dash: '#ff9a5a',
   wallJump: '#5ce06a',
+  glide: '#6ee08a',
+  pound: '#bfeaff',
+  smash: '#ffb03a',
 };
 
 export class Relic implements Pickup {

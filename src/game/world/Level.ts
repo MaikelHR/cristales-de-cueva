@@ -2,8 +2,11 @@
 //  EL NIVEL (la geometría de una sala)
 // ------------------------------------------------------------
 //  Interpreta las filas de tiles de RoomData ('#' sólido, '.' aire,
-//  '-' tablón de un sentido, '^' púas) y responde consultas de
-//  colisión. Cada celda mide 8x8 px.
+//  '-' tablón de un sentido, '^' púas, '%' bloque agrietado,
+//  '~' hielo) y responde consultas de colisión. Cada celda mide
+//  8x8 px. Los bloques agrietados y el hielo SON sólidos; además
+//  llevan su marca propia: el agrietado se puede romper (azotón /
+//  embestida) y el hielo patina bajo los pies.
 //
 //  Este módulo es LÓGICA PURA: no dibuja ni toca el DOM, así que
 //  se puede testear en Node. El dibujo de los tiles vive en
@@ -23,6 +26,8 @@ export class Level {
   private solid: boolean[][] = [];
   private oneWay: boolean[][] = [];
   private spike: boolean[][] = [];
+  private crack: boolean[][] = [];
+  private icy: boolean[][] = [];
 
   constructor(tiles: string[]) {
     this.rows = tiles.length;
@@ -39,14 +44,18 @@ export class Level {
       this.solid[y] = [];
       this.oneWay[y] = [];
       this.spike[y] = [];
+      this.crack[y] = [];
+      this.icy[y] = [];
       for (let x = 0; x < this.cols; x++) {
         const ch = row[x];
-        if (ch !== '#' && ch !== '.' && ch !== '-' && ch !== '^') {
+        if (ch !== '#' && ch !== '.' && ch !== '-' && ch !== '^' && ch !== '%' && ch !== '~') {
           throw new Error(`Mapa inválido: carácter desconocido '${ch}' en (${x}, ${y})`);
         }
-        this.solid[y][x] = ch === '#';
+        this.solid[y][x] = ch === '#' || ch === '%' || ch === '~';
         this.oneWay[y][x] = ch === '-';
         this.spike[y][x] = ch === '^';
+        this.crack[y][x] = ch === '%';
+        this.icy[y][x] = ch === '~';
       }
     });
   }
@@ -72,6 +81,30 @@ export class Level {
   spikeCell(row: number, col: number): boolean {
     if (row < 0 || row >= this.rows || col < 0 || col >= this.cols) return false;
     return this.spike[row][col];
+  }
+
+  /** ¿Bloque agrietado (rompible) en esta celda? Fuera del mapa, no. */
+  crackCell(row: number, col: number): boolean {
+    if (row < 0 || row >= this.rows || col < 0 || col >= this.cols) return false;
+    return this.crack[row][col];
+  }
+
+  /** ¿Hielo (sólido que patina) en esta celda? Fuera del mapa, no. */
+  icyCell(row: number, col: number): boolean {
+    if (row < 0 || row >= this.rows || col < 0 || col >= this.cols) return false;
+    return this.icy[row][col];
+  }
+
+  /**
+   * Rompe un bloque agrietado: la celda pasa a ser aire. Devuelve true
+   * si había algo que romper. El estado vive en ESTA instancia (una por
+   * sala por corrida): al reiniciar el nivel, los bloques vuelven.
+   */
+  breakCrack(row: number, col: number): boolean {
+    if (!this.crackCell(row, col)) return false;
+    this.crack[row][col] = false;
+    this.solid[row][col] = false;
+    return true;
   }
 
   /**

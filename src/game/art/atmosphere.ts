@@ -11,8 +11,10 @@ import { drawGlow } from './glow';
 
 // ============================================================
 //  TEMAS por nivel: cada bioma tiene su rampa de color propia
-//  (cavernas violeta, galerías azul profundo, corazón carmesí)
-//  para que entrar a un nivel nuevo se SIENTA distinto.
+//  (cavernas violeta, galerías azul profundo, corazón carmesí,
+//  esporas verde biolumínico, glaciar celeste pálido, fragua
+//  naranja sobre carbón) para que entrar a un nivel nuevo se
+//  SIENTA distinto.
 // ============================================================
 interface CaveTheme {
   gradTop: string;
@@ -82,6 +84,48 @@ const THEMES: Record<string, CaveTheme> = {
     near: '#240c1a', nearTop: '#3c1a2c',
     drip: '#ffb08a',
     fog: ['#96525e', '#703548', '#5e2a3e'],
+  },
+  // El jardín de esporas: verde biolumínico, aire húmedo y vivo.
+  esporas: {
+    gradTop: '#0b1d12', gradBottom: '#173f28',
+    strata: '#102a1a',
+    crystals: ['#2f7850', '#38885c', '#41a06e'], spark: '#b3f0cc',
+    skyline: '#123a24',
+    haze: 'rgba(75, 214, 140, 0.06)',
+    ray: '182,236,200',
+    mid: '#0f2a1a', midEdge: '#20573a', root: '#173a28',
+    accent: '#6ee08a', accentLight: '#d6ffe2',
+    near: '#0d2316', nearTop: '#1b4a30',
+    drip: '#a8ffd0',
+    fog: ['#4fa07b', '#357a5a', '#265e42'],
+  },
+  // El glaciar callado: celestes pálidos, luz blanca, quietud.
+  glaciar: {
+    gradTop: '#0e1c30', gradBottom: '#2c5474',
+    strata: '#16283e',
+    crystals: ['#5888a8', '#68a0c0', '#7ab8d8'], spark: '#eafaff',
+    skyline: '#1c3448',
+    haze: 'rgba(170, 220, 255, 0.07)',
+    ray: '222,240,255',
+    mid: '#16293c', midEdge: '#3a6484', root: '#20405a',
+    accent: '#bfeaff', accentLight: '#ffffff',
+    near: '#122234', nearTop: '#2a4c66',
+    drip: '#dff6ff',
+    fog: ['#7fa8c8', '#5a80a0', '#40607e'],
+  },
+  // La fragua del núcleo: brasa naranja sobre carbón negro.
+  fragua: {
+    gradTop: '#150a05', gradBottom: '#3a170a',
+    strata: '#20100a',
+    crystals: ['#784028', '#8c4c2e', '#a05a34'], spark: '#f0c8a0',
+    skyline: '#2a120a',
+    haze: 'rgba(214, 120, 40, 0.07)',
+    ray: '236,190,150',
+    mid: '#1c0d07', midEdge: '#4e2814', root: '#331508',
+    accent: '#ffb03a', accentLight: '#ffe8c0',
+    near: '#180b05', nearTop: '#38180c',
+    drip: '#ffcf6a',
+    fog: ['#a06038', '#7a4426', '#5e321c'],
   },
   // El mapa de niveles: la misma gruta violeta pero con acento dorado
   // (los cristales-récord del sendero mandan sobre la paleta).

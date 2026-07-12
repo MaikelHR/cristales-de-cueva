@@ -32,4 +32,15 @@ describe('isStomp', () => {
   it('un enemigo no pisable jamás se pisa', () => {
     expect(isStomp(false, 120, 102, DT, 100)).toBe(false);
   });
+
+  it('el azotón pisa incluso a los enemigos con púas (no pisables)', () => {
+    // Misma caída desde arriba que antes, pero en plena picada de azotón.
+    expect(isStomp(false, 340, 102, DT, 100, true)).toBe(true);
+  });
+
+  it('el azotón no convierte un golpe de costado en pisotón', () => {
+    // Aunque esté marcado pounding, sin caer desde arriba no hay pisotón.
+    expect(isStomp(false, 0, 110, DT, 100, true)).toBe(false);
+    expect(isStomp(false, 340, 118, DT, 100, true)).toBe(false); // venía hundido
+  });
 });

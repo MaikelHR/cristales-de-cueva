@@ -139,9 +139,33 @@ body:not(.touch) .tc {
 
 /* --- Ajustes extra del modo tactil -------------------------------------- */
 /* El layout ya es a pantalla completa para todos; en tactil ademas
-   bloqueamos cualquier gesto de scroll que descoloque el canvas. */
+   bloqueamos cualquier gesto de scroll que descoloque el canvas.
+   Las variables de abajo dimensionan TODO el mando; usan vh (no dvh) a
+   proposito: un navegador sin dvh invalidaria la propiedad que consuma la
+   variable, y la diferencia vh/dvh en el tamano de un boton es despreciable. */
 body.touch {
   touch-action: none;
+  --tc-btn: clamp(48px, 13vh, 62px); /* lado de un boton de la cruceta */
+  --tc-gap: 10px;
+  --tc-edge: 12px; /* margen contra el borde fisico de la pantalla */
+  /* Notch/isla (viewport-fit=cover): los botones se corren hacia adentro
+     con env(), asi que la franja reservada crece en la misma medida. */
+  --tc-safe: max(env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+  /* Ancho de la franja lateral reservada al mando a cada lado: la cruceta
+     (2 columnas + hueco) mas sus margenes. */
+  --tc-gutter: calc(var(--tc-btn) * 2 + var(--tc-gap) + var(--tc-edge) * 2 + var(--tc-safe));
+  /* Las bandas donde vive el mando dejan de ser negro plano: vineta sutil. */
+  background: radial-gradient(130% 130% at 50% 42%, #140b21 0%, #0b0612 68%);
+}
+
+/* LA REGLA DE ORO MOVIL: el mando vive en las bandas laterales de letterbox,
+   NUNCA encima del juego. En tactil el canvas cede una franja (--tc-gutter)
+   a cada lado; el min() sigue respetando la proporcion 320x176 y la altura.
+   El brillo perimetral enmarca el juego como la pantalla de una consola. */
+body.touch canvas {
+  width: min(100vw - var(--tc-gutter) * 2, calc(100vh * 320 / 176));
+  width: min(100dvw - var(--tc-gutter) * 2, calc(100dvh * 320 / 176));
+  box-shadow: 0 0 0 1px rgba(122, 75, 214, 0.3), 0 0 26px rgba(122, 75, 214, 0.14);
 }
 
 /* --- Contenedor de controles tactiles ---------------------------------- */
@@ -157,91 +181,103 @@ body.touch {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Botones base: grandes, semitransparentes, tematicos (violeta/dorado). */
+/* Botones base: pixel-art del juego, no chrome del navegador. La cara
+   es un sprite horneado por codigo (ui/touchButtons.ts) que touch.ts
+   entrega como data-URL en --tc-face (reposo) y --tc-face-down
+   (presionado); aca solo se estira SIN difuminar, igual que el canvas.
+   El unico efecto no-pixel es un halo suave, a tono con los glows que
+   el juego dibuja alrededor de sus cristales. */
 .tc-btn {
   pointer-events: auto;
   touch-action: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid rgba(122, 75, 214, 0.55);
-  border-radius: 16px;
-  background: rgba(30, 16, 41, 0.42);
-  color: #e8dcff;
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 700;
-  font-size: 15px;
-  letter-spacing: 1px;
-  text-shadow: 1px 1px 0 rgba(20, 8, 30, 0.8);
+  display: block;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  background-image: var(--tc-face);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 0 6px var(--tc-glow, rgba(122, 75, 214, 0.35)));
+  transition: filter 0.1s linear;
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
-  transition: background 0.05s linear, border-color 0.05s linear,
-    transform 0.05s linear;
 }
 
-/* Estado presionado (dedo encima o clase que agrega touch.ts): mas brillante. */
+/* Estado presionado (dedo encima o clase que agrega touch.ts): se muestra
+   la cara "hundida" (bisel invertido, contorno dorado) y el halo se
+   enciende en dorado, como los cristales al recogerlos. */
 .tc-btn:active,
 .tc-btn.is-active {
-  background: rgba(122, 75, 214, 0.5);
-  border-color: rgba(255, 211, 110, 0.9);
-  color: #fff4d6;
-  transform: scale(0.96);
+  background-image: var(--tc-face-down, var(--tc-face));
+  filter: drop-shadow(0 0 9px rgba(255, 226, 90, 0.55));
 }
 
-/* --- Pad de movimiento (abajo-izquierda) ------------------------------- */
+/* --- Cruceta (banda izquierda) ------------------------------------------ */
+/* Compacta para caber en la franja: ◀ ▶ arriba y una barra ▼ debajo
+   (bajar de tablones / menus). Los botones estiran a su celda. */
 .tc-pad {
   position: absolute;
-  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
-  left: calc(18px + env(safe-area-inset-left, 0px));
-  display: flex;
-  gap: 14px;
+  bottom: calc(var(--tc-edge) + env(safe-area-inset-bottom, 0px));
+  left: calc(var(--tc-edge) + env(safe-area-inset-left, 0px));
+  display: grid;
+  grid-template-areas:
+    'left right'
+    'down down';
+  grid-template-columns: var(--tc-btn) var(--tc-btn);
+  grid-template-rows: var(--tc-btn) calc(var(--tc-btn) * 0.66);
+  gap: var(--tc-gap);
   pointer-events: none;
 }
 
-.tc-left,
-.tc-down,
+.tc-left {
+  grid-area: left;
+}
 .tc-right {
-  width: 72px;
-  height: 72px;
-  font-size: 30px;
+  grid-area: right;
+}
+.tc-down {
+  grid-area: down;
 }
 
-/* --- Acciones (abajo-derecha) ------------------------------------------ */
+/* --- Acciones (banda derecha) ------------------------------------------- */
+/* Columna: DASH (cristal celeste, el del jugador) sobre un SALTO ancho y
+   dorado, protagonista, con el mismo ancho total que la cruceta. */
 .tc-actions {
   position: absolute;
-  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
-  right: calc(18px + env(safe-area-inset-right, 0px));
+  bottom: calc(var(--tc-edge) + env(safe-area-inset-bottom, 0px));
+  right: calc(var(--tc-edge) + env(safe-area-inset-right, 0px));
   display: flex;
-  align-items: flex-end;
-  gap: 16px;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--tc-gap);
   pointer-events: none;
 }
 
-/* DASH mas chico; SALTO mas grande y protagonico (dorado). */
 .tc-dash {
-  width: 64px;
-  height: 64px;
+  /* 26x16 nativo: mismo aspecto para que los pixeles queden cuadrados. */
+  width: calc(var(--tc-btn) * 1.38);
+  height: calc(var(--tc-btn) * 0.85);
+  --tc-glow: rgba(124, 224, 255, 0.4);
 }
 
 .tc-jump {
-  width: 92px;
-  height: 92px;
-  font-size: 16px;
-  border-color: rgba(255, 211, 110, 0.7);
-  background: rgba(90, 45, 130, 0.4);
+  /* 32x16 nativo: ancho de la cruceta y alto exacto de la mitad (2:1),
+     asi los pixeles del sprite quedan cuadrados. */
+  width: calc(var(--tc-btn) * 2 + var(--tc-gap));
+  height: calc(var(--tc-btn) + var(--tc-gap) / 2);
+  --tc-glow: rgba(255, 210, 58, 0.4);
 }
 
-/* --- Boton de pausa (arriba-derecha) ----------------------------------- */
+/* --- Boton de pausa (arriba, banda derecha) ----------------------------- */
 .tc-pause {
   position: absolute;
-  top: calc(14px + env(safe-area-inset-top, 0px));
-  right: calc(14px + env(safe-area-inset-right, 0px));
-  width: 56px;
-  height: 56px;
-  font-size: 20px;
-  border-radius: 14px;
+  top: calc(var(--tc-edge) + env(safe-area-inset-top, 0px));
+  right: calc(var(--tc-edge) + env(safe-area-inset-right, 0px));
+  width: calc(var(--tc-btn) * 0.85);
+  height: calc(var(--tc-btn) * 0.85);
 }
 
 /* --- Menu de pausa (centro) -------------------------------------------- */
@@ -252,24 +288,23 @@ body.touch {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 14px;
   padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
     env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
-  background: rgba(17, 9, 26, 0.72);
+  background: rgba(17, 9, 26, 0.78);
   pointer-events: auto;
 }
 
 .tc-mbtn {
-  width: min(78vw, 300px);
-  width: min(78dvw, 300px);
-  height: 60px;
-  font-size: 18px;
-  border-radius: 14px;
+  /* 128x24 nativo con el rotulo ya horneado (letra del juego, se estira
+     pixelada como los menus del canvas). */
+  width: min(72vw, 288px);
+  width: min(72dvw, 288px);
+  height: 54px;
 }
 
 .tc-resume {
-  border-color: rgba(255, 211, 110, 0.8);
-  background: rgba(90, 45, 130, 0.5);
+  --tc-glow: rgba(255, 210, 58, 0.4);
 }
 
 /* --- Visibilidad por data-mode del contenedor -------------------------- */
@@ -277,7 +312,9 @@ body.touch {
 .tc[data-mode='play'] .tc-menu {
   display: none;
 }
-.tc[data-mode='play'] .tc-pad,
+.tc[data-mode='play'] .tc-pad {
+  display: grid;
+}
 .tc[data-mode='play'] .tc-actions,
 .tc[data-mode='play'] .tc-pause {
   display: flex;
@@ -299,40 +336,6 @@ body.touch {
 .tc[data-mode='menu'] .tc-pause,
 .tc[data-mode='menu'] .tc-menu {
   display: none;
-}
-
-/* --- Pantallas angostas (retrato en teléfonos) ------------------------- */
-/* Con los tamaños base, cruceta (izq) y acciones (der) se solapan en el
-   centro-inferior por debajo de ~366px de ancho. Achicamos botones, gaps
-   e insets para que las dos zonas nunca se pisen. Landscape (>400px) queda
-   con los tamaños grandes. */
-@media (max-width: 400px) {
-  .tc-pad,
-  .tc-actions {
-    gap: 12px;
-    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
-  }
-  .tc-pad {
-    left: calc(12px + env(safe-area-inset-left, 0px));
-  }
-  .tc-actions {
-    right: calc(12px + env(safe-area-inset-right, 0px));
-  }
-  .tc-left,
-  .tc-down,
-  .tc-right {
-    width: 54px;
-    height: 54px;
-    font-size: 24px;
-  }
-  .tc-dash {
-    width: 56px;
-    height: 56px;
-  }
-  .tc-jump {
-    width: 78px;
-    height: 78px;
-  }
 }
 
 /* =========================================================================

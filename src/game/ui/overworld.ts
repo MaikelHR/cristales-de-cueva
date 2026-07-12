@@ -1,7 +1,9 @@
 // ============================================================
 //  DIBUJO DEL OVERWORLD (el mapa de niveles)
 // ------------------------------------------------------------
-//  Todo lo visible del selector: las islitas de roca de cada nodo,
+//  Todo lo visible del selector: las islitas de roca de cada nodo
+//  (cada una vestida con el bioma de su nivel: cristal, goteo,
+//  corazón, musgo, hielo, brasa — el escalón anticipa el nivel),
 //  el sendero punteado con su pulso que corre hacia adelante, los
 //  nodos (completado = cristal dorado con banderín, desbloqueado =
 //  latido, cerrado = piedra con '?'), el decorado entre nodos, la
@@ -69,9 +71,10 @@ export function drawOverworld(
   // Fauna lejana: murciélagos que cruzan la gruta de vez en cuando.
   drawBats(ctx, viewW, time);
 
-  // --- Islitas de roca bajo cada nodo ---
+  // --- Islitas de roca bajo cada nodo, vestidas de su bioma ---
   for (let i = 0; i < OW_NODES.length; i++) {
-    drawIsland(ctx, OW_NODES[i].x, OW_NODES[i].y, i <= view.maxNode);
+    const levelId = i < LEVELS.length ? LEVELS[i].id : null;
+    drawIsland(ctx, OW_NODES[i].x, OW_NODES[i].y, i <= view.maxNode, levelId, time);
   }
 
   // --- Decorado entre nodos: cristalitos, hongos y rocas ---
@@ -147,20 +150,171 @@ export function drawOverworld(
   ctx.textAlign = 'left';
 }
 
-/** La islita flotante de roca donde se apoya cada nodo. */
-function drawIsland(ctx: CanvasRenderingContext2D, x: number, y: number, unlocked: boolean): void {
+/** Colores de la islita de cada bioma: el filo iluminado donde se
+ *  pisa, la cara de la losa y la panza que se afina hacia abajo.
+ *  Tomados de los temas de atmósfera para que cada escalón anticipe
+ *  el nivel al que lleva. */
+const ISLAND_LOOKS: Record<string, { edge: string; slab: string; belly: string }> = {
+  cavernas: { edge: '#8064b0', slab: '#4a2e70', belly: '#2e1c48' },
+  galerias: { edge: '#4180a8', slab: '#20405a', belly: '#122338' },
+  corazon: { edge: '#a04f58', slab: '#4e2434', belly: '#2a1020' },
+  esporas: { edge: '#5ce06a', slab: '#2b4636', belly: '#152819' },
+  glaciar: { edge: '#bfeaff', slab: '#3a6484', belly: '#20405a' },
+  fragua: { edge: '#7a4426', slab: '#3d2419', belly: '#140a06' },
+};
+const DEFAULT_LOOK = { edge: '#8064b0', slab: '#4a2e70', belly: '#2e1c48' };
+
+/** La islita flotante donde se apoya cada nodo, vestida con el bioma
+ *  de su nivel. Cerrada se pinta atenuada y quieta (sin partículas):
+ *  un adelanto en penumbra de lo que espera. */
+function drawIsland(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  unlocked: boolean,
+  levelId: string | null,
+  time: number,
+): void {
+  const look = (levelId && ISLAND_LOOKS[levelId]) || DEFAULT_LOOK;
+  if (!unlocked) ctx.globalAlpha = 0.42;
   // Losa de arriba (donde se pisa) con su borde iluminado.
-  ctx.fillStyle = unlocked ? '#8064b0' : '#3a2456';
+  ctx.fillStyle = look.edge;
   ctx.fillRect(x - 7, y - 3, 14, 1);
-  ctx.fillStyle = unlocked ? '#4a2e70' : '#241638';
+  ctx.fillStyle = look.slab;
   ctx.fillRect(x - 7, y - 2, 14, 4);
   // La panza de roca que se afina hacia abajo.
-  ctx.fillStyle = unlocked ? '#2e1c48' : '#1a0f2a';
+  ctx.fillStyle = look.belly;
   ctx.fillRect(x - 5, y + 2, 10, 2);
   ctx.fillRect(x - 3, y + 4, 6, 2);
   // Piedritas colgando de los bordes (se leen como raíces de la isla).
   ctx.fillRect(x - 6, y + 2, 1, 1);
   ctx.fillRect(x + 5, y + 2, 1, 1);
+  if (levelId) drawIslandBiome(ctx, x, y, levelId, unlocked, time);
+  ctx.globalAlpha = 1;
+}
+
+/** El vestuario de cada bioma sobre la islita base. Los adornos van
+ *  en los BORDES de la losa (el avatar se para en el centro y el
+ *  número vive justo debajo) y las partículas/brillos solo animan
+ *  con el nodo desbloqueado. */
+function drawIslandBiome(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  levelId: string,
+  unlocked: boolean,
+  time: number,
+): void {
+  switch (levelId) {
+    case 'cavernas': {
+      // Cristalitos violetas brotando de los bordes de la losa.
+      if (unlocked) drawGlow(ctx, x + 5, y - 5, 5, '#b98bff', 0.15 + (Math.sin(time * 2 + x) + 1) * 0.05);
+      ctx.fillStyle = '#7a4bd6';
+      ctx.fillRect(x - 6, y - 5, 2, 2);
+      ctx.fillStyle = '#b98bff';
+      ctx.fillRect(x + 5, y - 6, 2, 3);
+      ctx.fillStyle = '#e9d6ff';
+      ctx.fillRect(x + 5, y - 6, 1, 1);
+      ctx.fillRect(x - 6, y - 5, 1, 1);
+      break;
+    }
+    case 'galerias': {
+      // Púas chiquitas en un borde y estalactitas que gotean: el
+      // nivel de las galerías húmedas con sus trampas.
+      ctx.fillStyle = '#9fb7c8';
+      ctx.fillRect(x - 6, y - 4, 1, 1);
+      ctx.fillRect(x - 4, y - 5, 1, 2);
+      ctx.fillStyle = '#20405a';
+      ctx.fillRect(x - 4, y + 4, 1, 2);
+      ctx.fillRect(x + 4, y + 4, 1, 1);
+      if (unlocked) {
+        const dp = (time * 1.4 + x * 0.3) % 1;
+        ctx.globalAlpha = (1 - dp) * 0.8;
+        ctx.fillStyle = '#a8e8ff';
+        ctx.fillRect(x - 4, Math.round(y + 6 + dp * 2), 1, 1);
+        ctx.globalAlpha = 1;
+      }
+      break;
+    }
+    case 'corazon': {
+      // Un corazón de cristal incrustado en la cara, latiendo.
+      const beat = Math.pow(Math.max(0, Math.sin(time * 2.6)), 8);
+      if (unlocked) drawGlow(ctx, x, y - 1, 7, '#ff8a6a', 0.1 + beat * 0.3);
+      ctx.fillStyle = '#ff8a6a';
+      ctx.fillRect(x - 2, y - 2, 2, 1);
+      ctx.fillRect(x + 1, y - 2, 2, 1);
+      ctx.fillRect(x - 2, y - 1, 5, 1);
+      ctx.fillRect(x - 1, y, 3, 1);
+      ctx.fillRect(x, y + 1, 1, 1);
+      ctx.fillStyle = '#ffd6c0';
+      ctx.fillRect(x - 2, y - 1, 1, 1);
+      break;
+    }
+    case 'esporas': {
+      // Flecos de musgo, brotes y un honguito; esporas que suben.
+      ctx.fillStyle = '#3e8a58';
+      ctx.fillRect(x - 5, y - 2, 1, 1);
+      ctx.fillRect(x + 1, y - 2, 1, 2);
+      ctx.fillStyle = '#8fe6a0';
+      ctx.fillRect(x - 4, y - 4, 1, 1);
+      ctx.fillRect(x + 2, y - 4, 1, 1);
+      if (unlocked) drawGlow(ctx, x + 6, y - 5, 4, '#6ee08a', 0.2);
+      ctx.fillStyle = '#d6ffe2';
+      ctx.fillRect(x + 6, y - 4, 1, 1);
+      ctx.fillStyle = '#3e8a58';
+      ctx.fillRect(x + 5, y - 5, 3, 1);
+      if (unlocked) {
+        const sp = (time * 0.35 + x * 0.2) % 1;
+        ctx.globalAlpha = (1 - sp) * 0.7;
+        ctx.fillStyle = '#b3f0cc';
+        ctx.fillRect(Math.round(x - 3 + Math.sin(time * 2 + x) * 2), Math.round(y - 4 - sp * 8), 1, 1);
+        ctx.globalAlpha = 1;
+      }
+      break;
+    }
+    case 'glaciar': {
+      // Vetas de brillo sobre el hielo, carámbanos y un destello.
+      ctx.fillStyle = '#eafaff';
+      ctx.fillRect(x - 5, y - 3, 3, 1);
+      ctx.fillRect(x + 2, y - 3, 2, 1);
+      ctx.fillStyle = '#7ab8d8';
+      ctx.fillRect(x - 6, y + 2, 1, 3);
+      ctx.fillRect(x + 5, y + 2, 1, 2);
+      ctx.fillRect(x + 3, y + 4, 1, 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(x - 6, y + 2, 1, 1);
+      if (unlocked && Math.sin(time * 3 + x) > 0.8) {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x - 3, y - 4, 1, 1);
+        ctx.fillRect(x - 4, y - 4, 3, 1);
+        ctx.fillRect(x - 3, y - 5, 1, 3);
+      }
+      break;
+    }
+    case 'fragua': {
+      // Grietas de brasa en la costra y una llamita en el borde.
+      ctx.fillStyle = '#d0662a';
+      ctx.fillRect(x - 3, y, 3, 1);
+      ctx.fillRect(x + 2, y - 1, 2, 1);
+      ctx.fillStyle = '#ff9a3a';
+      ctx.fillRect(x - 2, y, 1, 1);
+      ctx.fillRect(x + 3, y - 1, 1, 1);
+      const fl = unlocked && Math.sin(time * 7 + x) > 0 ? 1 : 0;
+      if (unlocked) drawGlow(ctx, x - 5, y - 5, 6, '#ffb03a', 0.22 + Math.sin(time * 6 + x) * 0.08);
+      ctx.fillStyle = '#ff9a3a';
+      ctx.fillRect(x - 6, y - 5 - fl, 2, 2 + fl);
+      ctx.fillStyle = '#ffd23a';
+      ctx.fillRect(x - 6, y - 4, 1, 1);
+      if (unlocked) {
+        const ep = (time * 0.6 + x * 0.4) % 1;
+        ctx.globalAlpha = (1 - ep) * 0.8;
+        ctx.fillStyle = '#ffd23a';
+        ctx.fillRect(Math.round(x - 5 + Math.sin(time * 3 + x) * 2), Math.round(y - 6 - ep * 7), 1, 1);
+        ctx.globalAlpha = 1;
+      }
+      break;
+    }
+  }
 }
 
 /** Decorado fijo a mitad de camino entre nodos (alternando tipos). */
