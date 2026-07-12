@@ -16,6 +16,7 @@ import type { GameSession } from '../session';
 import { MovingPlatform } from '../actors/devices/MovingPlatform';
 import { Spring, SPRING_SPEED } from '../actors/devices/Spring';
 import { Vent, VENT_ACCEL, VENT_RISE } from '../actors/devices/Vent';
+import { Corriente } from '../actors/Corriente';
 import { sfx } from '../sfx';
 
 const DUST_COLORS = ['#9b86c4', '#6f5a9e', '#d7c9ec'];
@@ -70,6 +71,12 @@ export function resolveDeviceContacts(session: GameSession, dt: number): void {
       // releasing jump lets go of the wind (and drops at will).
       if (player.glideHeld && overlaps(player.box(), b)) {
         player.liftBy(dt, VENT_ACCEL, VENT_RISE);
+      }
+    } else if (d instanceof Corriente) {
+      // The current only shoves a SUBMERGED swimmer (a state gate, just
+      // like the vent's glide gate): a floater at the surface drifts past.
+      if (player.submerged && overlaps(player.box(), b)) {
+        player.currentPush(dt, d.dirX, d.dirY);
       }
     }
   }

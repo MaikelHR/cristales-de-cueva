@@ -21,11 +21,15 @@ import { Spitter } from '../actors/enemies/Spitter';
 import { Erizo } from '../actors/enemies/Erizo';
 import { Geyser } from '../actors/enemies/Geyser';
 import { Ariete } from '../actors/enemies/Ariete';
+import { Medusa } from '../actors/Medusa';
+import { Anguila } from '../actors/Anguila';
+import { Ajolote } from '../actors/Ajolote';
 import { Crystal } from '../actors/pickups/Crystal';
 import { Relic } from '../actors/pickups/Relic';
 import { Spring } from '../actors/devices/Spring';
 import { MovingPlatform } from '../actors/devices/MovingPlatform';
 import { Vent } from '../actors/devices/Vent';
+import { Corriente } from '../actors/Corriente';
 
 export class Room {
   readonly level: Level;
@@ -64,6 +68,18 @@ export class Room {
           break;
         case 'ariete':
           this.actors.push(new Ariete(px, py, this.level));
+          break;
+        case 'medusa':
+          this.actors.push(new Medusa(px, py, e.range));
+          break;
+        case 'anguila':
+          this.actors.push(new Anguila(px, py, e.axis, e.range, this.level));
+          break;
+        case 'ajolote':
+          this.actors.push(new Ajolote(px, py));
+          break;
+        case 'corriente':
+          this.actors.push(new Corriente(px, py, e.dir, e.length, clock));
           break;
         case 'crystal':
           this.actors.push(new Crystal(px + 1, py + 1, clock));

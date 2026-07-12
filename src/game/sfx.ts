@@ -41,6 +41,18 @@ export const sfx = {
     playTone({ freq: 620, freqEnd: 170, duration: 0.18, type: 'square', volume: 0.12 });
   },
 
+  /** Splash: plunging into or bursting out of the water — spray + a plunge. */
+  splash(): void {
+    playTone({ freq: 1600, freqEnd: 400, duration: 0.18, type: 'noise', volume: 0.13 });
+    playTone({ freq: 300, freqEnd: 90, duration: 0.12, type: 'sine', volume: 0.1, delay: 0.02 });
+  },
+
+  /** Stroke: a short pull through the water while swimming. */
+  stroke(): void {
+    playTone({ freq: 520, freqEnd: 200, duration: 0.09, type: 'sine', volume: 0.1 });
+    playTone({ freq: 900, duration: 0.05, type: 'noise', volume: 0.08, delay: 0.01 });
+  },
+
   /** Cracked block bursting: crunch of shards + a dull thud. */
   crack(): void {
     playTone({ freq: 3200, duration: 0.08, type: 'noise', volume: 0.16 });
@@ -56,6 +68,20 @@ export const sfx = {
   stomp(): void {
     playTone({ freq: 420, freqEnd: 130, duration: 0.09, type: 'square', volume: 0.14 });
     playTone({ freq: 700, duration: 0.05, type: 'triangle', volume: 0.1, delay: 0.02 });
+  },
+
+  /** Crackle: the eel coiling — electric charge rising before it darts. */
+  crackle(): void {
+    playTone({ freq: 400, freqEnd: 1800, duration: 0.18, type: 'sawtooth', volume: 0.12 });
+    playTone({ freq: 2600, duration: 0.05, type: 'noise', volume: 0.12, delay: 0.05 });
+    playTone({ freq: 3200, duration: 0.05, type: 'noise', volume: 0.1, delay: 0.14 });
+  },
+
+  /** Breach: the axolotl's boil and roar as it bursts up from the pool. */
+  breach(): void {
+    playTone({ freq: 90, freqEnd: 360, duration: 0.4, type: 'sawtooth', volume: 0.16 });
+    playTone({ freq: 600, freqEnd: 1900, duration: 0.35, type: 'noise', volume: 0.12 });
+    playTone({ freq: 150, duration: 0.12, type: 'square', volume: 0.1, delay: 0.28 });
   },
 
   /** Collecting a crystal: two little bells rising. */

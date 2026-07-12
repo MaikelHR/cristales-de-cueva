@@ -64,24 +64,34 @@ Before considering a change done: `npm test` and `npm run build` must both pass.
 
 `src/game/world/rooms/<level>/*.ts`: geometry as ASCII rows (`#` solid, `.` air, `-`
 one-way plank, `^` spikes, `%` cracked block — solid until broken by pound-from-above
-or smash-dash, `~` ice — solid, slippery underfoot; ONLY these six) + a typed
+or smash-dash, `~` ice — solid, slippery underfoot, `=` water — NOT solid, you FLOAT on
+it then DIVE through it once the relic is earned; ONLY these seven) + a typed
 `entities` list (tile coords, e.g. `{ type: 'relic', ability: 'dash', x: 47, y: 9 }`,
 `{ type: 'platform', axis: 'x', range: 6, x: 8, y: 15 }`,
 `{ type: 'vent', height: 13, x: 50, y: 17 }` — updraft column that ONLY lifts a gliding
-player, or `{ type: 'geyser', offset: 1.2, x: 26, y: 17 }` — cyclic flame column,
-4 tiles tall, offsets stagger multiple geysers). Never put entity characters in the
+player, `{ type: 'geyser', offset: 1.2, x: 26, y: 17 }` — cyclic flame column,
+4 tiles tall, offsets stagger multiple geysers, or `{ type: 'corriente', dir:
+'up'|'left'|'right', length: 6, x, y }` — underwater current jet that ONLY shoves a
+SUBMERGED swimmer, ~vent strength: ride it WITH the flow, a gate AGAINST it, dense bubble
+stream is the telegraph). Never put entity characters in the
 tile grid. Enemies: slime, flyer, chaser, spitter (static, lobs arcing spores, inflates
 first as telegraph), erizo (spiky — stomping it HURTS, only a pound kills it), boss,
 ariete (grounded ram boss: paces → rears up → charges, smashing `%` barricades in its
 path; stompable ONLY while stunned after slamming a wall — 3 hits, each slam rains
 embers and enrages it. Bosses must not share a silhouette/moveset/arena shape with a
-previous boss — each fight gets its own verb). Levels register in
+previous boss — each fight gets its own verb), medusa (jellyfish — UNTOUCHABLE: stomp
+AND pound bounce off, `invulnerable` in combat; read its slow bob and route around),
+anguila (eel — lurks a lane, coils + crackles to telegraph, DARTS, then drifts stunned;
+`invulnerable` to stomp/pound, killable ONLY by the dash-lunge while stunned —
+`dashVulnerable` + `isDashKill`), ajolote (breach-timing boss: circles underwater →
+bubbles BOIL under your column → BREACHES in an arc, crest stompable ONLY mid-breach,
+violet flanks hurt; 3 stomps, each enrages + looses a medusa). Levels register in
 `rooms/index.ts` (`LEVELS`, in overworld order — completing one unlocks the next);
 `validateLevels` + `rooms.test.ts` enforce integrity (row lengths, reciprocal exits,
 one playerSpawn + a door per level, connected rooms open their borders at matching
 rows — transitions preserve player y). Each level's `startAbilities` are what previous
 levels taught; its new ability comes from a relic inside (order so far: doubleJump →
-wallJump → dash → glide → pound → smash). Design metrics (TILE=8): jump ≈ 4 tiles high
+wallJump → dash → glide → pound → smash → dive). Design metrics (TILE=8): jump ≈ 4 tiles high
 (34px; jump+double ≈ 62px — a ledge whose top sits >62px above the feet can't be
 mounted: use TALL walls, not thin roofs, to block route skips), double jump ≈ 7,
 spring = 9, wall-jump chimneys 4 wide (a single tall wall is ALSO climbable by repeated
@@ -91,7 +101,12 @@ tile gap; jump+double+dash tops out ~16-17 tiles); vents lift ~11 tiles/s while
 gliding; crack walls must span the FULL passable cross-section (a crack doorway framed
 in rock — one open flank and players walk around it) and pound chains down through
 stacked crack floors; geyser flames need ≥2 tiles of clearance under any plank players
-stand on. Level 1 id ('cavernas') is pinned in save.ts for migration.
+stand on. Water: pools must be ≥2 tiles deep (1-tile-deep reads as wading) and a floater
+must ALWAYS have a mountable ≤3-tile edge (water can't softlock); surface swim ≈75%
+MOVE_SPEED, submerged 4-dir ≈70%; the water HOP (held jump) mounts a 3-tile ledge, never
+4; pre-dive you can't sink past ~1.5 tiles and a pound-plunge dives ~3 tiles then bobs
+back; the aquatic LUNGE ≈60% of a dash (smash still shatters `%` underwater); a corriente
+pushes ≈11 tiles/s (~vent), submerged-only. Level 1 id ('cavernas') is pinned in save.ts for migration.
 
 ## Level design standards (the bar every room must clear)
 
@@ -113,7 +128,7 @@ Hard-won from playtesting. Check ALL of these before calling a room done:
   need texture. Rooms with moving-platform waits especially need a no-wait line.
 - **Both directions stay traversable** with the abilities held there (players
   backtrack for missed crystals). Planks catch falls: a full-width plank makes
-  a shaft one-way — leave a slip lane (down+jump also drops through).
+  a shaft one-way — leave a slip lane (held down / down+jump drops through).
 - **Clearance over stompables**: never hang a plank/ledge <2 tiles above an
   enemy's highest point (bob included) — a one-way surface just above a boss
   eats every stomp arc (the level-3 playtest bug). Boss box 18×14, bobs ±6px.
@@ -133,9 +148,13 @@ Hard-won from playtesting. Check ALL of these before calling a room done:
 - **Devices must telegraph their interaction**: if a device only works with
   an input held (vents lift only while gliding), its idle visual has to
   scream the verb — a dense rising column, not a few faint motes (the vent
-  playtest complaint). Same for windows of opportunity: geysers sputter
-  before erupting, the spitter inflates, the ariete rears up before charging,
-  its core glows when stompable.
+  playtest complaint) — the corriente churns a dense bubble stream the same
+  way (it only shoves a submerged swimmer, like the vent's glide gate). Same
+  for windows of opportunity: geysers sputter before erupting, the spitter
+  inflates, the ariete rears up before charging and its core glows when
+  stompable, the anguila coils + crackles before it darts (dazed = the lunge
+  window), the ajolote boils bubbles under your feet before breaching (its
+  crest glows gold only while stompable).
 - **Work the grid like a surveyor**: before editing a room, print its tiles
   with a column ruler (node one-liner) and verify row widths, border openings
   matching the neighbor rooms, and the design metrics above. `npm test`
@@ -150,7 +169,8 @@ Player-facing text is **neutral LatAm Spanish (tuteo)** + English,
   language) and Pause menu (resume/restart/fullscreen/language/exit to map), navigated
   with the 'up'/'down'/'confirm' actions (keys can map to SEVERAL actions: ↑/W = jump+up,
   space = jump+confirm). 'down' (S/↓, d-pad/stick, touch ▼) also drops the player
-  through one-way planks with down+jump (Player.onPlankOnly + dropTimer). The later
+  through one-way planks — hold down ~¼s, or down+jump for the instant drop
+  (Player.onPlankOnly + dropTimer). The later
   abilities reuse existing inputs on EVERY device (no new buttons): glide = hold jump
   while falling (vents only push while `player.glideHeld`), pound = press down in
   mid-air (breaks `%` under feet on landing; `player.pounding` lets isStomp defeat
@@ -203,5 +223,5 @@ Player-facing text is **neutral LatAm Spanish (tuteo)** + English,
 
 Browser console: `__game` (session), `__scenes`, `__debug.hitboxes = true`,
 `__debug.warp('<room-id>')` (rooms of the CURRENT level, e.g. 'galeria', 'chimenea'),
-`__debug.level('cavernas' | 'galerias' | 'corazon' | 'esporas' | 'glaciar' | 'fragua')`,
+`__debug.level('cavernas' | 'galerias' | 'corazon' | 'esporas' | 'glaciar' | 'fragua' | 'cenote')`,
 `__sprites`, `__audio()`.

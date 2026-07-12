@@ -5,7 +5,14 @@
 //  the player (what it knows how to do), and the UI (what to announce).
 // ============================================================
 
-export type AbilityName = 'doubleJump' | 'dash' | 'wallJump' | 'glide' | 'pound' | 'smash';
+export type AbilityName =
+  | 'doubleJump'
+  | 'dash'
+  | 'wallJump'
+  | 'glide'
+  | 'pound'
+  | 'smash'
+  | 'dive';
 
 export const ABILITY_NAMES: readonly AbilityName[] = [
   'doubleJump',
@@ -14,4 +21,5 @@ export const ABILITY_NAMES: readonly AbilityName[] = [
   'glide',
   'pound',
   'smash',
+  'dive',
 ];

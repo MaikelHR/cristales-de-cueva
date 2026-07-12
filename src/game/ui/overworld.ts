@@ -161,6 +161,7 @@ const ISLAND_LOOKS: Record<string, { edge: string; slab: string; belly: string }
   esporas: { edge: '#5ce06a', slab: '#2b4636', belly: '#152819' },
   glaciar: { edge: '#bfeaff', slab: '#3a6484', belly: '#20405a' },
   fragua: { edge: '#7a4426', slab: '#3d2419', belly: '#140a06' },
+  cenote: { edge: '#5fe0d0', slab: '#22585f', belly: '#0e2a30' },
 };
 const DEFAULT_LOOK = { edge: '#8064b0', slab: '#4a2e70', belly: '#2e1c48' };
 
@@ -310,6 +311,35 @@ function drawIslandBiome(
         ctx.globalAlpha = (1 - ep) * 0.8;
         ctx.fillStyle = '#ffd23a';
         ctx.fillRect(Math.round(x - 5 + Math.sin(time * 3 + x) * 2), Math.round(y - 6 - ep * 7), 1, 1);
+        ctx.globalAlpha = 1;
+      }
+      break;
+    }
+    case 'cenote': {
+      // A flooded cenote set into the slab: a turquoise pool with a
+      // glinting waterline, algae at the lip and bubbles rising.
+      if (unlocked) drawGlow(ctx, x - 2, y - 2, 6, '#5fe0d0', 0.14 + (Math.sin(time * 2 + x) + 1) * 0.05);
+      // The pool (translucent teal) with a bright waterline on top.
+      ctx.fillStyle = '#22707a';
+      ctx.fillRect(x - 5, y - 1, 6, 2);
+      ctx.fillStyle = '#5fe0d0';
+      ctx.fillRect(x - 5, y - 1, 6, 1);
+      ctx.fillStyle = '#d6fffa'; // a glint travelling the surface
+      ctx.fillRect(x - 4 + (Math.floor(time * 6) % 4), y - 1, 1, 1);
+      // Algae sprigs at the right lip and a stone rim on both edges.
+      ctx.fillStyle = '#4a9d5e';
+      ctx.fillRect(x + 3, y - 5, 1, 2);
+      ctx.fillRect(x + 5, y - 3, 1, 1);
+      ctx.fillStyle = '#2c6b45';
+      ctx.fillRect(x + 4, y - 4, 1, 2);
+      ctx.fillStyle = '#20505a';
+      ctx.fillRect(x - 6, y + 2, 1, 2);
+      ctx.fillRect(x + 4, y + 2, 1, 2);
+      if (unlocked) {
+        const bp = (time * 0.5 + x * 0.3) % 1;
+        ctx.globalAlpha = (1 - bp) * 0.8;
+        ctx.fillStyle = '#a8f0ff';
+        ctx.fillRect(Math.round(x - 3 + Math.sin(time * 3 + x) * 1.5), Math.round(y - 2 - bp * 8), 1, 1);
         ctx.globalAlpha = 1;
       }
       break;

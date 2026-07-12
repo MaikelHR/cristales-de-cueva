@@ -2,11 +2,12 @@
 //  ROOM FORMAT (data, not code)
 // ------------------------------------------------------------
 //  A room is two separate things:
-//   - `tiles`: the geometry as text. ONLY six characters:
+//   - `tiles`: the geometry as text. ONLY seven characters:
 //       '#' = solid block   '.' = air   '-' = one-way plank
 //       '^' = spikes (hurt when stepped on; not solid)
 //       '%' = cracked block (solid; broken by pound/dash)
 //       '~' = ice (solid; slippery underfoot)
+//       '=' = water (NOT solid; you float on it, then dive through it)
 //   - `entities`: what lives in the room (enemies, crystals,
 //     relics, springs, moving platforms, the player spawn,
 //     the door), each with its cell and its typed
@@ -26,10 +27,21 @@ export interface Cell {
   y: number;
 }
 
-export type EnemyKind = 'slime' | 'flyer' | 'chaser' | 'boss' | 'spitter' | 'erizo' | 'ariete';
+export type EnemyKind =
+  | 'slime'
+  | 'flyer'
+  | 'chaser'
+  | 'boss'
+  | 'spitter'
+  | 'erizo'
+  | 'ariete'
+  | 'medusa'
+  | 'anguila'
+  | 'ajolote';
 
 export type EntitySpawn =
-  | (Cell & { type: EnemyKind })
+  // Plain enemies (just a cell). medusa/anguila carry extra fields, below.
+  | (Cell & { type: Exclude<EnemyKind, 'medusa' | 'anguila'> })
   | (Cell & { type: 'crystal' })
   | (Cell & { type: 'relic'; ability: AbilityName })
   | (Cell & { type: 'playerSpawn' })
@@ -46,12 +58,22 @@ export type EntitySpawn =
   // Fire geyser: a floor nozzle that erupts cyclically
   // (4-cell flame column). `offset` phase-shifts its cycle, so
   // multiple geysers alternate.
-  | (Cell & { type: 'geyser'; offset?: number });
+  | (Cell & { type: 'geyser'; offset?: number })
+  // Underwater current: a jet that pushes a SUBMERGED player `length`
+  // cells from (x, y) toward `dir`. Like the vent, it only grips a
+  // player already in its element (here, one who has dived under).
+  | (Cell & { type: 'corriente'; dir: 'up' | 'left' | 'right'; length: number })
+  // Jellyfish: drifts up and down `range` cells around (x, y). An
+  // untouchable hazard — nothing kills it, you route around it.
+  | (Cell & { type: 'medusa'; range: number })
+  // Eel: idles in its lane, then darts `range` cells along `axis`; it
+  // is only vulnerable to the dash-lunge during the stun afterwards.
+  | (Cell & { type: 'anguila'; axis: 'x' | 'y'; range: number });
 
 export interface RoomData {
   /** Unique name; exits from other rooms point to this id. */
   id: string;
-  /** The geometry: rows of '#', '.', '-', '^', '%' and '~'. All the same length. */
+  /** The geometry: rows of '#', '.', '-', '^', '%', '~' and '='. All the same length. */
   tiles: string[];
   /** What lives in the room, in map cells. */
   entities: EntitySpawn[];
@@ -61,7 +83,7 @@ export interface RoomData {
   mapPos: Cell;
 }
 
-const TILE_CHARS = new Set(['#', '.', '-', '^', '%', '~']);
+const TILE_CHARS = new Set(['#', '.', '-', '^', '%', '~', '=']);
 
 /**
  * Checks the integrity of ONE LEVEL's rooms and returns the list of

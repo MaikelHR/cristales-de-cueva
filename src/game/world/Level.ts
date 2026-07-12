@@ -2,10 +2,12 @@
 //  THE LEVEL (the geometry of a room)
 // ------------------------------------------------------------
 //  Interprets RoomData's tile rows ('#' solid, '.' air, '-' one-way
-//  plank, '^' spikes, '%' cracked block, '~' ice) and answers
-//  collision queries. Each cell is 8x8 px. Cracked blocks and ice ARE
-//  solid; they also carry their own mark: the cracked one can be
-//  broken (pound / charge) and ice is slippery underfoot.
+//  plank, '^' spikes, '%' cracked block, '~' ice, '=' water) and
+//  answers collision queries. Each cell is 8x8 px. Cracked blocks and
+//  ice ARE solid; they also carry their own mark: the cracked one can
+//  be broken (pound / charge) and ice is slippery underfoot. Water is
+//  NOT solid — it's a body volume the player floats on and dives into
+//  (the swim physics live in the Player); here it's just a marked cell.
 //
 //  This module is PURE LOGIC: it doesn't draw or touch the DOM, so it
 //  can be tested in Node. The tile drawing lives in
@@ -27,6 +29,7 @@ export class Level {
   private spike: boolean[][] = [];
   private crack: boolean[][] = [];
   private icy: boolean[][] = [];
+  private wet: boolean[][] = [];
 
   constructor(tiles: string[]) {
     this.rows = tiles.length;
@@ -45,16 +48,22 @@ export class Level {
       this.spike[y] = [];
       this.crack[y] = [];
       this.icy[y] = [];
+      this.wet[y] = [];
       for (let x = 0; x < this.cols; x++) {
         const ch = row[x];
-        if (ch !== '#' && ch !== '.' && ch !== '-' && ch !== '^' && ch !== '%' && ch !== '~') {
+        if (
+          ch !== '#' && ch !== '.' && ch !== '-' &&
+          ch !== '^' && ch !== '%' && ch !== '~' && ch !== '='
+        ) {
           throw new Error(`Mapa inválido: carácter desconocido '${ch}' en (${x}, ${y})`);
         }
+        // Water ('=') is deliberately absent here: it is NOT solid.
         this.solid[y][x] = ch === '#' || ch === '%' || ch === '~';
         this.oneWay[y][x] = ch === '-';
         this.spike[y][x] = ch === '^';
         this.crack[y][x] = ch === '%';
         this.icy[y][x] = ch === '~';
+        this.wet[y][x] = ch === '=';
       }
     });
   }
@@ -94,6 +103,12 @@ export class Level {
     return this.icy[row][col];
   }
 
+  /** Water (non-solid body volume) at this cell? Outside the map, no. */
+  wetCell(row: number, col: number): boolean {
+    if (row < 0 || row >= this.rows || col < 0 || col >= this.cols) return false;
+    return this.wet[row][col];
+  }
+
   /**
    * Breaks a cracked block: the cell becomes air. Returns true if there
    * was something to break. The state lives in THIS instance (one per
@@ -124,6 +139,24 @@ export class Level {
         if (box.x < hx + TILE - 2 && box.x + box.w > hx && box.y < hy + 4 && box.y + box.h > hy) {
           return true;
         }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Does the box overlap any water cell? Water fills its whole cell
+   * (no sub-box like the spikes), so any cell the box spans is enough.
+   * The Player uses it to decide it's swimming.
+   */
+  touchesWater(box: Box): boolean {
+    const c0 = Math.max(0, Math.floor(box.x / TILE));
+    const c1 = Math.min(this.cols - 1, Math.floor((box.x + box.w) / TILE));
+    const r0 = Math.max(0, Math.floor(box.y / TILE));
+    const r1 = Math.min(this.rows - 1, Math.floor((box.y + box.h) / TILE));
+    for (let row = r0; row <= r1; row++) {
+      for (let col = c0; col <= c1; col++) {
+        if (this.wet[row][col]) return true;
       }
     }
     return false;

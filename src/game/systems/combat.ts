@@ -20,6 +20,8 @@ import { t } from '../i18n';
  * for tall, bobbing enemies like the boss). Otherwise, it's a hit.
  * The POUND (pounding) breaks the rule in the player's favor: it stomps
  * even spiky enemies (stompable=false) — it's THE answer to the erizo.
+ * An `invulnerable` enemy (the jellyfish) short-circuits both: neither a
+ * stomp nor a pound ever kills it, so the contact falls through to a hit.
  */
 export function isStomp(
   stompable: boolean,
@@ -28,9 +30,22 @@ export function isStomp(
   dt: number,
   enemyTop: number,
   pounding = false,
+  invulnerable = false,
 ): boolean {
+  if (invulnerable) return false;
   const prevFeetY = feetY - playerVy * dt;
   return (stompable || pounding) && playerVy > 0 && prevFeetY <= enemyTop + 4;
+}
+
+/**
+ * The dash-lunge is a weapon: a DASHING player that touches an enemy
+ * flagged `dashVulnerable` (only the stunned eel) defeats it. Falling
+ * from above isn't required — this is the horizontal answer, distinct
+ * from the stomp. Pure and tested so a physics tweak can't quietly break
+ * the level's combat lesson.
+ */
+export function isDashKill(dashVulnerable: boolean, dashing: boolean): boolean {
+  return dashVulnerable && dashing;
 }
 
 /**
@@ -47,8 +62,10 @@ export function resolveEnemyContacts(session: GameSession, dt: number): void {
     const eb = e.box();
     if (overlaps(pbox, eb)) {
       const feetY = pbox.y + pbox.h;
-      if (isStomp(e.stompable, player.vy, feetY, dt, eb.y, player.pounding)) {
+      if (isStomp(e.stompable, player.vy, feetY, dt, eb.y, player.pounding, e.invulnerable)) {
         stompEnemy(session, e, eb);
+      } else if (isDashKill(e.dashVulnerable ?? false, player.dashing)) {
+        dashKillEnemy(session, e, eb);
       } else {
         hurtPlayer(session, eb.x + eb.w / 2);
       }
@@ -77,23 +94,41 @@ function stompEnemy(session: GameSession, e: Enemy, eb: Box): void {
   session.player.bounce();
   session.hitStop = 0.06;
   sfx.stomp();
-  if (defeated) {
-    const count = e.isBoss ? 30 : 12;
-    session.particles.burst(eb.x + eb.w / 2, eb.y + eb.h / 2, count, [...e.gooColors]);
-    session.camera.shake(e.isBoss ? 4 : 1.5, e.isBoss ? 0.4 : 0.15);
-    // Points for the defeated monster, with a floating "+N".
-    const pts = e.isBoss ? 100 : 10;
-    session.score += pts;
-    session.popups.spawn(eb.x + eb.w / 2, eb.y - 2, '+' + pts);
-    if (e.isBoss) {
-      session.announce(t('boss_defeated'));
-      sfx.relic();
-    }
-  } else {
-    // Hit that doesn't defeat (boss with health left): sparks and small shake.
-    session.particles.burst(eb.x + eb.w / 2, eb.y, 8, [...e.gooColors]);
-    session.camera.shake(1.5, 0.15);
+  if (defeated) defeatEnemy(session, e, eb);
+  else grazeEnemy(session, e, eb);
+}
+
+/** The dash-lunge kill (the stunned eel): the same payoff and hit-stop
+ *  as a stomp, but NO upward bounce — the lunge is a horizontal strike. */
+function dashKillEnemy(session: GameSession, e: Enemy, eb: Box): void {
+  const defeated = e.onStomp ? e.onStomp() : ((e.dead = true), true);
+  session.hitStop = 0.06;
+  sfx.stomp();
+  if (defeated) defeatEnemy(session, e, eb);
+  else grazeEnemy(session, e, eb);
+}
+
+/** The payoff when a hit DEFEATS an enemy: burst, shake, points with a
+ *  floating "+N" and — for a boss — the fanfare. Shared by the stomp
+ *  and the dash-lunge so both kills feel identical. */
+function defeatEnemy(session: GameSession, e: Enemy, eb: Box): void {
+  const count = e.isBoss ? 30 : 12;
+  session.particles.burst(eb.x + eb.w / 2, eb.y + eb.h / 2, count, [...e.gooColors]);
+  session.camera.shake(e.isBoss ? 4 : 1.5, e.isBoss ? 0.4 : 0.15);
+  const pts = e.isBoss ? 100 : 10;
+  session.score += pts;
+  session.popups.spawn(eb.x + eb.w / 2, eb.y - 2, '+' + pts);
+  if (e.isBoss) {
+    session.announce(t('boss_defeated'));
+    sfx.relic();
   }
+}
+
+/** A hit that lands but does NOT defeat (a boss with health left):
+ *  sparks and a small shake. */
+function grazeEnemy(session: GameSession, e: Enemy, eb: Box): void {
+  session.particles.burst(eb.x + eb.w / 2, eb.y, 8, [...e.gooColors]);
+  session.camera.shake(1.5, 0.15);
 }
 
 /** Take damage from an enemy: removes a heart, knocks back and grants

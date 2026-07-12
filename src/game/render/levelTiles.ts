@@ -6,7 +6,9 @@
 //  beveled edges on the faces that meet the void). Light from the
 //  top-left: top and left side lit, right and bottom in shadow. Rock
 //  is drawn with the biome's TileSet (tileSets.ts); the language
-//  tiles (plank, spikes, '%', '~') are the same across all of them.
+//  tiles (plank, spikes, '%', '~', and '=' water) are the same across
+//  all of them. Water is the odd one out: NON-solid, so it falls
+//  through the solid/plank/spike branches and needs its own.
 // ============================================================
 
 import { Level, TILE } from '../world/Level';
@@ -23,6 +25,7 @@ export function drawLevelTiles(
   levelId = 'cavernas',
 ): void {
   const set = tileSetFor(levelId);
+  const now = performance.now() / 1000; // drives the water's animation
   // Only draw the visible tiles (culling) so it performs well.
   const c0 = Math.max(0, Math.floor(camX / TILE));
   const c1 = Math.min(level.cols - 1, Math.floor((camX + viewW) / TILE));
@@ -41,6 +44,8 @@ export function drawLevelTiles(
         sprites.plank.draw(ctx, col * TILE - camX, row * TILE - camY);
       } else if (level.spikeCell(row, col)) {
         drawSpikeTile(ctx, col * TILE - camX, row * TILE - camY);
+      } else if (level.wetCell(row, col)) {
+        drawWaterTile(ctx, level, row, col, col * TILE - camX, row * TILE - camY, now);
       }
     }
   }
@@ -117,6 +122,51 @@ function drawSpikeTile(ctx: CanvasRenderingContext2D, px: number, py: number): v
   ctx.fillStyle = '#d7c9ec';
   ctx.fillRect(px + 1, py + 1, 1, 1);
   ctx.fillRect(px + 5, py + 1, 1, 1);
+}
+
+// Water ('='): turquoise translucency. rgba fills TINT the depth
+// drawn behind (so you read pools as deep) and never touch the canvas
+// alpha state, so no tile after this one is stained.
+const WATER_FILL = 'rgba(34,116,132,0.42)'; // the body
+const WATER_CAUSTIC = 'rgba(122,222,224,0.30)'; // light bent by the surface
+const WATER_LINE = 'rgba(154,238,244,0.72)'; // the bright waterline
+const WATER_LINE_SOFT = 'rgba(70,178,190,0.5)'; // a softer band under it
+const WATER_GLINT = 'rgba(224,250,255,0.9)'; // sparkles running the surface
+
+/** Water: a flooded, NON-solid cell. The top row of a body (open air
+ *  above — not another water cell and not solid rock) gets an animated
+ *  bright waterline with travelling glints; the rest is a translucent
+ *  teal body with a slow caustic drifting through it. */
+function drawWaterTile(
+  ctx: CanvasRenderingContext2D,
+  level: Level,
+  row: number,
+  col: number,
+  px: number,
+  py: number,
+  time: number,
+): void {
+  // Open surface = neither water nor rock directly above (a submerged
+  // tunnel's rock ceiling must not sprout a false waterline).
+  const surface = !level.wetCell(row - 1, col) && !level.solidCell(row - 1, col);
+  // Translucent body: the parallax behind shows through, reading as depth.
+  ctx.fillStyle = WATER_FILL;
+  ctx.fillRect(px, py, TILE, TILE);
+  // A caustic dash drifting slowly, offset per cell so it never tiles.
+  const cx = px + 1 + Math.round((Math.sin(time * 1.3 + col * 0.8 + row) + 1) * (TILE - 3) * 0.5);
+  ctx.fillStyle = WATER_CAUSTIC;
+  ctx.fillRect(cx, py + 3 + ((row + col) % 3), 2, 1);
+  if (surface) {
+    ctx.fillStyle = WATER_LINE;
+    ctx.fillRect(px, py, TILE, 1);
+    ctx.fillStyle = WATER_LINE_SOFT;
+    ctx.fillRect(px, py + 1, TILE, 1);
+    // A glint that runs along the surface (phased by col => it travels).
+    if (Math.sin(time * 3 + col * 0.7) > 0.6) {
+      ctx.fillStyle = WATER_GLINT;
+      ctx.fillRect(px + 2 + ((col * 3 + Math.floor(time * 6)) % (TILE - 3)), py, 1, 1);
+    }
+  }
 }
 
 function drawSolidTile(

@@ -75,6 +75,23 @@ const COAL_TOP = [
   'ssssssss',
 ];
 
+// --- Cenote: wet dark stone — algae mats on top, water beading at the seam ---
+const CENOTE_PALETTE: Palette = {
+  r: '#25333a', o: '#33474f', s: '#141d22',
+  m: '#2f7d7a', t: '#4fb0aa',
+  G: '#4a9d5e', g: '#2c6b45', W: '#bff6ff',
+};
+const CENOTE_TOP = [
+  '..G.gG..', // algae sprigs poking out of the flooded rock
+  'gGGGgGGg', // the algae mat you stand on
+  'ggrWorgg', // its fringe at the seam, with a water bead glinting (W)
+  'orrrrrro',
+  'rrrorrrr',
+  'rrrrrWor', // a wet glisten seeping down the dark stone
+  'rorrrrrr',
+  'ssssssss',
+];
+
 const SETS: Record<string, TileSet> = {
   esporas: {
     top: new Sprite(MOSS_TOP, MOSS_PALETTE),
@@ -93,6 +110,15 @@ const SETS: Record<string, TileSet> = {
     rimL: '#7a4426',
     rimR: '#4e2814',
     shadow: '#0a0402',
+  },
+  cenote: {
+    top: new Sprite(CENOTE_TOP, CENOTE_PALETTE),
+    fill: new Sprite(FILL, CENOTE_PALETTE),
+    fill2: new Sprite(FILL2, CENOTE_PALETTE),
+    fill3: new Sprite(FILL3, CENOTE_PALETTE),
+    rimL: '#4a8f8a',
+    rimR: '#2c5658',
+    shadow: '#0c1418',
   },
 };
 

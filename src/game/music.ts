@@ -21,6 +21,9 @@
 //   · fragua     — anvil hammering in F# minor at full throttle;
 //                  the chorus is the theme with clenched teeth and the
 //                  ♭2 (G natural) from corazon returns as an echo.
+//   · cenote     — the deepest, slowest theme: G minor water at 63 bpm,
+//                  no drums —the pulse is the DRIP—; sunken pads overlap
+//                  into a reverb wash and an echoing pluck ripple flows.
 //
 //  Timbral palette: triangle = crystal bells, sine = pads
 //  and kicks, square = bright melody, sawtooth = grit, noise =
@@ -81,6 +84,15 @@ function echo(notes: SongNote[], loopBeats: number, factor = 0.3): SongNote[] {
 /** Water drop: a sinusoidal "plip" that falls in frequency. */
 function drip(beat: number, freq = 1568): SongNote {
   return { beat, freq, freqEnd: freq / 2, beats: 0.2, type: 'sine', vol: 0.04 };
+}
+
+/** A drop falling into the pool: the noise TICK on the surface and the
+ *  sine plunk that sinks after it. The cenote's whole percussion section. */
+function droplet(beat: number, color = 2600): SongNote[] {
+  return [
+    { beat, freq: color, beats: 0.12, type: 'noise', vol: 0.03 },
+    { beat: beat + 0.08, freq: color / 3, freqEnd: color / 7, beats: 0.3, type: 'sine', vol: 0.035 },
+  ];
 }
 
 // --- The drum kit (no samples: swept sine + filtered noise) ---
@@ -707,6 +719,72 @@ const fragua: Song = {
 };
 
 // ------------------------------------------------------------
+// CENOTE — level 7 (G minor, 63 bpm, 12 long bars)
+// The water table of the whole cave: the slowest, deepest theme.
+// No drums — the pulse is the DRIP. Sunken sine pads overlap into a
+// reverb wash (i–♭VI–♭III–iv–♭VI–v, floating, no leading tone), a soft
+// triangle ripple runs like caustics tracing each chord, and crystal
+// bells say the theme (G→B♭→D) from the surface while their octave echo
+// shimmers down through the god-rays. It doesn't march or breathe: it flows.
+// ------------------------------------------------------------
+
+const cenoteBells = voice(
+  [
+    // The theme surfaces: a drop's ring widening on the still pool.
+    [0, 'G4', 1], [1, 'A#4', 1], [2, 'D5', 2.5],
+    [5, 'C5', 0.5], [5.5, 'A#4', 0.5], [6, 'D5', 2],
+    // Drifting up toward the light over the ♭VI.
+    [8, 'A#4', 1], [9, 'D5', 1], [10, 'F5', 2.5],
+    [13, 'D5', 0.5], [13.5, 'C5', 0.5], [14, 'A#4', 2],
+    // A god-ray breaks: the phrase brightens on the ♭III.
+    [16, 'D5', 1], [17, 'F5', 1], [18, 'A#5', 2.5],
+    [21, 'G5', 0.5], [21.5, 'F5', 0.5], [22, 'D5', 2],
+    // Sinking deeper on the iv.
+    [24, 'C5', 1], [25, 'D#5', 1], [26, 'G5', 2],
+    [28.5, 'F5', 0.5], [29, 'D#5', 1.5], [30.5, 'C5', 1.5],
+    // The theme once more, sheltered by the ♭VI.
+    [32, 'A#4', 1], [33, 'D5', 1], [34, 'G5', 2],
+    [36.5, 'F5', 0.5], [37, 'D5', 1.5], [38.5, 'A#4', 1.5],
+    // Settles, floating on the fifth: unresolved, and the loop pulls under.
+    [40, 'D5', 1], [41, 'F5', 1], [42, 'A5', 2],
+    [44.5, 'G5', 0.5], [45, 'F5', 1], [46, 'D5', 2],
+  ],
+  { type: 'triangle', vol: 0.05, attack: 0.04 },
+);
+
+const cenote: Song = {
+  id: 'cenote',
+  bpm: 63,
+  loopBeats: 48,
+  notes: [
+    // Sunken pads: two sine voices per chord, overlapping into a wash.
+    ...voice(
+      [
+        [0, 'G2', 7.5], [0, 'D3', 7.5], [8, 'D#2', 7.5], [8, 'A#2', 7.5],
+        [16, 'A#1', 7.5], [16, 'F2', 7.5], [24, 'C2', 7.5], [24, 'G2', 7.5],
+        [32, 'D#2', 7.5], [32, 'A#2', 7.5], [40, 'D2', 7.5], [40, 'A2', 7.5],
+      ],
+      { type: 'sine', vol: 0.05, attack: 1.8 },
+    ),
+    ...cenoteBells,
+    ...echo(cenoteBells, 48, 0.3),
+    // The caustics: a soft triangle ripple that never stops moving,
+    // tracing each chord like light bending through the water.
+    ...arp(0, 8, ['G3', 'A#3', 'D4', 'A#3'], 0.022),
+    ...arp(8, 8, ['D#3', 'G3', 'A#3', 'G3'], 0.022),
+    ...arp(16, 8, ['A#3', 'D4', 'F4', 'D4'], 0.022),
+    ...arp(24, 8, ['C3', 'D#3', 'G3', 'D#3'], 0.022),
+    ...arp(32, 8, ['D#3', 'G3', 'A#3', 'G3'], 0.022),
+    ...arp(40, 8, ['D3', 'F3', 'A3', 'F3'], 0.022),
+    // The drip is the drummer: sparse taps at uneven, natural intervals.
+    ...droplet(3.5, 2600), ...droplet(11.25, 3000), ...droplet(19.75, 2200),
+    ...droplet(27.5, 2800), ...droplet(35.25, 3200), ...droplet(43.5, 2400),
+    // Two far, high leaks echoing off somewhere in the dark.
+    drip(15.5, 2093), drip(39.25, 1760),
+  ],
+};
+
+// ------------------------------------------------------------
 // The director: what plays depending on the active screen.
 // ------------------------------------------------------------
 
@@ -719,6 +797,7 @@ export const LEVEL_SONGS: Record<string, Song> = {
   esporas,
   glaciar,
   fragua,
+  cenote,
 };
 
 export const SONGS: Song[] = [title, overworld, ...Object.values(LEVEL_SONGS)];

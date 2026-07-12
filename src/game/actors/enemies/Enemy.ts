@@ -18,6 +18,13 @@ export interface Enemy extends Actor {
   readonly gooColors: readonly string[];
   /** bosses block the door until defeated. */
   readonly isBoss?: boolean;
+  /** true = a stomp AND a pound both bounce off harmlessly and hurt
+   *  the player instead (the jellyfish: route around it, don't fight it).
+   *  Where the erizo only punished a stomp, this can't be touched at all. */
+  readonly invulnerable?: boolean;
+  /** true only while the dash-lunge can defeat it (the stunned eel):
+   *  combat's isDashKill turns a dashing contact into a kill. */
+  readonly dashVulnerable?: boolean;
   /** own dangerous boxes (e.g. projectiles) that hurt the player. */
   hazards?(): Box[];
   /** Own reaction to a stomp (for enemies with several hits).

@@ -126,6 +126,21 @@ const THEMES: Record<string, CaveTheme> = {
     drip: '#ffcf6a',
     fog: ['#a06038', '#7a4426', '#5e321c'],
   },
+  // The flooded cenote: turquoise water lit from the sinkholes above,
+  // deep-teal depths and a humid, breathing hush.
+  cenote: {
+    gradTop: '#08171c', gradBottom: '#0f3a44',
+    strata: '#0c2831',
+    crystals: ['#2f6d78', '#388390', '#41a0a8'], spark: '#b3f0f0',
+    skyline: '#0e2e38',
+    haze: 'rgba(75, 200, 214, 0.07)',
+    ray: '190,236,240',
+    mid: '#0c2630', midEdge: '#20505a', root: '#123038',
+    accent: '#5fe0d0', accentLight: '#d6fffa',
+    near: '#0a2028', nearTop: '#164048',
+    drip: '#a8f0ff',
+    fog: ['#3f9aa0', '#2c7078', '#1e565e'],
+  },
   // The level map: the same violet grotto but with a gold accent
   // (the record crystals along the path drive the palette).
   overworld: {
@@ -167,6 +182,7 @@ interface Drip { x: number; y0: number; period: number; phase: number; }
 interface Mound { x: number; w: number; h: number; }
 interface Stalagmite { x: number; w: number; h: number; }
 interface Shroom { x: number; h: number; phase: number; }
+interface Bubble { x: number; speed: number; phase: number; size: number; }
 
 interface BgLayers {
   strata: Strata[];
@@ -180,6 +196,8 @@ interface BgLayers {
   mounds: Mound[];
   stalagmites: Stalagmite[];
   shrooms: Shroom[];
+  /** Only the flooded cenote breathes these; empty for every other biome. */
+  bubbles: Bubble[];
 }
 
 let bg: BgLayers | null = null;
@@ -270,7 +288,20 @@ function ensureBackground(worldW: number, viewH: number, variant: number, themeI
     shrooms.push({ x: rng() * worldW, h: 3 + Math.floor(rng() * 3), phase: rng() * Math.PI * 2 });
   }
 
-  bg = { strata, wallCrystals, towers, fringe, godRays, stalactites, roots, drips, mounds, stalagmites, shrooms };
+  // Rising bubbles: exclusive to the cenote's flooded air.
+  const bubbles: Bubble[] = [];
+  if (themeId === 'cenote') {
+    for (let i = 0; i < Math.floor(worldW / 22); i++) {
+      bubbles.push({
+        x: rng() * worldW,
+        speed: 0.12 + rng() * 0.16, // fraction of the view per second (a slow rise)
+        phase: rng(),
+        size: rng() < 0.28 ? 2 : 1,
+      });
+    }
+  }
+
+  bg = { strata, wallCrystals, towers, fringe, godRays, stalactites, roots, drips, mounds, stalagmites, shrooms, bubbles };
 }
 
 export function drawBackground(
@@ -512,6 +543,26 @@ export function drawBackground(
     ctx.fillStyle = theme.accent;
     ctx.fillRect(x - 1, y - sh.h - 1, 5, 1);
     ctx.fillRect(x, y - sh.h - 2, 3, 1);
+  }
+
+  // Rising bubbles (cenote only): pale motes that drift up through the
+  // flooded air, wobbling, fading in near the floor and out near the
+  // top. Position is a pure function of time, so nothing is mutated.
+  if (L.bubbles.length > 0) {
+    const parBub = camX * 0.7;
+    for (const b of L.bubbles) {
+      const bx = b.x - parBub;
+      if (bx < -4 || bx > viewW + 4) continue;
+      const rise = (time * b.speed + b.phase) % 1;
+      const by = viewH - rise * (viewH + 8);
+      const wob = Math.sin(time * 1.6 + b.phase * 6.28) * 3;
+      ctx.globalAlpha = Math.sin(rise * Math.PI) * 0.4;
+      ctx.fillStyle = theme.accentLight;
+      ctx.fillRect(Math.round(bx + wob), Math.round(by), b.size, b.size);
+      ctx.fillStyle = theme.drip; // a brighter cap so it reads as a bubble
+      ctx.fillRect(Math.round(bx + wob), Math.round(by), 1, 1);
+    }
+    ctx.globalAlpha = 1;
   }
 }
 

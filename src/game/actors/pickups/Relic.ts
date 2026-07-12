@@ -23,6 +23,7 @@ const ABILITY_KEY: Record<AbilityName, StrKey> = {
   glide: 'ab_glide',
   pound: 'ab_pound',
   smash: 'ab_smash',
+  dive: 'ab_dive',
 };
 
 const ABILITY_GLOW: Record<AbilityName, string> = {
@@ -32,6 +33,7 @@ const ABILITY_GLOW: Record<AbilityName, string> = {
   glide: '#6ee08a',
   pound: '#bfeaff',
   smash: '#ffb03a',
+  dive: '#3ddccb', // teal — the turquoise of the cenote's deep water
 };
 
 export class Relic implements Pickup {

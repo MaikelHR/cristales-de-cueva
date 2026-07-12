@@ -80,6 +80,11 @@ describe('los niveles del juego', () => {
         const into = openRows(next.tiles, 'first');
         const shared = [...out].filter((y) => into.has(y));
         expect(shared.length, `${level.id}: ${room.id} -> ${next.id}`).toBeGreaterThanOrEqual(2);
+        // The player body is 11px (~2 tiles) tall: it only fits through TWO
+        // CONTIGUOUS open rows, so the shared rows must include an adjacent
+        // pair — two lone slits count 2 but let nobody through.
+        const contiguous = shared.some((y) => shared.includes(y + 1));
+        expect(contiguous, `${level.id}: ${room.id} -> ${next.id} (no adjacent open pair)`).toBe(true);
       }
     }
   });

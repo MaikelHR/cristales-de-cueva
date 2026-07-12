@@ -99,4 +99,21 @@ describe('Level', () => {
     expect(level.icyCell(0, 0)).toBe(false);  // rock doesn't slip
     expect(level.icyCell(-1, 2)).toBe(false); // outside the map, no
   });
+
+  it('el agua NO es sólida y lleva su propia marca', () => {
+    const level = new Level(['#####', '#.=.#', '#####']);
+    expect(level.wetCell(1, 2)).toBe(true);
+    expect(level.solidCell(1, 2)).toBe(false); // water = NOT solid
+    expect(level.isSolidAt(2 * TILE + 1, TILE + 1)).toBe(false);
+    expect(level.wetCell(0, 0)).toBe(false);   // rock is dry
+    expect(level.wetCell(-1, 2)).toBe(false);  // outside the map, no
+  });
+
+  it('touchesWater detecta el cuerpo de agua bajo una caja', () => {
+    const level = new Level(['#####', '#.=.#', '#####']);
+    // A box over the water cell: swimming.
+    expect(level.touchesWater({ x: 2 * TILE, y: TILE, w: 4, h: 4 })).toBe(true);
+    // A box over the neighboring air cell: dry.
+    expect(level.touchesWater({ x: TILE, y: TILE, w: 2, h: 2 })).toBe(false);
+  });
 });

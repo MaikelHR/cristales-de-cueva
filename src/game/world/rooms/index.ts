@@ -9,6 +9,7 @@
 //   4. Esporas   — the GLIDE, updrafts and spitters.
 //   5. Glaciar   — the POUND, ice, cracked blocks and erizos.
 //   6. Fragua    — the CHARGE, geysers and the Igneous Guardian.
+//   7. Cenote    — the DIVE, water, currents and the Axolotl.
 //  Adding a level = a folder with its rooms + an entry here.
 //  (The FIRST level's id is also pinned in save.ts, to migrate
 //  old records: don't rename it lightly.)
@@ -33,6 +34,9 @@ import { espejo } from './glaciar/espejo';
 import { crisol } from './fragua/crisol';
 import { yunque } from './fragua/yunque';
 import { nucleo } from './fragua/nucleo';
+import { orilla } from './cenote/orilla';
+import { perla } from './cenote/perla';
+import { guarida } from './cenote/guarida';
 
 export const LEVELS: LevelDef[] = [
   {
@@ -70,5 +74,11 @@ export const LEVELS: LevelDef[] = [
     nameKey: 'lvl_fragua',
     rooms: [crisol, yunque, nucleo],
     startAbilities: ['doubleJump', 'wallJump', 'dash', 'glide', 'pound'],
+  },
+  {
+    id: 'cenote',
+    nameKey: 'lvl_cenote',
+    rooms: [orilla, perla, guarida],
+    startAbilities: ['doubleJump', 'wallJump', 'dash', 'glide', 'pound', 'smash'],
   },
 ];
