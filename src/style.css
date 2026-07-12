@@ -206,78 +206,102 @@ body.touch canvas {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Pressed state (finger down or the class touch.ts adds): shows
-   the "sunken" face (inverted bevel, golden outline) and the halo
-   lights up gold, like the crystals when picked up. */
-.tc-btn:active,
-.tc-btn.is-active {
+/* Pressed state: the "sunken" face (inverted bevel, golden outline) and the
+   halo lights up gold, like the crystals when picked up.
+   The MOVEMENT buttons use ONLY `.is-active`, which touch.ts moves as the
+   thumb slides. They must NOT use `:active`: on touch the browser pins the
+   active state to the button the finger LANDED on until it lifts, so sliding
+   left -> right would leave LEFT looking held (its action long released).
+   Tap buttons (pause, menu) have no `.is-active`, so they keep `:active`. */
+.tc-btn.is-active,
+.tc-mbtn:active,
+.tc-pause:active {
   background-image: var(--tc-face-down, var(--tc-face));
   filter: drop-shadow(0 0 9px rgba(255, 226, 90, 0.55));
 }
 
-/* --- D-pad (left band) -------------------------------------------------- */
-/* Compact to fit in the band: ◀ ▶ on top and a ▼ bar below
-   (drop through planks / menus). The buttons stretch to their cell. */
-.tc-pad {
+/* --- Gameplay buttons: one free-positioned layer ------------------------ */
+/* The six gameplay buttons (d-pad, jump, dash, pause) live in ONE layer,
+   each placed absolutely from the player's SAVED LAYOUT: touch.ts sets
+   left/top/width/height AND opacity inline, per button (left/top = the
+   button center). Opacity is per-button on purpose: a layer with opacity<1
+   would become a stacking context that traps the buttons behind the edit
+   toolbar. Taps pass through the layer except on the buttons. The default
+   layout keeps the d-pad in the left band and jump/dash in the right one —
+   framing the game like before — until the player rearranges it. */
+.tc-game {
   position: absolute;
-  bottom: calc(var(--tc-edge) + env(safe-area-inset-bottom, 0px));
-  left: calc(var(--tc-edge) + env(safe-area-inset-left, 0px));
-  display: grid;
-  grid-template-areas:
-    'left right'
-    'down down';
-  grid-template-columns: var(--tc-btn) var(--tc-btn);
-  grid-template-rows: var(--tc-btn) calc(var(--tc-btn) * 0.66);
-  gap: var(--tc-gap);
+  inset: 0;
   pointer-events: none;
 }
 
-.tc-left {
-  grid-area: left;
-}
-.tc-right {
-  grid-area: right;
-}
-.tc-down {
-  grid-area: down;
-}
-
-/* --- Actions (right band) ----------------------------------------------- */
-/* Column: DASH (cyan crystal, the player's) over a wide golden
-   JUMP, the star, with the same total width as the d-pad. */
-.tc-actions {
+.tc-game .tc-btn {
   position: absolute;
-  bottom: calc(var(--tc-edge) + env(safe-area-inset-bottom, 0px));
-  right: calc(var(--tc-edge) + env(safe-area-inset-right, 0px));
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--tc-gap);
-  pointer-events: none;
+  /* left/top is the button CENTER (touch.ts), so shift back by half. */
+  transform: translate(-50%, -50%);
 }
 
+/* PAUSE ALWAYS ON TOP. Buttons can be dragged anywhere, and they paint in DOM
+   order — so a button parked over the pause button would BURY it: no pause ->
+   no pause menu -> no Controls editor -> no way to move it back or reset, and
+   the layout persists in localStorage. That's a dead game. Lifting pause above
+   its siblings keeps it tappable no matter what is dropped on it. */
+.tc-game .tc-pause {
+  z-index: 5;
+}
+
+/* Hidden probe: its padding carries the env() safe-area insets so touch.ts can
+   READ them (script has no other access) and keep controls off the notch. */
+.tc-safe {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  visibility: hidden;
+  pointer-events: none;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+}
+
+/* Per-family halo; the size and place come from the layout (inline). */
 .tc-dash {
-  /* 26x16 native: same aspect so the pixels stay square. */
-  width: calc(var(--tc-btn) * 1.38);
-  height: calc(var(--tc-btn) * 0.85);
   --tc-glow: rgba(124, 224, 255, 0.4);
 }
-
 .tc-jump {
-  /* 32x16 native: d-pad width and exactly half the height (2:1),
-     so the sprite's pixels stay square. */
-  width: calc(var(--tc-btn) * 2 + var(--tc-gap));
-  height: calc(var(--tc-btn) + var(--tc-gap) / 2);
   --tc-glow: rgba(255, 210, 58, 0.4);
 }
 
-/* --- Pause button (top, right band) ------------------------------------- */
-.tc-pause {
+/* --- Movement joystick (the d-pad's alternative) ------------------------ */
+/* The socket is a normal layout-placed control; the KNOB rides inside it,
+   translated by touch.ts as the thumb pushes (its size comes from the socket,
+   so it scales with it). The knob never takes touches: the socket owns them. */
+.tc-stick-knob {
   position: absolute;
-  top: calc(var(--tc-edge) + env(safe-area-inset-top, 0px));
-  right: calc(var(--tc-edge) + env(safe-area-inset-right, 0px));
-  width: calc(var(--tc-btn) * 0.85);
-  height: calc(var(--tc-btn) * 0.85);
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  background-image: var(--tc-face);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+}
+/* Thumb down: the knob shows its pressed (gold-rimmed) face, like every button. */
+.tc-stick.is-active .tc-stick-knob {
+  background-image: var(--tc-face-down, var(--tc-face));
+}
+
+/* Only ONE movement control exists at a time (data-move, from the layout). */
+.tc[data-move='dpad'] .tc-stick {
+  display: none;
+}
+.tc[data-move='stick'] .tc-left,
+.tc[data-move='stick'] .tc-right,
+.tc[data-move='stick'] .tc-down {
+  display: none;
 }
 
 /* --- Pause menu (center) ----------------------------------------------- */
@@ -288,7 +312,7 @@ body.touch canvas {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 11px;
   padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
     env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
   background: rgba(17, 9, 26, 0.78);
@@ -297,33 +321,41 @@ body.touch canvas {
 
 .tc-mbtn {
   /* 128x24 native with the label already baked (the game's font, stretched
-     pixelated like the canvas menus). */
-  width: min(72vw, 288px);
-  width: min(72dvw, 288px);
-  height: 54px;
+     pixelated like the canvas menus). Keep width:height = 128:24 so the
+     baked text stays square; sized to fit five buttons on short landscapes. */
+  width: min(64vw, 256px);
+  width: min(64dvw, 256px);
+  height: 48px;
 }
 
 .tc-resume {
   --tc-glow: rgba(255, 210, 58, 0.4);
 }
 
+/* The pause menu changes with WHERE you paused (data-pausectx, set by
+   touch.ts). In a level: restart + exit to map. On the level map there's no
+   run to restart or abandon, so those go and "main menu" takes their place —
+   the map's pause button now opens options (fullscreen!) instead of throwing
+   you back to the title. */
+.tc[data-pausectx='game'] .tc-title {
+  display: none;
+}
+.tc[data-pausectx='overworld'] .tc-restart,
+.tc[data-pausectx='overworld'] .tc-map {
+  display: none;
+}
+
 /* --- Visibility by the container's data-mode --------------------------- */
-/* In game: pad, actions and pause; no menu. */
+/* In game: the gameplay buttons; no menu. */
 .tc[data-mode='play'] .tc-menu {
   display: none;
 }
-.tc[data-mode='play'] .tc-pad {
-  display: grid;
-}
-.tc[data-mode='play'] .tc-actions,
-.tc[data-mode='play'] .tc-pause {
-  display: flex;
+.tc[data-mode='play'] .tc-game {
+  display: block;
 }
 
-/* When paused: only the menu. */
-.tc[data-mode='paused'] .tc-pad,
-.tc[data-mode='paused'] .tc-actions,
-.tc[data-mode='paused'] .tc-pause {
+/* When paused: only the menu (the gameplay buttons hide). */
+.tc[data-mode='paused'] .tc-game {
   display: none;
 }
 .tc[data-mode='paused'] .tc-menu {
@@ -331,10 +363,153 @@ body.touch canvas {
 }
 
 /* In game menus (title/win/game-over): all hidden, the tap goes to the canvas. */
-.tc[data-mode='menu'] .tc-pad,
-.tc[data-mode='menu'] .tc-actions,
-.tc[data-mode='menu'] .tc-pause,
+.tc[data-mode='menu'] .tc-game,
 .tc[data-mode='menu'] .tc-menu {
+  display: none;
+}
+
+/* --- Layout editor: overrides the mode rules (must come AFTER them) ----- */
+/* Editing runs over the frozen (paused) game: show the gameplay buttons as
+   draggable handles, hide the pause menu, reveal the toolbar. */
+.tc[data-editing='1'] .tc-game {
+  display: block;
+}
+.tc[data-editing='1'] .tc-menu {
+  display: none;
+}
+.tc[data-editing='1'] .tc-editbar {
+  display: flex;
+}
+/* Lift the buttons ABOVE the toolbar (z 40) so every one stays draggable
+   even where it overlaps the strip — including the pause button, which
+   defaults to the top-right under it. (Opacity is per-button, so the layer
+   is never a stacking context that would trap them behind the toolbar.) */
+.tc[data-editing='1'] .tc-game .tc-btn {
+  z-index: 45;
+}
+/* ...and pause stays above even them, so it can always be grabbed back out
+   from under whatever was dropped on it. */
+.tc[data-editing='1'] .tc-game .tc-pause {
+  z-index: 46;
+}
+/* While editing, a tap must NOT flash the "pressed" face (its gold outline
+   reads as selection); keep the idle face and let .is-selected mark the pick. */
+.tc[data-editing='1'] .tc-btn:active {
+  background-image: var(--tc-face);
+  filter: drop-shadow(0 0 6px var(--tc-glow, rgba(122, 75, 214, 0.35)));
+}
+.tc-btn.is-selected {
+  outline: 2px dashed #ffe25a;
+  outline-offset: 3px;
+  filter: drop-shadow(0 0 10px rgba(255, 226, 90, 0.6));
+}
+
+/* =========================================================================
+   LAYOUT EDITOR TOOLBAR — touch only
+   A top strip shown ONLY while editing (data-editing on .tc). It floats
+   over the frozen game while the player drags the gameplay buttons; text
+   goes through i18n (touch.ts). The gameplay buttons themselves are moved
+   with inline styles, so nothing here positions them.
+   ========================================================================= */
+.tc-editbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40; /* above the controls (10), below the rotate hint (50) */
+  display: none; /* shown only while editing */
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: calc(env(safe-area-inset-top, 0px) + 8px) 10px 10px;
+  background: linear-gradient(180deg, rgba(17, 9, 26, 0.96), rgba(17, 9, 26, 0.82));
+  border-bottom: 1px solid #4a2e70;
+  pointer-events: auto;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.tc-edit-hint {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.4px;
+  color: #9b86c4;
+  text-align: center;
+}
+
+.tc-edit-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* The button the size +/- act on (its localized name). */
+.tc-edit-sel {
+  padding: 5px 9px;
+  border-radius: 7px;
+  background: #2a1a40;
+  color: #ffe9b8;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.tc-edit-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px 2px 8px;
+  border-radius: 9px;
+  background: rgba(30, 16, 41, 0.6);
+  border: 1px solid #4a2e70;
+}
+
+.tc-edit-label {
+  color: #c7b3ea;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.tc-ep {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #5a3d86;
+  border-radius: 8px;
+  background: #35205a;
+  color: #ecdcff;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: none;
+}
+
+.tc-ep:active {
+  background: #5a2d82;
+  color: #ffe9b8;
+}
+
+.tc-ep-done {
+  background: #7a4bd6;
+  border-color: #b98bff;
+  color: #fff7c9;
+}
+
+/* While editing, the language/skin chips would clutter the top strip: hide
+   them. Keyed off a BODY class (touch.ts), not a sibling combinator: on the
+   deferred build path .tc is appended AFTER the chips, so `.tc ~ .lang-switch`
+   never matched and they stayed on top of the toolbar. */
+body.tc-editing .lang-switch,
+body.tc-editing .skin-switch {
   display: none;
 }
 

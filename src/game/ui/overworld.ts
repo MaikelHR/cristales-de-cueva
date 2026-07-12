@@ -15,6 +15,7 @@
 
 import { frameAt } from '../../engine/animation';
 import { inputDevice, padLabels } from '../../engine/input';
+import { getMove } from '../touchLayout';
 import type { GameSession, GameMode } from '../session';
 import { LEVELS } from '../world/rooms';
 import { levelRecord } from '../save';
@@ -551,7 +552,10 @@ function drawPanel(
   const dev = inputDevice();
   const pl = padLabels();
   const enter = dev === 'touch' ? t('ow_enter_touch') : dev === 'gamepad' ? t('ow_enter_gp', pl) : t('ow_enter_kb');
-  const hint = dev === 'touch' ? t('ow_hint_touch') : dev === 'gamepad' ? t('ow_hint_gp', pl) : t('ow_hint_kb');
+  // On touch the prompt must name the control the player actually HAS:
+  // the d-pad arrows, or the joystick if they switched to it.
+  const touchHint = getMove() === 'stick' ? t('ow_hint_touch_stick') : t('ow_hint_touch');
+  const hint = dev === 'touch' ? touchHint : dev === 'gamepad' ? t('ow_hint_gp', pl) : t('ow_hint_kb');
   ctx.globalAlpha = 0.55 + Math.sin(time * 4) * 0.45;
   ctx.fillStyle = '#ffe25a';
   ctx.font = font(8);

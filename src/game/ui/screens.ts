@@ -29,7 +29,8 @@ export type MenuItem =
   | 'character'
   | 'fullscreen'
   | 'language'
-  | 'exit';
+  | 'exit'
+  | 'mainmenu';
 
 const MENU_LABEL: Record<MenuItem, StrKey> = {
   play: 'menu_play',
@@ -39,6 +40,7 @@ const MENU_LABEL: Record<MenuItem, StrKey> = {
   fullscreen: 'menu_fullscreen',
   language: 'menu_language',
   exit: 'menu_exit',
+  mainmenu: 'menu_mainmenu',
 };
 
 

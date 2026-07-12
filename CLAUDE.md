@@ -26,11 +26,15 @@ Before considering a change done: `npm test` and `npm run build` must both pass.
 - `src/game/session.ts` — `GameSession`: ALL run state (world, player, camera, score,
   checkpoint, records) + lifecycle ops (startLevel, reset, respawn, endRun). Carries the
   current `level` (LevelDef) and `mode` ('normal' | 'trial'). No flow, no rendering.
-- `src/game/scenes/` — flow as a scene STACK (Title, Overworld, Gameplay, Pause, Won,
-  GameOver). Only the top scene updates; all draw bottom-up (Pause is pushed over
+- `src/game/scenes/` — flow as a scene STACK (Title, Overworld, OverworldPause, Gameplay,
+  Pause, Won, GameOver). Only the top scene updates; all draw bottom-up (Pause is pushed over
   Gameplay and freezes it by covering it). New screen = new scene. Flow: Title →
   Overworld (Mario-style level map: walk node to node, jump/confirm enters; a completed
-  level opens the normal/time-trial mode chooser) → Gameplay → Won/GameOver → Overworld.
+  level opens the normal/time-trial mode chooser; pause pushes OverworldPause — resume /
+  fullscreen / language / main menu, since on the map there's no run to restart or abandon)
+  → Gameplay → Won/GameOver → Overworld. A gamepad's START reports as BOTH 'pause' and
+  'confirm' (input.ts button 9), so a scene must test 'pause' FIRST or START gets eaten by
+  the confirm branch.
 - `src/game/systems/` — gameplay rules as functions over the session: `combat.ts`
   (stomp-vs-hurt; `isStomp` is the pure, tested decision), `pickups.ts`, `transitions.ts`,
   `devices.ts` (springs launch, moving platforms carry; ORDER matters — carry before
@@ -157,13 +161,31 @@ Player-facing text is **neutral LatAm Spanish (tuteo)** + English,
   hit-stop, the shared animation `Clock` also ticking on menus. Don't "simplify" them away.
 - Touch UI: ability buttons (dash) only appear once unlocked (`syncTouchUI` via
   `scenes.ui` + `hasDash`). Keep the `UiState` shape stable — touch.ts/langSwitch depend on it.
-  On touch the canvas cedes a side gutter per side (`--tc-gutter` in style.css) and the
-  controls live ONLY in those letterbox bands — they must never cover gameplay. Button
-  faces are code-baked pixel-art sprites (`ui/touchButtons.ts`: cave-violet pad/pause,
-  crystal-gold jump, player-cyan dash; menu labels baked with the game `font()`), served
-  as data-URLs in `--tc-face`/`--tc-face-down` and stretched with `image-rendering:
-  pixelated` — keep CSS button aspect = native sprite aspect so pixels stay square. New
-  on-screen buttons go in the gutters; widening a cluster must grow `--tc-gutter` too.
+  Button faces are code-baked pixel-art sprites (`ui/touchButtons.ts`: cave-violet pad/pause,
+  crystal-gold jump, player-cyan dash, violet joystick socket + crystal knob; menu labels
+  baked with the game `font()`), served as data-URLs in `--tc-face`/`--tc-face-down` and
+  stretched with `image-rendering: pixelated` — keep CSS button aspect = native sprite
+  aspect so pixels stay square.
+- **The controls are the PLAYER's** (`touchLayout.ts`, pure + tested; the drag editor lives
+  in touch.ts, opened from the touch pause menu → "Controls"). Every control has its own
+  position (viewport fraction), scale and a global opacity, persisted to localStorage
+  (`cristales-touch`). The old "golden rule" (controls confined to the letterbox gutters,
+  never over gameplay) is now only the DEFAULT layout: free placement is deliberate, so a
+  button overlapping the game is a CHOICE, not a bug to fix. Movement defaults to the
+  JOYSTICK (`move: 'stick'`); the 3-button d-pad is still there behind the editor's "Mover".
+  Hard-won invariants, each one a real bug:
+  - `.tc-game .tc-pause` MUST keep a z-index above its siblings. Controls are draggable and
+    paint in DOM order, so a button parked on pause would BURY it → no pause → no editor →
+    no reset, and the layout persists. Unrecoverable.
+  - `resetHold()` MUST bail when the touch DOM was never built: it calls `touchButton()`,
+    which sets the engine's `lastDevice='touch'`, and `syncTouchUI` runs on DESKTOP too.
+  - Movement buttons slide (a thumb travels ◀→▶→▼ without lifting, hit-tested with
+    `elementFromPoint`); jump/dash are STICKY (held till the finger lifts) — as slide targets,
+    thumb drift cut glides short and re-fired jumps. Sliding buttons must use only the
+    JS-driven `.is-active`, never CSS `:active` (touch pins `:active` to the button the
+    finger LANDED on, so the origin looks held for the whole slide).
+  - JS places the controls, so it must honour `env(safe-area-inset-*)` itself (the `.tc-safe`
+    probe) — CSS no longer does it.
 - Character customization has two axes, both pure-data modules with their own
   localStorage preference (like the language): `skins.ts` (palette tints over the player
   ramp only) and `accessories.ts` (small grids overlaid per-frame anchored to the head

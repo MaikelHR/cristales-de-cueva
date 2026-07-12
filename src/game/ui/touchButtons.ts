@@ -200,6 +200,103 @@ export function bakeControlFaces(): {
   };
 }
 
+// --- Joystick (the optional movement stick) -----------------------------
+//  Same gem language as the buttons, but ROUND: a carved socket (dark well
+//  ringed by a lit bevel, with the three directions the game uses etched on
+//  the rim) and a crystal knob that sits in it. The knob is a separate face
+//  because it MOVES with the thumb; touch.ts translates it inside the socket.
+
+const STICK_BASE = 32; // native px of the socket (square: pixels stay square)
+const STICK_KNOB = 16; // native px of the knob — half the socket, so the rim stays readable
+
+// Tiny direction etchings for the rim (the stick only drives left/right/down,
+// exactly like the d-pad it replaces — up is the jump button's job).
+const TICK_L = ['..X', '.XX', 'XXX', '.XX', '..X'];
+const TICK_R = ['X..', 'XX.', 'XXX', 'XX.', 'X..'];
+const TICK_D = ['XXXXX', '.XXX.', '..X..'];
+
+/**
+ * The socket: a carved gem ring (lit bevel above, shadow below, like the
+ * tiles) around a recessed dark WELL, with the three directions etched on the
+ * rim. It has a SINGLE face on purpose — the press is told by the knob moving
+ * and lighting gold, so gold-rimming the socket too just made a gaudy double
+ * ring. The well stays dark so the bright knob pops out of it.
+ */
+function bakeStickBase(): string {
+  const [canvas, ctx] = makeCanvas(STICK_BASE, STICK_BASE);
+  const ramp = VIOLET;
+  const c = STICK_BASE / 2;
+  for (let y = 0; y < STICK_BASE; y++) {
+    for (let x = 0; x < STICK_BASE; x++) {
+      const dx = x + 0.5 - c;
+      const dy = y + 0.5 - c;
+      const d = Math.hypot(dx, dy);
+      let col: string | null = null;
+      if (d > 15.5) col = null; // outside the gem
+      else if (d > 14.0) col = ramp.outline; // rim outline
+      else if (d > 12.8) col = dy < 0 ? ramp.top : ramp.bottom; // bevel: lit above
+      else if (d > 8.8) col = dy < 0 ? ramp.mid : ramp.dark; // ring face
+      else if (d > 7.8) col = ramp.outline; // the socket's carved edge
+      else col = dy < -1.5 ? ramp.bottom : ramp.dark; // the WELL, shadowed at the top
+      if (col) {
+        ctx.fillStyle = col;
+        ctx.fillRect(x, y, 1, 1);
+      }
+    }
+  }
+  for (const [grid, gx, gy] of [
+    [TICK_L, 3, 13],
+    [TICK_R, 26, 13],
+    [TICK_D, 13, 25],
+  ] as Array<[string[], number, number]>) {
+    drawGrid(ctx, grid, ramp.glyphShadow, gx + 1, gy + 1);
+    drawGrid(ctx, grid, ramp.glyph, gx, gy);
+  }
+  return canvas.toDataURL();
+}
+
+/** The knob: a crystal cap (lit dome, brighter than the well so it reads as a
+ *  separate piece, plus a gem glint) that rides in the socket. Under the thumb
+ *  its rim lights GOLD — the same "a crystal just woke up" note as every other
+ *  pressed button. */
+function bakeStickKnob(pressed: boolean): string {
+  const [canvas, ctx] = makeCanvas(STICK_KNOB, STICK_KNOB);
+  const ramp = VIOLET;
+  const c = STICK_KNOB / 2;
+  for (let y = 0; y < STICK_KNOB; y++) {
+    for (let x = 0; x < STICK_KNOB; x++) {
+      const dx = x + 0.5 - c;
+      const dy = y + 0.5 - c;
+      const d = Math.hypot(dx, dy);
+      let col: string | null = null;
+      if (d > 7.7) col = null;
+      else if (d > 6.3) col = pressed ? PALETTE.t : ramp.outline; // gold rim under the thumb
+      else if (dy < -2.6) col = ramp.top; // domed, lit top
+      else if (dy < 1.6) col = PALETTE.m; // crystal body: brighter than the well
+      else col = ramp.mid; // shadowed underside
+      if (col) {
+        ctx.fillStyle = col;
+        ctx.fillRect(x, y, 1, 1);
+      }
+    }
+  }
+  // Gem glint at the lit corner, like every chassis in the game.
+  ctx.fillStyle = ramp.glyph;
+  ctx.fillRect(5, 4, 2, 1);
+  ctx.fillRect(5, 5, 1, 1);
+  return canvas.toDataURL();
+}
+
+/** The joystick's two pieces. The socket doesn't change under the thumb (the
+ *  knob says it), so its idle and pressed faces are the same bake. */
+export function bakeStickFaces(): { base: TouchFace; knob: TouchFace } {
+  const socket = bakeStickBase();
+  return {
+    base: { idle: socket, pressed: socket },
+    knob: { idle: bakeStickKnob(false), pressed: bakeStickKnob(true) },
+  };
+}
+
 /** Face of a pause-menu button: same chassis, but with the label
  *  written in the game's SAME font at native resolution — when stretched
  *  it comes out pixelated just like the menus drawn inside the canvas. It's

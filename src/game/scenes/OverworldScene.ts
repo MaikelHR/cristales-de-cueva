@@ -17,7 +17,7 @@ import { drawOverworld, OW_NODES } from '../ui/overworld';
 import { sfx } from '../sfx';
 import type { Scene, SceneManager, UiState } from './Scene';
 import { GameplayScene } from './GameplayScene';
-import { TitleScene } from './TitleScene';
+import { OverworldPauseScene } from './OverworldPauseScene';
 
 const WALK_SPEED = 70; // px/s of the character along the path
 
@@ -92,19 +92,33 @@ export class OverworldScene implements Scene {
 
     // --- Mode chooser ---
     if (this.choosing) {
+      // 'pause' FIRST: a gamepad's START reports as both 'pause' and 'confirm'
+      // (input.ts maps button 9 to each), so testing confirm first would enter
+      // the level instead of backing out.
+      if (justPressed('pause')) {
+        this.choosing = false; // cancel and return to the map
+        return;
+      }
       if (justPressed('left') || justPressed('right')) {
         this.choice = this.choice === 'normal' ? 'trial' : 'normal';
         sfx.pickup();
       }
       if (justPressed('confirm') || justPressed('jump')) {
         this.enterLevel(this.choice);
-      } else if (justPressed('pause')) {
-        this.choosing = false; // cancel and return to the map
       }
       return;
     }
 
     // --- Standing on a node ---
+    // Again 'pause' first, so a gamepad's START (= pause AND confirm) opens the
+    // map menu instead of diving into the level.
+    if (justPressed('pause')) {
+      // The map's own menu (resume / fullscreen / language / main menu).
+      // It used to jump straight to the title, which on touch meant the
+      // pause button threw you out with no options (not even fullscreen).
+      this.scenes.push(new OverworldPauseScene(this.session, this.scenes));
+      return;
+    }
     if (justPressed('right') && this.node < this.maxNode) {
       this.target = this.node + 1;
       this.walkTime = 0;
@@ -123,8 +137,6 @@ export class OverworldScene implements Scene {
       } else {
         this.enterLevel('normal');
       }
-    } else if (justPressed('pause')) {
-      this.scenes.replace(new TitleScene(this.session, this.scenes));
     }
   }
 
