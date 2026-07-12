@@ -201,6 +201,7 @@ body.touch {
 }
 
 .tc-left,
+.tc-down,
 .tc-right {
   width: 72px;
   height: 72px;
@@ -318,10 +319,11 @@ body.touch {
     right: calc(12px + env(safe-area-inset-right, 0px));
   }
   .tc-left,
+  .tc-down,
   .tc-right {
-    width: 60px;
-    height: 60px;
-    font-size: 26px;
+    width: 54px;
+    height: 54px;
+    font-size: 24px;
   }
   .tc-dash {
     width: 56px;

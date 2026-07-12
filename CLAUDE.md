@@ -71,6 +71,44 @@ inside. Design metrics (TILE=8): jump ≈ 4 tiles high, double jump ≈ 7, sprin
 wall-jump chimneys 4 wide; a dash gate is ~14 tiles at same height (impossible without
 dash, comfortable with it). Level 1 id ('cavernas') is pinned in save.ts for migration.
 
+## Level design standards (the bar every room must clear)
+
+Hard-won from playtesting. Check ALL of these before calling a room done:
+
+- **Every crystal asks a deliberate move** — a jump line, a dip into a hole, a
+  skill test. Never collectable by walking the main path (the #1 playtest complaint).
+- **Threats are readable**: entry ground is safe; nothing aggros on arrival
+  (chaser DETECT_X = 92px ≈ 12 tiles — keep spawns outside it). Put guards
+  ACROSS a pit/gap so the player watches them and picks the moment.
+- **Holes pay**: no dead-end geometry. A pit serves the route or hides a reward.
+  Teach the language cheap early (senda's ditch), pay it off later (umbral's
+  crystal behind the door).
+- **Foreshadow gates**: show an unreachable crystal BEFORE its ability; put it
+  right above the re-entry point so the backtrack loop is short. Prove the gate
+  from EVERY standing spot — diagonal approaches from high ledges too (block
+  them with ceiling pillars).
+- **Two readings per room**: a safe route and a faster riskier line — records
+  need texture. Rooms with moving-platform waits especially need a no-wait line.
+- **Both directions stay traversable** with the abilities held there (players
+  backtrack for missed crystals). Planks catch falls: a full-width plank makes
+  a shaft one-way — leave a slip lane (down+jump also drops through).
+- **Clearance over stompables**: never hang a plank/ledge <2 tiles above an
+  enemy's highest point (bob included) — a one-way surface just above a boss
+  eats every stomp arc (the level-3 playtest bug). Boss box 18×14, bobs ±6px.
+- **No softlock pockets**: anywhere a player can fall must be escapable with
+  the MINIMAL ability set possible there (e.g. hole ≤ 4 deep if reachable
+  without doubleJump; ≤ 3 to be comfortable).
+- **Curriculum**: each level = learn (safe) → practice → exam for its relic
+  ability, and its exam may quote skills from earlier levels. Each level must
+  introduce ≥1 genuinely NEW mechanic (ability, device, enemy, rule — not just
+  harder numbers); target ~5 new mechanics per world. Each level also gets its
+  own visual identity (palette/atmosphere/music) — never a re-skin of a
+  previous level's look.
+- **Work the grid like a surveyor**: before editing a room, print its tiles
+  with a column ruler (node one-liner) and verify row widths, border openings
+  matching the neighbor rooms, and the design metrics above. `npm test`
+  catches integrity, not design.
+
 ## Conventions
 
 Player-facing text is **neutral LatAm Spanish (tuteo)** + English,
@@ -79,7 +117,8 @@ Player-facing text is **neutral LatAm Spanish (tuteo)** + English,
   footer/chrome. Everything player-facing lives in-canvas — Title menu (play/fullscreen/
   language) and Pause menu (resume/restart/fullscreen/language/exit to map), navigated
   with the 'up'/'down'/'confirm' actions (keys can map to SEVERAL actions: ↑/W = jump+up,
-  space = jump+confirm). The touch pause menu stays DOM buttons (touch.ts); its "exit to
+  space = jump+confirm). 'down' (S/↓, d-pad/stick, touch ▼) also drops the player
+  through one-way planks with down+jump (Player.onPlankOnly + dropTimer). The touch pause menu stays DOM buttons (touch.ts); its "exit to
   map" arrives as the 'quit' action; the ES/EN DOM chip is touch-only, menus-only.
   Both languages must have every key (the `en` table is typed to enforce it).
 - Behavior-preserving details matter here (game feel): coyote time, jump buffer,

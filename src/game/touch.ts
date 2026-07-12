@@ -48,6 +48,7 @@ const holdResetters: Array<() => void> = [];
 /** Acciones que el módulo táctil sabe emitir. */
 type TouchAction =
   | 'left'
+  | 'down'
   | 'right'
   | 'jump'
   | 'dash'
@@ -112,8 +113,10 @@ function buildTouchControls(canvas: HTMLCanvasElement): void {
   const pad = document.createElement('div');
   pad.className = 'tc-pad';
   const btnLeft = makeButton('tc-btn tc-left', t('tc_left_aria'), '◀');
+  // Abajo va en el medio: navega menús y baja de los tablones (abajo+saltar).
+  const btnDown = makeButton('tc-btn tc-down', t('tc_down_aria'), '▼');
   const btnRight = makeButton('tc-btn tc-right', t('tc_right_aria'), '▶');
-  pad.append(btnLeft, btnRight);
+  pad.append(btnLeft, btnDown, btnRight);
   // Acciones (abajo-derecha).
   const actions = document.createElement('div');
   actions.className = 'tc-actions';
@@ -137,6 +140,7 @@ function buildTouchControls(canvas: HTMLCanvasElement): void {
   const relocalize = (): void => {
     btnPause.setAttribute('aria-label', t('tc_pause_aria'));
     btnLeft.setAttribute('aria-label', t('tc_left_aria'));
+    btnDown.setAttribute('aria-label', t('tc_down_aria'));
     btnRight.setAttribute('aria-label', t('tc_right_aria'));
     setLabel(btnDash, t('tc_dash_aria'), t('tc_dash_text'));
     setLabel(btnJump, t('tc_jump_aria'), t('tc_jump_text'));
@@ -154,6 +158,7 @@ function buildTouchControls(canvas: HTMLCanvasElement): void {
   // --- Cableado de eventos ---
   // HOLD: valen mientras el dedo se mantenga apoyado.
   bindHold(btnLeft, 'left');
+  bindHold(btnDown, 'down');
   bindHold(btnRight, 'right');
   bindHold(btnJump, 'jump');
   bindHold(btnDash, 'dash');

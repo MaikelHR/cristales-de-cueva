@@ -15,7 +15,7 @@ import { isDown, justPressed } from '../../engine/input';
 import type { Box } from '../../engine/canvas';
 import { overlaps } from '../../engine/canvas';
 import { frameAt } from '../../engine/animation';
-import { Level } from '../world/Level';
+import { Level, TILE } from '../world/Level';
 import type { AbilityName } from '../abilities';
 import { Particles } from '../effects/Particles';
 import { playerSprites } from '../art/playerSkins';
@@ -94,6 +94,7 @@ export class Player {
   private wallSliding = false; // para elegir el sprite de pared
 
   private launched = false; // impulso externo (resorte): sin recorte de salto
+  private dropTimer = 0;    // >0 = bajando a través de un tablón (los ignora)
   private coyoteTimer = 0;
   private bufferTimer = 0;
   private animTime = 0;
@@ -122,6 +123,7 @@ export class Player {
     this.hurtLock = 0;
     this.stompGrace = 0;
     this.launched = false;
+    this.dropTimer = 0;
   }
 
   box(): Box {
@@ -180,6 +182,7 @@ export class Player {
     this.wallSliding = false;
     this.invulnTimer = Math.max(0, this.invulnTimer - dt);
     this.stompGrace = Math.max(0, this.stompGrace - dt);
+    this.dropTimer = Math.max(0, this.dropTimer - dt);
 
     // ---- Dash: ¿arranca uno? ----
     this.dashCooldown = Math.max(0, this.dashCooldown - dt);
@@ -237,7 +240,16 @@ export class Player {
       // ---- Saltos: piso (con coyote) > pared > doble salto ----
       if (this.bufferTimer > 0) {
         const wall = this.onGround ? 0 : this.wallDir();
-        if (this.coyoteTimer > 0) {
+        if (this.coyoteTimer > 0 && isDown('down') && this.onPlankOnly()) {
+          // Abajo + saltar sobre un tablón: en vez de saltar, lo atraviesa
+          // hacia abajo (los tablones dejan de frenar por unos frames).
+          this.dropTimer = 0.16;
+          this.onGround = false;
+          this.bufferTimer = 0;
+          this.coyoteTimer = 0;
+          this.vy = Math.max(this.vy, 60);
+          this.particles.puff(this.x + this.w / 2, this.y + this.h, 3, DUST_COLORS);
+        } else if (this.coyoteTimer > 0) {
           this.vy = -JUMP_SPEED;
           this.onGround = false;
           this.bufferTimer = 0;
@@ -349,13 +361,29 @@ export class Player {
     return 0;
   }
 
+  /** ¿Está parado SOLO sobre tablones? (ni un tile sólido bajo los pies).
+   *  Es la condición para poder bajarse de uno con abajo + saltar. */
+  private onPlankOnly(): boolean {
+    const row = Math.floor((this.y + this.h + 1) / TILE);
+    const c0 = Math.floor(this.x / TILE);
+    const c1 = Math.floor((this.x + this.w) / TILE);
+    let plank = false;
+    for (let col = c0; col <= c1; col++) {
+      if (this.level.solidCell(row, col)) return false;
+      if (this.level.oneWayCell(row, col)) plank = true;
+    }
+    return plank;
+  }
+
   /**
    * Plataformas de un solo sentido: solo frenan la caída si los pies
    * venían DESDE ARRIBA del tablón. Subiendo (o desde el costado) se
-   * atraviesan sin tocarlas.
+   * atraviesan sin tocarlas. Con abajo + saltar se bajan a propósito
+   * (dropTimer las apaga unos frames).
    */
   private resolveOneWay(prevBottom: number): void {
     if (this.vy < 0) return; // subiendo: siempre se atraviesan
+    if (this.dropTimer > 0) return; // bajando a propósito: no frenan
     const box = this.box();
     for (const tile of this.level.oneWayTilesIn(box)) {
       if (!overlaps(box, tile)) continue;

@@ -54,7 +54,9 @@ export class Chaser implements Enemy {
     const wall = this.level.isSolidAt(aheadX, this.y + this.h / 2);
     const footX = this.dir === 1 ? next + this.w + 1 : next - 1;
     const floor = this.level.isSolidAt(footX, this.y + this.h + 1);
-    if (wall || !floor) {
+    // Púas adelante: gira como en un borde, incluso persiguiendo
+    const spikes = this.level.touchesSpike({ x: footX, y: this.y, w: 1, h: this.h + 2 });
+    if (wall || !floor || spikes) {
       this.dir = (this.dir * -1) as 1 | -1;
     } else {
       this.x = next;

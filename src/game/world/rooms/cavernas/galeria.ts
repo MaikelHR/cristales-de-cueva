@@ -1,11 +1,14 @@
 import type { RoomData } from '../../RoomData';
 
 /** Nivel 1, sala 2 — La galería: acá se gana el doble salto.
- *  La reliquia brilla sobre un pedestal bajo (imposible no verla);
- *  enseguida un murallón de 6 tiles hace la pregunta que la reliquia
- *  responde. Arriba, un camino fino con un hueco de 7 tiles que se
- *  cruza con el salto doble; caer no mata: abajo hay piso y una
- *  escalerita para reintentar sin volver a empezar. */
+ *  La reliquia brilla sobre un pedestal bajo (imposible no verla) y
+ *  un cristal flota a 7 tiles del piso: el examen inmediato de lo
+ *  recién aprendido. Después, el murallón de 6 tiles y arriba un
+ *  camino fino con un hueco de 7 tiles; el otro cristal flota ALTO
+ *  sobre el hueco — cruzar con línea alta, no de pasada. Caer no
+ *  mata: bajo el hueco hay un resorte que devuelve arriba (y abre
+ *  la ruta rápida del contrarreloj: corredor de abajo a fondo,
+ *  resorte, cristal al vuelo, salir por las plataformas). */
 export const galeria: RoomData = {
   id: 'galeria',
   mapPos: { x: 1, y: 0 },
@@ -37,7 +40,8 @@ export const galeria: RoomData = {
   entities: [
     { type: 'relic', ability: 'doubleJump', x: 15, y: 14 },
     { type: 'slime', x: 10, y: 18 },
-    { type: 'crystal', x: 34, y: 12 },
-    { type: 'crystal', x: 40, y: 11 },
+    { type: 'crystal', x: 19, y: 12 },
+    { type: 'crystal', x: 34, y: 10 },
+    { type: 'spring', x: 34, y: 18 },
   ],
 };

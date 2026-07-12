@@ -1,10 +1,14 @@
 import type { RoomData } from '../../RoomData';
 
 /** Nivel 1, sala 3 — El umbral: el examen del nivel.
- *  Un cazador patrulla la entrada (pisalo o corré), dos fosos de
- *  verdad (caer cuesta un corazón) y un tablón alto en medio del
- *  segundo que pide el doble salto recién aprendido, con un volador
- *  rondando el cruce. La puerta espera sobre el altar. */
+ *  La entrada es tierra segura: el cazador acecha la cornisa del
+ *  medio, del otro lado del primer foso — se lo ve venir, se elige
+ *  el momento (pisalo al caer o esquivalo). Dos fosos de verdad
+ *  (caer cuesta un corazón), un tablón alto sobre el segundo que
+ *  pide el doble salto recién aprendido y un volador rondando el
+ *  cruce. La puerta espera sobre el altar… y el último cristal
+ *  brilla en el hueco DETRÁS de ella: la zanja de la senda ya
+ *  enseñó que asomarse a los huecos paga. */
 export const umbral: RoomData = {
   id: 'umbral',
   mapPos: { x: 2, y: 0 },
@@ -28,15 +32,15 @@ export const umbral: RoomData = {
     '#..........................---..............########...#',
     '............................................########...#',
     '........................................############...#',
-    '........................................############...#',
+    '........................................################',
     '#############....########.......########################',
     '#############....########.......########################',
     '#############....########.......########################',
   ],
   entities: [
-    { type: 'chaser', x: 8, y: 18 },
+    { type: 'chaser', x: 21, y: 18 },
     { type: 'flyer', x: 35, y: 13 },
-    { type: 'crystal', x: 42, y: 15 },
+    { type: 'crystal', x: 53, y: 16 },
     { type: 'door', x: 47, y: 14 },
   ],
 };

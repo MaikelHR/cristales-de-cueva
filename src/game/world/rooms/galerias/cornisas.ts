@@ -1,26 +1,31 @@
 import type { RoomData } from '../../RoomData';
 
 /** Nivel 2, sala 1 — Las cornisas: púas y resorte, presentados.
- *  Una franja corta de púas que se salta (la lección barata), un
- *  campo de púas que se cruza brincando de piedra en piedra con un
- *  volador encima, y al final una mesa de 9 tiles que ningún salto
- *  alcanza: el resorte de su base hace la demostración solo. */
+ *  Una franja corta de púas que se salta (la lección barata, con su
+ *  cristal encima: saltarla bien ES cobrar), un campo de púas que se
+ *  cruza brincando de piedra en piedra con un volador encima, y al
+ *  final una mesa de 9 tiles que ningún salto alcanza: el resorte de
+ *  su base hace la demostración solo.
+ *  Junto a la salida, una ranura de 4 tiles cuelga del techo con un
+ *  cristal adentro: se ve al pasar y NO se alcanza — pide el salto
+ *  de pared que espera en la chimenea. Es la promesa del nivel: al
+ *  volver con la reliquia, la ranura está justo sobre la entrada. */
 export const cornisas: RoomData = {
   id: 'cornisas',
   mapPos: { x: 0, y: 0 },
   exits: { right: 'chimenea' },
   tiles: [
     '################################################################',
-    '#..............................................................#',
-    '#..............................................................#',
-    '#..............................................................#',
-    '#..............................................................#',
-    '#..............................................................#',
-    '#..............................................................#',
-    '#..............................................................#',
-    '#..............................................................#',
-    '#..............................................................#',
-    '#............................................########..........#',
+    '#........................................................##....#',
+    '#........................................................##....#',
+    '#........................................................##....#',
+    '#........................................................##....#',
+    '#........................................................##....#',
+    '#........................................................##....#',
+    '#........................................................##....#',
+    '#........................................................##....#',
+    '#........................................................##....#',
+    '#............................................########....##....#',
     '#............................................########..........#',
     '#............................................########..........#',
     '#............................................########..........#',
@@ -35,9 +40,10 @@ export const cornisas: RoomData = {
   ],
   entities: [
     { type: 'playerSpawn', x: 3, y: 17 },
-    { type: 'crystal', x: 16, y: 17 },
+    { type: 'crystal', x: 12, y: 15 },
     { type: 'flyer', x: 29, y: 11 },
     { type: 'spring', x: 43, y: 18 },
     { type: 'crystal', x: 48, y: 8 },
+    { type: 'crystal', x: 61, y: 4 },
   ],
 };

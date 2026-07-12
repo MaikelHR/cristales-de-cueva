@@ -2,10 +2,11 @@ import type { RoomData } from '../../RoomData';
 
 /** Nivel 1, sala 1 — La senda: el paseo de bienvenida.
  *  Terreno que sube de a un escalón (enseña que 1 tile se salta,
- *  no se camina), una zanja con fondo (el primer "hueco" es
- *  inofensivo: caer solo cuesta volver a subir), un slime en la
- *  meseta para aprender el pisotón y un tablón con cristal que
- *  enseña a atravesarlos desde abajo. */
+ *  no se camina), una zanja con fondo que guarda un cristal (la
+ *  primera lección de la cueva: asomarse a los huecos paga — el
+ *  umbral la retoma al final), un slime en la meseta para aprender
+ *  el pisotón y un tablón con cristal que enseña a atravesarlos
+ *  desde abajo. Ningún cristal se recoge caminando derecho. */
 export const senda: RoomData = {
   id: 'senda',
   mapPos: { x: 0, y: 0 },
@@ -36,7 +37,7 @@ export const senda: RoomData = {
   ],
   entities: [
     { type: 'playerSpawn', x: 3, y: 17 },
-    { type: 'crystal', x: 11, y: 16 },
+    { type: 'crystal', x: 21, y: 18 },
     { type: 'crystal', x: 27, y: 12 },
     { type: 'slime', x: 27, y: 16 },
   ],
