@@ -119,6 +119,7 @@ startLoop(
     syncTouchUI(ui); // reflect the game state in the touch UI
     syncLangSwitch(ui); // show/hide the language selector depending on state
     syncSkinSwitch(ui); // same for the character skin selector
-    syncMusic(scenes.ui, session.level.id); // the track this screen gets
+    // The track this screen gets (the boss theme takes over mid-level).
+    syncMusic(scenes.ui, session.level.id, session.bossEngaged);
   },
 );

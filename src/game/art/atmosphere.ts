@@ -141,6 +141,21 @@ const THEMES: Record<string, CaveTheme> = {
     drip: '#a8f0ff',
     fog: ['#3f9aa0', '#2c7078', '#1e565e'],
   },
+  // The great door's threshold: violet cave stone flooded from above
+  // by the gold light leaking around the seal — dawn inside the rock.
+  puerta: {
+    gradTop: '#1c1128', gradBottom: '#453017',
+    strata: '#241830',
+    crystals: ['#6b5a34', '#8a7440', '#a8903f'], spark: '#ffe9a8',
+    skyline: '#2a1e38',
+    haze: 'rgba(255, 210, 90, 0.07)',
+    ray: '255,226,160',
+    mid: '#251736', midEdge: '#4a3a60', root: '#332448',
+    accent: '#ffd76a', accentLight: '#fff3c0',
+    near: '#1e1330', nearTop: '#3a2c50',
+    drip: '#ffe9a8',
+    fog: ['#a08850', '#786040', '#54452e'],
+  },
   // The level map: the same violet grotto but with a gold accent
   // (the record crystals along the path drive the palette).
   overworld: {

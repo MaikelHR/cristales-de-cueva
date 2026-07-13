@@ -37,7 +37,9 @@ export type EnemyKind =
   | 'ariete'
   | 'medusa'
   | 'anguila'
-  | 'ajolote';
+  | 'ajolote'
+  | 'custodio'
+  | 'vigia';
 
 export type EntitySpawn =
   // Plain enemies (just a cell). medusa/anguila carry extra fields, below.
@@ -63,6 +65,10 @@ export type EntitySpawn =
   // cells from (x, y) toward `dir`. Like the vent, it only grips a
   // player already in its element (here, one who has dived under).
   | (Cell & { type: 'corriente'; dir: 'up' | 'left' | 'right'; length: number })
+  // Blink platform: a 3-cell crystal slab that phases in and out on a
+  // fixed cycle (it sputters before vanishing, motes gather before it
+  // returns). `offset` staggers the cycle between platforms, like geysers.
+  | (Cell & { type: 'blink'; offset?: number })
   // Jellyfish: drifts up and down `range` cells around (x, y). An
   // untouchable hazard — nothing kills it, you route around it.
   | (Cell & { type: 'medusa'; range: number })

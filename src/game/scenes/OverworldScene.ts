@@ -3,15 +3,16 @@
 // ------------------------------------------------------------
 //  A 10-node path through the grotto; the character WALKS from
 //  node to node (left/right) and enters the level with jump/
-//  confirm. Completing a level unlocks the next; for now there
-//  are 3 real levels and the other nodes wait ('???').
+//  confirm. Completing a level unlocks the next; the FINAL level
+//  sits at the great door (the last node) and any node without a
+//  level yet is a '?' stone: steppable on the way, not enterable.
 //  Over an already-completed level, entering opens the mode
 //  chooser: NORMAL or TIME-TRIAL (left/right + confirm).
 // ============================================================
 
 import { justPressed } from '../../engine/input';
 import type { GameSession, GameMode } from '../session';
-import { LEVELS } from '../world/rooms';
+import { LEVELS, levelAtNode, nodeOfLevel } from '../world/rooms';
 import { levelRecord, unlockedLevels } from '../save';
 import { drawOverworld, OW_NODES } from '../ui/overworld';
 import { sfx } from '../sfx';
@@ -51,11 +52,13 @@ export class OverworldScene implements Scene {
     this.y = OW_NODES[this.node].y;
   }
 
-  /** The farthest steppable node: whatever the save has unlocked
-   *  (never past the last level that actually exists). */
+  /** The farthest steppable node: the one the last unlocked level
+   *  stands on. The final level lives at the door (the last node), so
+   *  unlocking it makes the whole path — '?' stones included — walkable. */
   get maxNode(): number {
     const ids = LEVELS.map((l) => l.id);
-    return Math.min(unlockedLevels(this.session.save, ids), LEVELS.length) - 1;
+    const unlocked = Math.min(unlockedLevels(this.session.save, ids), LEVELS.length);
+    return nodeOfLevel(unlocked - 1);
   }
 
   /** Is it walking between nodes? (picks the sprite and silences input) */
@@ -128,8 +131,11 @@ export class OverworldScene implements Scene {
       this.walkTime = 0;
       this.facing = -1;
     } else if (justPressed('confirm') || justPressed('jump')) {
+      // A '?' stone (a level that doesn't exist yet) can't be entered.
+      const level = levelAtNode(this.node);
+      if (!level) return;
       // Already-completed level: pick the mode; otherwise straight to play.
-      const completed = levelRecord(this.session.save, LEVELS[this.node].id).completions > 0;
+      const completed = levelRecord(this.session.save, level.id).completions > 0;
       if (completed) {
         this.choosing = true;
         this.choice = 'normal';
@@ -142,7 +148,7 @@ export class OverworldScene implements Scene {
 
   private enterLevel(mode: GameMode): void {
     lastNode = this.node;
-    this.session.startLevel(LEVELS[this.node], mode);
+    this.session.startLevel(levelAtNode(this.node)!, mode);
     this.scenes.replace(new GameplayScene(this.session, this.scenes));
     sfx.relic();
   }

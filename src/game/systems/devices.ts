@@ -14,6 +14,7 @@
 import { overlaps } from '../../engine/canvas';
 import type { GameSession } from '../session';
 import { MovingPlatform } from '../actors/devices/MovingPlatform';
+import { BlinkPlatform } from '../actors/devices/Blink';
 import { Spring, SPRING_SPEED } from '../actors/devices/Spring';
 import { Vent, VENT_ACCEL, VENT_RISE } from '../actors/devices/Vent';
 import { Corriente } from '../actors/Corriente';
@@ -51,6 +52,17 @@ export function resolveDeviceContacts(session: GameSession, dt: number): void {
       if (player.vy < 0 || !xOverlap) continue; // moving up passes through
       // Landed this step, or still standing on top (gravity sinks it
       // a hair each frame; the margin absorbs it and re-seats it).
+      if (feet >= b.y && prevFeet <= b.y + 3) {
+        player.y = b.y - player.h;
+        player.vy = 0;
+        player.onGround = true;
+        d.rider = true;
+      }
+    } else if (d instanceof BlinkPlatform) {
+      // Same one-way landing as the mover, but only while the slab is
+      // THERE: when it phases out underfoot, the rider simply falls.
+      d.rider = false;
+      if (!d.solid || player.vy < 0 || !xOverlap) continue;
       if (feet >= b.y && prevFeet <= b.y + 3) {
         player.y = b.y - player.h;
         player.vy = 0;

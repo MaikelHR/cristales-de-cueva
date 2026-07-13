@@ -18,6 +18,9 @@ export interface Enemy extends Actor {
   readonly gooColors: readonly string[];
   /** bosses block the door until defeated. */
   readonly isBoss?: boolean;
+  /** for bosses with a sleep phase: true only once the fight is ON
+   *  (drives the boss music). Absent = engaged whenever alive. */
+  readonly engaged?: boolean;
   /** true = a stomp AND a pound both bounce off harmlessly and hurt
    *  the player instead (the jellyfish: route around it, don't fight it).
    *  Where the erizo only punished a stomp, this can't be touched at all. */

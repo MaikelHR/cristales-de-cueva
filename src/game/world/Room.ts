@@ -21,6 +21,8 @@ import { Spitter } from '../actors/enemies/Spitter';
 import { Erizo } from '../actors/enemies/Erizo';
 import { Geyser } from '../actors/enemies/Geyser';
 import { Ariete } from '../actors/enemies/Ariete';
+import { Custodio } from '../actors/enemies/Custodio';
+import { Vigia } from '../actors/enemies/Vigia';
 import { Medusa } from '../actors/Medusa';
 import { Anguila } from '../actors/Anguila';
 import { Ajolote } from '../actors/Ajolote';
@@ -28,6 +30,7 @@ import { Crystal } from '../actors/pickups/Crystal';
 import { Relic } from '../actors/pickups/Relic';
 import { Spring } from '../actors/devices/Spring';
 import { MovingPlatform } from '../actors/devices/MovingPlatform';
+import { BlinkPlatform } from '../actors/devices/Blink';
 import { Vent } from '../actors/devices/Vent';
 import { Corriente } from '../actors/Corriente';
 
@@ -69,6 +72,12 @@ export class Room {
         case 'ariete':
           this.actors.push(new Ariete(px, py, this.level));
           break;
+        case 'custodio':
+          this.actors.push(new Custodio(px, py, this.level));
+          break;
+        case 'vigia':
+          this.actors.push(new Vigia(px, py, this.level));
+          break;
         case 'medusa':
           this.actors.push(new Medusa(px, py, e.range));
           break;
@@ -92,6 +101,9 @@ export class Room {
           break;
         case 'platform':
           this.actors.push(new MovingPlatform(px, py, e.axis, e.range, e.speed));
+          break;
+        case 'blink':
+          this.actors.push(new BlinkPlatform(px, py, e.offset));
           break;
         case 'vent':
           this.actors.push(new Vent(px, py, e.height, clock));

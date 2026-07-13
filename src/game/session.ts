@@ -118,6 +118,14 @@ export class GameSession {
     return this.world.allRooms.some((r) => r.enemies.some((e) => e.isBoss && !e.dead));
   }
 
+  /** Is a boss fight actually ON in the current room? Drives the boss
+   *  music: a still-sleeping warden doesn't get its theme yet. */
+  get bossEngaged(): boolean {
+    return this.world.current.enemies.some(
+      (e) => e.isBoss && !e.dead && e.engaged !== false,
+    );
+  }
+
   /** Is the door open? (all crystals collected and no boss alive). */
   get doorOpen(): boolean {
     return this.collected === this.totalCrystals && !this.bossAlive;

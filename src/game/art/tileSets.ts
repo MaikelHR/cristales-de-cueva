@@ -92,6 +92,25 @@ const CENOTE_TOP = [
   'ssssssss',
 ];
 
+// --- Puerta: worked marble — cut stone with gold veins in the seams.
+//     The threshold of the door was BUILT, not grown: the first
+//     terrain in the grotto with a mason's hand on it. ---
+const MARBLE_PALETTE: Palette = {
+  r: '#4e4160', o: '#645478', s: '#2a2140',
+  m: '#c9a227', t: '#ffd76a',
+  B: '#efe6ff', b: '#a893cc',
+};
+const MARBLE_TOP = [
+  'BBbBBBbB', // the polished pavement you walk on
+  'bboobbob',
+  'oomtoboo', // a gold vein glinting in the first seam
+  'orrrrrro',
+  'rrrorrrr',
+  'rrrrmror', // and a fainter one deeper in the block
+  'rorrrrrr',
+  'ssssssss',
+];
+
 const SETS: Record<string, TileSet> = {
   esporas: {
     top: new Sprite(MOSS_TOP, MOSS_PALETTE),
@@ -119,6 +138,15 @@ const SETS: Record<string, TileSet> = {
     rimL: '#4a8f8a',
     rimR: '#2c5658',
     shadow: '#0c1418',
+  },
+  puerta: {
+    top: new Sprite(MARBLE_TOP, MARBLE_PALETTE),
+    fill: new Sprite(FILL, MARBLE_PALETTE),
+    fill2: new Sprite(FILL2, MARBLE_PALETTE),
+    fill3: new Sprite(FILL3, MARBLE_PALETTE),
+    rimL: '#a893cc',
+    rimR: '#6f5a94',
+    shadow: '#1a1230',
   },
 };
 

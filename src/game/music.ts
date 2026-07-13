@@ -785,6 +785,171 @@ const cenote: Song = {
 };
 
 // ------------------------------------------------------------
+// PUERTA — level 10 (A minor, 72 bpm, 16 bars)
+// The title theme comes home: the same A→C→E the menu sings, now
+// as a slow procession up to the door — pillar bass stepping in
+// twos, bells saying the theme unhurried, a golden arpeggio wash
+// when the light breaks through (bars 9-12). The cadence dares the
+// Picardy: the last phrase rises A→C#→E, major — the crystal theme
+// answered from the OTHER side of the door — and the loop pulls it
+// back into minor, because it isn't open yet.
+// ------------------------------------------------------------
+
+const puertaBells = voice(
+  [
+    // The theme, broad and unhurried: this is where it was leading.
+    [0, 'A4', 1], [1, 'C5', 1], [2, 'E5', 2],
+    [4, 'D5', 0.5], [4.5, 'C5', 0.5], [5, 'D5', 1], [6, 'B4', 2],
+    [8, 'F5', 1.5], [9.5, 'E5', 0.5], [10, 'C5', 2],
+    [12, 'B4', 1], [13, 'D5', 1], [14, 'G4', 2],
+    // Second statement: it dares to climb.
+    [16, 'A4', 1], [17, 'C5', 1], [18, 'E5', 2],
+    [20, 'G5', 1], [21, 'E5', 1], [22, 'C5', 2],
+    [24, 'F5', 1], [25, 'A5', 1], [26, 'G5', 2],
+    [28, 'F5', 1], [29, 'D5', 1], [30, 'G#4', 2],
+    // B: the light breaks through the seams (the arpeggio joins).
+    [32, 'C5', 1], [33, 'F5', 1], [34, 'A5', 2.5],
+    [36.5, 'G5', 0.5], [37, 'F5', 1], [38, 'E5', 2],
+    [40, 'A4', 1], [41, 'C5', 1], [42, 'E5', 2],
+    [44, 'F5', 1], [45, 'E5', 1], [46, 'C5', 2],
+    [48, 'D5', 1], [49, 'F5', 1], [50, 'A5', 2],
+    [52, 'G#5', 1], [53, 'E5', 1], [54, 'B4', 2],
+    // Cadence: sinks to the dominant… and answers in MAJOR (C#).
+    [56, 'C5', 1], [57, 'B4', 1], [58, 'G#4', 2],
+    [60, 'A4', 1], [61, 'C#5', 1], [62, 'E5', 2],
+  ],
+  { type: 'triangle', vol: 0.05 },
+);
+
+/** The procession: root, then its fifth, stepping every two beats. */
+function pillar(bar: number, root: string, fifth: string): Line {
+  const b = bar * 4;
+  return [[b, root, 1.5], [b + 2, fifth, 1.5]];
+}
+
+const puerta: Song = {
+  id: 'puerta',
+  bpm: 72,
+  loopBeats: 64,
+  notes: [
+    ...voice(
+      [
+        ...(
+          [
+            ['A2', 'E3'], ['A2', 'E3'], ['F2', 'C3'], ['G2', 'D3'],
+            ['A2', 'E3'], ['C3', 'G3'], ['F2', 'C3'], ['E2', 'B2'],
+            ['F2', 'C3'], ['G2', 'D3'], ['A2', 'E3'], ['F2', 'C3'],
+            ['D3', 'A3'], ['E2', 'B2'], ['E2', 'B2'], ['A2', 'E3'],
+          ] as Array<[string, string]>
+        ).flatMap(([root, fifth], bar) => pillar(bar, root, fifth)),
+      ],
+      { type: 'triangle', vol: 0.055 },
+    ),
+    ...puertaBells,
+    ...echo(puertaBells, 64),
+    // Long inner voice: a slow warm line under the bells.
+    ...voice(
+      [
+        [0, 'E4', 7.5], [8, 'C4', 7.5], [16, 'E4', 7.5], [24, 'D4', 7.5],
+        [32, 'F4', 7.5], [40, 'E4', 7.5], [48, 'F4', 7.5],
+        [56, 'B3', 3.7], [60, 'C#4', 3.7],
+      ],
+      { type: 'sine', vol: 0.03, attack: 1.2 },
+    ),
+    // The golden wash, only while the light breaks through (B section).
+    ...arp(32, 4, ['F3', 'A3', 'C4', 'A3'], 0.024),
+    ...arp(36, 4, ['G3', 'B3', 'D4', 'B3'], 0.024),
+    ...arp(40, 4, ['A3', 'C4', 'E4', 'C4'], 0.024),
+    ...arp(44, 4, ['F3', 'A3', 'C4', 'A3'], 0.024),
+    // The procession's drum: one solemn step per bar, a breath after.
+    ...Array.from({ length: 16 }, (_, bar) => kick(bar * 4)),
+    ...Array.from({ length: 16 }, (_, bar) => hat(bar * 4 + 2, 0.016)),
+    ...fill(28), ...fill(60),
+  ],
+};
+
+// ------------------------------------------------------------
+// CUSTODIO — the boss fight (A minor, 150 bpm, 8 bars)
+// The door's warden gets the soundtrack's only fast track: a
+// driving eighth-note bass procession-turned-chase, backbeat
+// drums, a relentless inner arpeggio, and the crystal theme spat
+// out URGENT — with the D# (the tritone over A) leaning on it and
+// the whole last two bars stuck on the dominant E, refusing to
+// resolve while the warden still stands. syncMusic swaps it in the
+// moment the fight is engaged and lets the level theme flood back
+// when the Custodio falls.
+// ------------------------------------------------------------
+
+/** The chase: driving eighths hammering root and fifth. */
+function embestida(bar: number, root: string, fifth: string): Line {
+  const b = bar * 4;
+  const r = root;
+  const f = fifth;
+  return [
+    [b, r, 0.45], [b + 0.5, r, 0.45], [b + 1, f, 0.45], [b + 1.5, r, 0.45],
+    [b + 2, r, 0.45], [b + 2.5, f, 0.45], [b + 3, r, 0.45], [b + 3.5, f, 0.45],
+  ];
+}
+
+const custodioLead = voice(
+  [
+    // The theme, urgent — and the D# tritone snarling back at it.
+    [0, 'A4', 0.5], [0.5, 'C5', 0.5], [1, 'E5', 1],
+    [2, 'D#5', 0.5], [2.5, 'E5', 0.5], [3, 'B4', 1],
+    [4, 'A4', 0.5], [4.5, 'C5', 0.5], [5, 'E5', 1],
+    [6, 'G5', 0.5], [6.5, 'E5', 0.5], [7, 'D5', 1],
+    // Answer over F and G: the halo turns, the pattern turns with it.
+    [8, 'F5', 0.5], [8.5, 'A5', 0.5], [9, 'C5', 1],
+    [10, 'A4', 0.5], [10.5, 'C5', 0.5], [11, 'F5', 1],
+    [12, 'G5', 0.5], [12.5, 'B4', 0.5], [13, 'D5', 1],
+    [14, 'B4', 0.5], [14.5, 'D5', 0.5], [15, 'G5', 1],
+    // The theme upside-down: falling where it used to rise.
+    [16, 'A5', 0.5], [16.5, 'E5', 0.5], [17, 'C5', 1],
+    [18, 'A4', 0.5], [18.5, 'C5', 0.5], [19, 'E5', 1],
+    [20, 'F5', 0.5], [20.5, 'C5', 0.5], [21, 'A4', 1],
+    [22, 'D#5', 1], [23, 'E5', 1],
+    // Stuck on the dominant: two bars of E that refuse to let go.
+    [24, 'G#4', 0.5], [24.5, 'B4', 0.5], [25, 'E5', 1],
+    [26, 'D#5', 0.5], [26.5, 'E5', 0.5], [27, 'G#5', 1],
+    [28, 'B4', 0.5], [28.5, 'E5', 0.5], [29, 'G#5', 0.5], [29.5, 'B5', 0.5],
+    [30, 'A5', 1], [31, 'G#4', 1],
+  ],
+  { type: 'triangle', vol: 0.05 },
+);
+
+const custodio: Song = {
+  id: 'custodio',
+  bpm: 150,
+  loopBeats: 32,
+  notes: [
+    ...voice(
+      [
+        ...(
+          [
+            ['A2', 'E3'], ['A2', 'E3'], ['F2', 'C3'], ['G2', 'D3'],
+            ['A2', 'E3'], ['F2', 'C3'], ['E2', 'B2'], ['E2', 'B2'],
+          ] as Array<[string, string]>
+        ).flatMap(([root, fifth], bar) => embestida(bar, root, fifth)),
+      ],
+      { type: 'square', vol: 0.04 },
+    ),
+    ...custodioLead,
+    // The danmaku itself: a ceaseless inner arpeggio, orbit after orbit.
+    ...arp(0, 8, ['A3', 'C4', 'E4', 'C4'], 0.024),
+    ...arp(8, 4, ['F3', 'A3', 'C4', 'A3'], 0.024),
+    ...arp(12, 4, ['G3', 'B3', 'D4', 'B3'], 0.024),
+    ...arp(16, 4, ['A3', 'C4', 'E4', 'C4'], 0.024),
+    ...arp(20, 4, ['F3', 'A3', 'C4', 'A3'], 0.024),
+    ...arp(24, 8, ['E3', 'G#3', 'B3', 'G#3'], 0.024),
+    // Drums: four on the floor, backbeat snare, hats in the cracks.
+    ...Array.from({ length: 32 }, (_, b) => kick(b)),
+    ...Array.from({ length: 16 }, (_, i) => snare(i * 2 + 1)),
+    ...Array.from({ length: 32 }, (_, b) => hat(b + 0.5, 0.016)),
+    ...fill(14), ...fill(30),
+  ],
+};
+
+// ------------------------------------------------------------
 // The director: what plays depending on the active screen.
 // ------------------------------------------------------------
 
@@ -798,9 +963,21 @@ export const LEVEL_SONGS: Record<string, Song> = {
   glaciar,
   fragua,
   cenote,
+  puerta,
 };
 
-export const SONGS: Song[] = [title, overworld, ...Object.values(LEVEL_SONGS)];
+/** Boss themes, by level id: they take over WHILE the fight is
+ *  engaged. A level absent here keeps its own theme during its boss. */
+export const BOSS_SONGS: Record<string, Song> = {
+  puerta: custodio,
+};
+
+export const SONGS: Song[] = [
+  title,
+  overworld,
+  ...Object.values(LEVEL_SONGS),
+  ...Object.values(BOSS_SONGS),
+];
 
 /**
  * Call once per frame with the active scene's state: picks the
@@ -808,7 +985,7 @@ export const SONGS: Song[] = [title, overworld, ...Object.values(LEVEL_SONGS)];
  * doesn't cut out: it ducks, like pulling a blanket over itself.
  * On victory/defeat it goes fully silent: there the sfx stingers rule.
  */
-export function syncMusic(ui: UiState, levelId: string): void {
+export function syncMusic(ui: UiState, levelId: string, bossFight = false): void {
   switch (ui.state) {
     case 'title':
       setSong(title);
@@ -816,9 +993,13 @@ export function syncMusic(ui: UiState, levelId: string): void {
     case 'overworld':
       setSong(overworld);
       break;
-    case 'playing':
-      setSong(LEVEL_SONGS[levelId] ?? cavernas);
+    case 'playing': {
+      // An ENGAGED boss steals the stage (if its level has a theme for
+      // it); the level track floods back the moment the fight ends.
+      const boss = bossFight ? BOSS_SONGS[levelId] : undefined;
+      setSong(boss ?? LEVEL_SONGS[levelId] ?? cavernas);
       break;
+    }
     case 'won':
     case 'gameover':
       setSong(null);

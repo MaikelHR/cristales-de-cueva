@@ -56,9 +56,12 @@ Before considering a change done: `npm test` and `npm run build` must both pass.
   soundtrack is `Song` data: one theme per screen (title/overworld) and per level
   (`LEVEL_SONGS` by level id). ALL themes quote one leitmotif ("el tema del cristal",
   a root→♭3→5 rise) — `music.test.ts` enforces the quote, that every level has a theme,
-  and that note volumes stay ≤ 0.08 so music sits UNDER the sfx. `syncMusic(scenes.ui,
-  level.id)` runs each frame from `main.ts`: picks the track, ducks on pause, goes silent
-  on won/gameover (the sfx stingers own those moments), and ticks the sequencer.
+  and that note volumes stay ≤ 0.08 so music sits UNDER the sfx. `BOSS_SONGS` (by level
+  id) take over WHILE a boss fight is engaged (an enemy's optional `engaged` gates it —
+  the sleeping Custodio doesn't get its theme yet) and the level track floods back when
+  it falls. `syncMusic(scenes.ui, level.id, session.bossEngaged)` runs each frame from
+  `main.ts`: picks the track, ducks on pause, goes silent on won/gameover (the sfx
+  stingers own those moments), and ticks the sequencer.
 
 ## Levels and rooms are data
 
@@ -73,7 +76,10 @@ player, `{ type: 'geyser', offset: 1.2, x: 26, y: 17 }` — cyclic flame column,
 4 tiles tall, offsets stagger multiple geysers, or `{ type: 'corriente', dir:
 'up'|'left'|'right', length: 6, x, y }` — underwater current jet that ONLY shoves a
 SUBMERGED swimmer, ~vent strength: ride it WITH the flow, a gate AGAINST it, dense bubble
-stream is the telegraph). Never put entity characters in the
+stream is the telegraph, or `{ type: 'blink', offset: 2.2, x: 20, y: 15 }` — a 3-tile
+crystal slab that PHASES on a fixed cycle (~2.8s there / 1.6s gone): it sputters before
+vanishing, a ghost outline holds the spot and motes converge before it returns; offsets
+stagger a chain into a rhythm). Never put entity characters in the
 tile grid. Enemies: slime, flyer, chaser, spitter (static, lobs arcing spores, inflates
 first as telegraph), erizo (spiky — stomping it HURTS, only a pound kills it), boss,
 ariete (grounded ram boss: paces → rears up → charges, smashing `%` barricades in its
@@ -85,13 +91,37 @@ anguila (eel — lurks a lane, coils + crackles to telegraph, DARTS, then drifts
 `invulnerable` to stomp/pound, killable ONLY by the dash-lunge while stunned —
 `dashVulnerable` + `isDashKill`), ajolote (breach-timing boss: circles underwater →
 bubbles BOIL under your column → BREACHES in an arc, crest stompable ONLY mid-breach,
-violet flanks hurt; 3 stomps, each enrages + looses a medusa). Levels register in
-`rooms/index.ts` (`LEVELS`, in overworld order — completing one unlocks the next);
+violet flanks hurt; 3 stomps, each enrages + looses a medusa), vigia (sentry rune-eye:
+posted still, tracks you, iris FLARES white while charging (~0.65s), then ONE straight
+bolt at where you were on release — the game's straight-shooter lesson; one stomp
+kills), custodio (the game's ONLY bullet hell — the danmaku is the BOSS's, never level
+furniture. Never travels: dissolves into motes and RE-FORMS on a FIXED anchor wheel,
+left → right → top (gather = intangible) — learnable, like a dance. One honest loop per
+life: pattern → travel move → verb window, repeated unchanged until the hit lands (no
+missed-window punishment). Everything telegraphs: the halo SWELLS before each ring,
+glints mark every curtain column ~0.55s before orbs drop, it trembles before
+sweep/slam. The halo names the verb: GOLD 3hp = rings whose gap rotates one half-step
+per burst + gold shard rain, then a low perch — plain stomp; CYAN 2hp = a slow 2-armed
+spiral, then a body-height SWEEP (duck it) leaving a sinking wake, dazed in MID-AIR —
+dash-lunge only (`invulnerable` + `dashVulnerable`, reach it from a blink slab); VIOLET
+1hp = roof curtains with a 3-slot doorway marching steadily right + a slam whose impact
+fans orbs up, then a dome that swallows stomps — pound only (`invulnerable=false`,
+`stompable=false`). Rage speeds ORBS only — hover/telegraph/window durations never
+shrink. Sleeps mid-air until you close within 120px — `engaged` drives the boss music).
+Levels register in
+`rooms/index.ts` (`LEVELS`, in overworld order — completing one unlocks the next; the
+FINAL level, 'puerta', is pinned to the map's LAST node — the great door — via
+`levelAtNode`/`nodeOfLevel`; unbuilt nodes in between are steppable '?' stones);
 `validateLevels` + `rooms.test.ts` enforce integrity (row lengths, reciprocal exits,
 one playerSpawn + a door per level, connected rooms open their borders at matching
 rows — transitions preserve player y). Each level's `startAbilities` are what previous
 levels taught; its new ability comes from a relic inside (order so far: doubleJump →
-wallJump → dash → glide → pound → smash → dive). Design metrics (TILE=8): jump ≈ 4 tiles high
+wallJump → dash → glide → pound → smash → dive). The final level ('puerta', 6 rooms) is
+the exception: NO relic — it starts with all seven, keeps ONE coherent biome (the built
+marble sanctum: no ice/water/geyser quotes) and teaches its own language instead: blink
+slabs → vigía sentries → the watched climb and the long gallery → breather chapel → the
+Custodio. Regular rooms use normal, readable enemies; the bullet hell is the boss's
+alone. Design metrics (TILE=8): jump ≈ 4 tiles high
 (34px; jump+double ≈ 62px — a ledge whose top sits >62px above the feet can't be
 mounted: use TALL walls, not thin roofs, to block route skips), double jump ≈ 7,
 spring = 9, wall-jump chimneys 4 wide (a single tall wall is ALSO climbable by repeated
@@ -223,5 +253,5 @@ Player-facing text is **neutral LatAm Spanish (tuteo)** + English,
 
 Browser console: `__game` (session), `__scenes`, `__debug.hitboxes = true`,
 `__debug.warp('<room-id>')` (rooms of the CURRENT level, e.g. 'galeria', 'chimenea'),
-`__debug.level('cavernas' | 'galerias' | 'corazon' | 'esporas' | 'glaciar' | 'fragua' | 'cenote')`,
+`__debug.level('cavernas' | 'galerias' | 'corazon' | 'esporas' | 'glaciar' | 'fragua' | 'cenote' | 'puerta')`,
 `__sprites`, `__audio()`.

@@ -10,9 +10,19 @@
 //   5. Glaciar   — the POUND, ice, cracked blocks and erizos.
 //   6. Fragua    — the CHARGE, geysers and the Igneous Guardian.
 //   7. Cenote    — the DIVE, water, currents and the Axolotl.
+//  10. Puerta    — the FINAL EXAM: the built sanctum. Blink slabs
+//      and vigía sentries guard the six rooms; the bullet hell
+//      belongs to the Custodio ALONE (no relic: you arrive
+//      knowing it all).
 //  Adding a level = a folder with its rooms + an entry here.
 //  (The FIRST level's id is also pinned in save.ts, to migrate
 //  old records: don't rename it lightly.)
+//
+//  The overworld has 10 nodes but the FINAL level lives at the great
+//  door (the last node), whatever comes before: while levels 8-9
+//  don't exist yet, nodes 8-9 stay as '?' stones you walk PAST.
+//  levelAtNode/nodeOfLevel below are the single source of that
+//  mapping; when the missing levels land, it becomes the identity.
 // ============================================================
 
 import type { LevelDef } from '../LevelData';
@@ -37,6 +47,12 @@ import { nucleo } from './fragua/nucleo';
 import { orilla } from './cenote/orilla';
 import { perla } from './cenote/perla';
 import { guarida } from './cenote/guarida';
+import { atrio } from './puerta/atrio';
+import { claustro } from './puerta/claustro';
+import { roseton } from './puerta/roseton';
+import { espira } from './puerta/espira';
+import { capilla } from './puerta/capilla';
+import { dintel } from './puerta/dintel';
 
 export const LEVELS: LevelDef[] = [
   {
@@ -81,4 +97,38 @@ export const LEVELS: LevelDef[] = [
     rooms: [orilla, perla, guarida],
     startAbilities: ['doubleJump', 'wallJump', 'dash', 'glide', 'pound', 'smash'],
   },
+  // The final level: no relic inside — it examines everything the
+  // grotto taught, and teaches the sanctum's own language (blink
+  // slabs, vigía sentries) on the way to the Custodio's bullet hell.
+  // Always LAST in this list (it sits at the door).
+  {
+    id: 'puerta',
+    nameKey: 'lvl_puerta',
+    rooms: [atrio, claustro, roseton, espira, capilla, dintel],
+    startAbilities: ['doubleJump', 'wallJump', 'dash', 'glide', 'pound', 'smash', 'dive'],
+  },
 ];
+
+// ------------------------------------------------------------
+// The overworld path has 10 nodes; the FINAL level is pinned to
+// the last one (the world's great door). Any node in between
+// without a level yet is a '?' stone: steppable, not enterable.
+// ------------------------------------------------------------
+
+export const WORLD_NODE_COUNT = 10;
+export const FINAL_LEVEL_ID = 'puerta';
+
+/** The node a level (by index in LEVELS) stands on. */
+export function nodeOfLevel(index: number): number {
+  return LEVELS[index]?.id === FINAL_LEVEL_ID ? WORLD_NODE_COUNT - 1 : index;
+}
+
+/** The level standing on a node, or null (a '?' stone). */
+export function levelAtNode(node: number): LevelDef | null {
+  if (node === WORLD_NODE_COUNT - 1) {
+    const last = LEVELS[LEVELS.length - 1];
+    return last.id === FINAL_LEVEL_ID ? last : null;
+  }
+  const level = LEVELS[node] as LevelDef | undefined;
+  return level && level.id !== FINAL_LEVEL_ID ? level : null;
+}

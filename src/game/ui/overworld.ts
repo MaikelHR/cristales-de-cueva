@@ -17,7 +17,7 @@ import { frameAt } from '../../engine/animation';
 import { inputDevice, padLabels } from '../../engine/input';
 import { getMove } from '../touchLayout';
 import type { GameSession, GameMode } from '../session';
-import { LEVELS } from '../world/rooms';
+import { LEVELS, levelAtNode } from '../world/rooms';
 import { levelRecord } from '../save';
 import { sprites } from '../art/sprites';
 import { playerSprites } from '../art/playerSkins';
@@ -73,7 +73,7 @@ export function drawOverworld(
 
   // --- Rocky islets under each node, dressed in their biome ---
   for (let i = 0; i < OW_NODES.length; i++) {
-    const levelId = i < LEVELS.length ? LEVELS[i].id : null;
+    const levelId = levelAtNode(i)?.id ?? null;
     drawIsland(ctx, OW_NODES[i].x, OW_NODES[i].y, i <= view.maxNode, levelId, time);
   }
 
@@ -162,6 +162,7 @@ const ISLAND_LOOKS: Record<string, { edge: string; slab: string; belly: string }
   glaciar: { edge: '#bfeaff', slab: '#3a6484', belly: '#20405a' },
   fragua: { edge: '#7a4426', slab: '#3d2419', belly: '#140a06' },
   cenote: { edge: '#5fe0d0', slab: '#22585f', belly: '#0e2a30' },
+  puerta: { edge: '#e0cf9a', slab: '#5c4a70', belly: '#2e2244' },
 };
 const DEFAULT_LOOK = { edge: '#8064b0', slab: '#4a2e70', belly: '#2e1c48' };
 
@@ -344,6 +345,28 @@ function drawIslandBiome(
       }
       break;
     }
+    case 'puerta': {
+      // Worked marble under the door: a carved gold rune inlaid in the
+      // slab, breathing light — the threshold isn't cave anymore.
+      if (unlocked) drawGlow(ctx, x, y - 1, 7, '#ffd76a', 0.16 + (Math.sin(time * 1.6 + x) + 1) * 0.08);
+      ctx.fillStyle = '#c9a227';
+      ctx.fillRect(x - 4, y - 1, 9, 1);
+      ctx.fillStyle = '#ffd76a';
+      ctx.fillRect(x - 2, y - 1, 2, 1);
+      ctx.fillRect(x + 2, y - 1, 1, 1);
+      // Two carved corner blocks at the slab's lips.
+      ctx.fillStyle = '#e0cf9a';
+      ctx.fillRect(x - 7, y - 4, 2, 2);
+      ctx.fillRect(x + 5, y - 4, 2, 2);
+      if (unlocked) {
+        const gp = (time * 0.45 + x * 0.2) % 1;
+        ctx.globalAlpha = (1 - gp) * 0.8;
+        ctx.fillStyle = '#fff3c0';
+        ctx.fillRect(Math.round(x + Math.sin(time * 2 + x) * 2), Math.round(y - 3 - gp * 9), 1, 1);
+        ctx.globalAlpha = 1;
+      }
+      break;
+    }
   }
 }
 
@@ -429,10 +452,35 @@ function drawNode(
 ): void {
   const { x, y } = OW_NODES[i];
   const { time, save } = session;
-  const isLevel = i < LEVELS.length;
+  const level = levelAtNode(i);
   const unlocked = i <= view.maxNode;
-  const done = isLevel && levelRecord(save, LEVELS[i].id).completions > 0;
+  const done = level !== null && levelRecord(save, level.id).completions > 0;
   const current = i === view.node && !view.walking;
+
+  // The last node is the world's great door, guarded by two crystal
+  // torches. It draws FIRST (markers go over it) and follows the final
+  // level's state: sealed while locked, runes awake once you may enter.
+  if (i === OW_NODES.length - 1) {
+    const sealed = !(unlocked && level);
+    const door = sealed
+      ? sprites.doorLocked
+      : Math.sin(time * 4) > 0
+        ? sprites.doorOpen2
+        : sprites.doorOpen;
+    if (!sealed) drawGlow(ctx, x, y - 3 - door.h / 2, 16, '#ffd76a', 0.28 + Math.sin(time * 2) * 0.08);
+    door.draw(ctx, x - door.w / 2, y - 3 - door.h);
+    for (const side of [-1, 1]) {
+      const tx = x + side * 12;
+      const ty = y - 10;
+      drawGlow(ctx, tx, ty, 7, '#ffd76a', 0.3 + Math.sin(time * 6 + side * 2) * 0.1);
+      ctx.fillStyle = '#4a2e70';
+      ctx.fillRect(tx - 1, ty + 2, 2, 4);
+      ctx.fillStyle = '#ffd23a';
+      ctx.fillRect(tx - 1, ty + (Math.sin(time * 7 + side) > 0 ? -1 : 0), 2, 2);
+      ctx.fillStyle = '#fff3c0';
+      ctx.fillRect(tx - (Math.sin(time * 9 + side) > 0 ? 1 : 0), ty - 2, 1, 1);
+    }
+  }
 
   if (done) {
     // Completed: a golden crystal floats over the stone and a
@@ -449,7 +497,7 @@ function drawNode(
       ctx.fillStyle = r === 2 ? '#c9761f' : '#ffe25a';
       ctx.fillRect(x + 8 + wav, y - 13 + r, 4 - r, 1);
     }
-  } else if (unlocked) {
+  } else if (unlocked && level) {
     // The frontier: it pulses inviting you in, with sparks rising.
     const pulse = 0.35 + Math.sin(time * 3.5) * 0.2;
     drawGlow(ctx, x, y - 4, 10, '#b98bff', pulse);
@@ -461,29 +509,11 @@ function drawNode(
       ctx.globalAlpha = 1;
     }
   } else {
-    // Closed: a silent stone with its question mark.
+    // Closed — or a '?' stone you may only step past: a silent mark.
     ctx.fillStyle = '#6f5a94';
     ctx.font = font(7);
     ctx.textAlign = 'center';
     ctx.fillText('?', x, y - 6);
-  }
-
-  // The last node is the world's great door (closed, for now),
-  // guarded by two sputtering crystal torches.
-  if (i === OW_NODES.length - 1) {
-    const door = sprites.doorLocked;
-    door.draw(ctx, x - door.w / 2, y - 3 - door.h);
-    for (const side of [-1, 1]) {
-      const tx = x + side * 12;
-      const ty = y - 10;
-      drawGlow(ctx, tx, ty, 7, '#ffd76a', 0.3 + Math.sin(time * 6 + side * 2) * 0.1);
-      ctx.fillStyle = '#4a2e70';
-      ctx.fillRect(tx - 1, ty + 2, 2, 4);
-      ctx.fillStyle = '#ffd23a';
-      ctx.fillRect(tx - 1, ty + (Math.sin(time * 7 + side) > 0 ? -1 : 0), 2, 2);
-      ctx.fillStyle = '#fff3c0';
-      ctx.fillRect(tx - (Math.sin(time * 9 + side) > 0 ? 1 : 0), ty - 2, 1, 1);
-    }
   }
 
   // Level number below the stone; the current one, highlighted.
@@ -550,15 +580,14 @@ function drawPanel(
   const cx = viewW / 2;
   ctx.textAlign = 'center';
 
-  const isLevel = view.node < LEVELS.length;
-  if (!isLevel) {
+  const level = levelAtNode(view.node);
+  if (!level) {
     ctx.fillStyle = '#6f5a94';
     ctx.font = font(10);
     ctx.fillText(t('ow_locked'), cx, viewH - 24);
     return;
   }
 
-  const level = LEVELS[view.node];
   const rec = levelRecord(save, level.id);
   ctx.fillStyle = '#ffe25a';
   ctx.font = font(9);
@@ -631,7 +660,7 @@ function drawModeChooser(
   ctx.fillText(t('choose_mode'), cx, cy - 26);
   ctx.fillStyle = '#9b86c4';
   ctx.font = font(8);
-  ctx.fillText(t(LEVELS[view.node].nameKey), cx, cy - 14);
+  ctx.fillText(t(levelAtNode(view.node)!.nameKey), cx, cy - 14);
 
   // The two options, side by side; the chosen one glows and is underlined.
   const options: Array<{ mode: GameMode; label: string }> = [
@@ -655,7 +684,7 @@ function drawModeChooser(
   ctx.font = font(7);
   ctx.fillText(view.choice === 'normal' ? t('mode_normal_hint') : t('mode_trial_hint'), cx, cy + 20);
   if (view.choice === 'trial') {
-    const rec = levelRecord(save, LEVELS[view.node].id);
+    const rec = levelRecord(save, levelAtNode(view.node)!.id);
     if (rec.bestTrialTime > 0) {
       ctx.fillStyle = '#7ce0ff';
       ctx.fillText(t('trial_best', { t: formatTime(rec.bestTrialTime) }), cx, cy + 30);
