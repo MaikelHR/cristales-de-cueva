@@ -90,6 +90,14 @@ export const sfx = {
     playTone({ freq: 1320, duration: 0.1, type: 'triangle', volume: 0.15, delay: 0.06 });
   },
 
+  /** Recovering a heart: a warm sine that swells upward — round and
+   *  kind, the opposite of the hurt buzz (and softer than the relic
+   *  fanfare: it's a small mercy, not a milestone). */
+  heal(): void {
+    playTone({ freq: 523, freqEnd: 784, duration: 0.12, type: 'sine', volume: 0.15 });
+    playTone({ freq: 1047, duration: 0.14, type: 'triangle', volume: 0.1, delay: 0.08 });
+  },
+
   /** Dying: a buzz that collapses into the low end. */
   die(): void {
     playTone({ freq: 300, freqEnd: 55, duration: 0.3, type: 'sawtooth', volume: 0.16 });

@@ -307,6 +307,17 @@ export class Player {
     return true;
   }
 
+  /**
+   * Recover one heart (defeating an enemy). Returns true only if it
+   * actually healed: at full health there's nothing to give back, and
+   * the caller skips the celebration.
+   */
+  heal(): boolean {
+    if (this.health >= this.maxHealth) return false;
+    this.health++;
+    return true;
+  }
+
   update(dt: number): void {
     this.wallSliding = false;
     this.isGliding = false;

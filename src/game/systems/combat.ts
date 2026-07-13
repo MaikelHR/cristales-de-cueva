@@ -109,8 +109,10 @@ function dashKillEnemy(session: GameSession, e: Enemy, eb: Box): void {
 }
 
 /** The payoff when a hit DEFEATS an enemy: burst, shake, points with a
- *  floating "+N" and — for a boss — the fanfare. Shared by the stomp
- *  and the dash-lunge so both kills feel identical. */
+ *  floating "+N", a HEART back if you were missing one — fighting is
+ *  how you heal, so a hurt run can be nursed back by playing well —
+ *  and, for a boss, the fanfare. Shared by the stomp and the
+ *  dash-lunge so both kills feel identical. */
 function defeatEnemy(session: GameSession, e: Enemy, eb: Box): void {
   const count = e.isBoss ? 30 : 12;
   session.particles.burst(eb.x + eb.w / 2, eb.y + eb.h / 2, count, [...e.gooColors]);
@@ -118,6 +120,22 @@ function defeatEnemy(session: GameSession, e: Enemy, eb: Box): void {
   const pts = e.isBoss ? 100 : 10;
   session.score += pts;
   session.popups.spawn(eb.x + eb.w / 2, eb.y - 2, '+' + pts);
+  // At full hearts nothing happens (no popup, no sound): the reward
+  // only reads as a reward when it's actually giving something back.
+  if (session.player.heal()) {
+    session.particles.burst(
+      session.player.x + session.player.w / 2,
+      session.player.y + session.player.h / 2,
+      8,
+      ['#ff5a7a', '#ffd0dc', '#fff3c0'],
+    );
+    session.popups.spawn(
+      session.player.x + session.player.w / 2,
+      session.player.y - 4,
+      t('heal_popup'),
+    );
+    sfx.heal();
+  }
   if (e.isBoss) {
     session.announce(t('boss_defeated'));
     sfx.relic();

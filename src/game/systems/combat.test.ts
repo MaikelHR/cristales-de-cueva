@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { isDashKill, isStomp } from './combat';
+import { Player } from '../actors/Player';
+import { Level } from '../world/Level';
+import { Particles } from '../effects/Particles';
+
+// A scrap of floor and an empty particle pool: all the Player needs
+// to exist here (we only exercise its health arithmetic).
+const newPlayer = (): Player => new Player(new Level(['....', '####']), new Particles());
 
 // The stomp-vs-hurt decision is THE combat rule: its edge cases are
 // pinned down here so a physics tweak can't break it.
@@ -66,5 +73,34 @@ describe('isDashKill', () => {
 
   it('un enemigo no vulnerable a la embestida aguanta el dash', () => {
     expect(isDashKill(false, true)).toBe(false);
+  });
+});
+
+// Defeating an enemy gives a heart back: a hurt run can be nursed
+// back by fighting well. The cap is the whole rule — it can never
+// overheal, and at full hearts it's a no-op (the caller uses the
+// return value to skip the popup and the sound).
+describe('Player.heal (el corazón que devuelve un enemigo derrotado)', () => {
+  it('devuelve un corazón si falta alguno', () => {
+    const player = newPlayer();
+    player.health = 1;
+    expect(player.heal()).toBe(true);
+    expect(player.health).toBe(2);
+  });
+
+  it('nunca pasa del máximo: a vida llena no cura (ni celebra)', () => {
+    const player = newPlayer();
+    expect(player.health).toBe(player.maxHealth);
+    expect(player.heal()).toBe(false);
+    expect(player.health).toBe(player.maxHealth);
+  });
+
+  it('curarse de a un corazón repone una vida perdida, no más', () => {
+    const player = newPlayer();
+    player.health = 1;
+    player.heal();
+    player.heal();
+    player.heal(); // this one finds it already full
+    expect(player.health).toBe(player.maxHealth);
   });
 });

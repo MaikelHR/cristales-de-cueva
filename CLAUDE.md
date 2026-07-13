@@ -36,7 +36,10 @@ Before considering a change done: `npm test` and `npm run build` must both pass.
   'confirm' (input.ts button 9), so a scene must test 'pause' FIRST or START gets eaten by
   the confirm branch.
 - `src/game/systems/` — gameplay rules as functions over the session: `combat.ts`
-  (stomp-vs-hurt; `isStomp` is the pure, tested decision), `pickups.ts`, `transitions.ts`,
+  (stomp-vs-hurt; `isStomp` is the pure, tested decision; DEFEATING an enemy gives a
+  heart back — `player.heal()`, capped at maxHealth and a no-op at full life, so at full
+  hearts there's no popup and no sound: fighting well is how a hurt run heals, and
+  enemies stay dead within a run so it can't be farmed), `pickups.ts`, `transitions.ts`,
   `devices.ts` (springs launch, moving platforms carry; ORDER matters — carry before
   player physics, contacts after).
 - `src/game/actors/` — things living in rooms behind the `Actor` interface with a
