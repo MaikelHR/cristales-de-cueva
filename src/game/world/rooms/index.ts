@@ -12,6 +12,9 @@
 //   7. Cenote    — the DIVE, water, currents and the Axolotl.
 //   8. Mina      — the SHRINK, crumble boards, the burrowing topo
 //      and the Iron Foreman (a boss you flank, not out-jump).
+//   9. Seda      — the SWING: silk anchors, the game's only CURVED
+//      movement, in a nest of rising terraces; the hanging tejedora
+//      and the Matriarch (cut her thread, then stomp her).
 //  10. Puerta    — the FINAL EXAM: the built sanctum. Blink slabs
 //      and vigía sentries guard the six rooms; the bullet hell
 //      belongs to the Custodio ALONE (no relic: you arrive
@@ -20,11 +23,11 @@
 //  (The FIRST level's id is also pinned in save.ts, to migrate
 //  old records: don't rename it lightly.)
 //
-//  The overworld has 10 nodes but the FINAL level lives at the great
-//  door (the last node), whatever comes before: while level 9
-//  doesn't exist yet, node 9 stays a '?' stone you walk PAST.
-//  levelAtNode/nodeOfLevel below are the single source of that
-//  mapping; when the missing level lands, it becomes the identity.
+//  The overworld has 10 nodes and, with the nest built, every one of
+//  them holds a level: levelAtNode/nodeOfLevel are now the identity.
+//  They stay as the single source of that mapping anyway — the final
+//  level is pinned to the last node, so inserting a level before it
+//  never has to renumber the door.
 // ============================================================
 
 import type { LevelDef } from '../LevelData';
@@ -52,6 +55,9 @@ import { guarida } from './cenote/guarida';
 import { bocamina } from './mina/bocamina';
 import { veta } from './mina/veta';
 import { socavon } from './mina/socavon';
+import { telar } from './seda/telar';
+import { cuna } from './seda/cuna';
+import { matriz } from './seda/matriz';
 import { atrio } from './puerta/atrio';
 import { claustro } from './puerta/claustro';
 import { roseton } from './puerta/roseton';
@@ -108,6 +114,12 @@ export const LEVELS: LevelDef[] = [
     rooms: [bocamina, veta, socavon],
     startAbilities: ['doubleJump', 'wallJump', 'dash', 'glide', 'pound', 'smash', 'dive'],
   },
+  {
+    id: 'seda',
+    nameKey: 'lvl_seda',
+    rooms: [telar, cuna, matriz],
+    startAbilities: ['doubleJump', 'wallJump', 'dash', 'glide', 'pound', 'smash', 'dive', 'shrink'],
+  },
   // The final level: no relic inside — it examines everything the
   // grotto taught, and teaches the sanctum's own language (blink
   // slabs, vigía sentries) on the way to the Custodio's bullet hell.
@@ -116,7 +128,9 @@ export const LEVELS: LevelDef[] = [
     id: 'puerta',
     nameKey: 'lvl_puerta',
     rooms: [atrio, claustro, roseton, espira, capilla, dintel],
-    startAbilities: ['doubleJump', 'wallJump', 'dash', 'glide', 'pound', 'smash', 'dive', 'shrink'],
+    startAbilities: [
+      'doubleJump', 'wallJump', 'dash', 'glide', 'pound', 'smash', 'dive', 'shrink', 'swing',
+    ],
   },
 ];
 

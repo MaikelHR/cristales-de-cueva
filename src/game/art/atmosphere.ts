@@ -156,6 +156,21 @@ const THEMES: Record<string, CaveTheme> = {
     drip: '#ffd9a0',
     fog: ['#8a6a44', '#66492e', '#4c3622'],
   },
+  // The silk nest: everything swallowed by old web — pearl greys, a
+  // cold hush, and the pink glint of eyes that may or may not be there.
+  seda: {
+    gradTop: '#191424', gradBottom: '#3a3350',
+    strata: '#221c30',
+    crystals: ['#5a4f70', '#6b5f84', '#7d7098'], spark: '#f0e6ff',
+    skyline: '#241e34',
+    haze: 'rgba(220, 210, 240, 0.06)',
+    ray: '232,224,240',
+    mid: '#241e36', midEdge: '#4c4266', root: '#332c48',
+    accent: '#e8e0f0', accentLight: '#ffffff',
+    near: '#1e1830', nearTop: '#3a3252',
+    drip: '#ffb0d0',
+    fog: ['#8c82a8', '#665e80', '#4a4460'],
+  },
   // The great door's threshold: violet cave stone flooded from above
   // by the gold light leaking around the seal — dawn inside the rock.
   puerta: {
@@ -214,6 +229,7 @@ interface Stalagmite { x: number; w: number; h: number; }
 interface Shroom { x: number; h: number; phase: number; }
 interface Bubble { x: number; speed: number; phase: number; size: number; }
 interface Prop { x: number; w: number; lamp: boolean; phase: number; }
+interface Cocoon { x: number; drop: number; size: number; phase: number; }
 
 interface BgLayers {
   strata: Strata[];
@@ -231,6 +247,8 @@ interface BgLayers {
   bubbles: Bubble[];
   /** Timber post-and-lintel frames shoring the roof; mina only. */
   props: Prop[];
+  /** Cocoons swaying from the ceiling on their threads; seda only. */
+  cocoons: Cocoon[];
 }
 
 let bg: BgLayers | null = null;
@@ -343,7 +361,21 @@ function ensureBackground(worldW: number, viewH: number, variant: number, themeI
     }
   }
 
-  bg = { strata, wallCrystals, towers, fringe, godRays, stalactites, roots, drips, mounds, stalagmites, shrooms, bubbles, props };
+  // Cocoons: exclusive to the nest. They hang at wildly different
+  // depths so the ceiling reads as a larder, not a row of decorations.
+  const cocoons: Cocoon[] = [];
+  if (themeId === 'seda') {
+    for (let x = 10 + Math.floor(rng() * 30); x < worldW; x += 44 + Math.floor(rng() * 46)) {
+      cocoons.push({
+        x,
+        drop: 12 + Math.floor(rng() * 44),
+        size: rng() < 0.3 ? 2 : 1,
+        phase: rng() * Math.PI * 2,
+      });
+    }
+  }
+
+  bg = { strata, wallCrystals, towers, fringe, godRays, stalactites, roots, drips, mounds, stalagmites, shrooms, bubbles, props, cocoons };
 }
 
 export function drawBackground(
@@ -540,6 +572,34 @@ export function drawBackground(
       const y = y0 + q * q * (midFloor - y0);
       ctx.fillRect(x, Math.round(y), 1, 2);
     }
+  }
+
+  // Cocoons (seda only): bundles of silk swaying from the ceiling on
+  // their own threads. The big ones glow faintly — something in there
+  // is still warm.
+  for (const co of L.cocoons) {
+    const x = co.x - parMid;
+    if (x < -10 || x > viewW + 10) continue;
+    const sway = Math.sin(time * 0.7 + co.phase) * 2.5;
+    const cxp = Math.round(x + sway);
+    const topY = Math.round(midCeil);
+    const bodyY = topY + co.drop;
+    ctx.fillStyle = theme.mid;
+    for (let yy = 0; yy < co.drop; yy += 2) {
+      const s = (yy / co.drop) * sway;
+      ctx.fillRect(Math.round(x + s), topY + yy, 1, 2);
+    }
+    const w = 4 + co.size * 2;
+    const h = 7 + co.size * 4;
+    if (co.size > 1) drawGlow(ctx, cxp, bodyY + h / 2, 10, theme.drip, 0.1 + Math.sin(time * 1.3 + co.phase) * 0.04);
+    ctx.fillStyle = theme.midEdge;
+    ctx.fillRect(cxp - w / 2, bodyY, w, h);
+    ctx.fillStyle = theme.accent;
+    ctx.fillRect(cxp - w / 2, bodyY + 1, 1, h - 2);       // lit edge
+    ctx.fillRect(cxp - w / 2 + 1, bodyY, w - 2, 1);       // and its cap
+    ctx.fillStyle = theme.root;
+    ctx.fillRect(cxp - w / 2 + 1, bodyY + 3, w - 2, 1);   // the wrapping bands
+    ctx.fillRect(cxp - w / 2 + 1, bodyY + h - 3, w - 2, 1);
   }
 
   // Timber props (mina only): post-and-lintel frames shoring the roof,

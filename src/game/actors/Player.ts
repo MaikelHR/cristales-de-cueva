@@ -71,6 +71,25 @@ const MINI_GRIP = 6;        // per second: the entry skid bleeds off smoothly
 const MINI_SCALE = 0.58;    // the sprite draws whole at this scale
 const MINI_LERP = 16;       // per second: how fast the size change animates
 
+// Swing: the game's only CURVED movement. Touching an anchor's silk bead
+// ties you to it and you become a pendulum — the arc is integrated in
+// polar coordinates (angle + angular velocity) instead of the usual
+// vx/vy, and releasing hands that energy back as a TANGENT launch. Left
+// and right pump the swing, like a child on a real one.
+// Tuned by playing it: a timid swing is useless, because the whole
+// point of the arc is that it ends HIGHER than it started. Leaning
+// into it has to build real speed in two or three passes, and letting
+// go has to throw — a release that only drifts reads as a broken
+// jump, and the level's rising terraces become impossible.
+const SWING_G = 1100;        // px/s^2 of angular pull (livelier than gravity)
+const SWING_PUMP = 6.5;      // rad/s^2 added by leaning into the swing
+const SWING_DAMP = 0.1;      // per second: an unpumped swing dies down slowly
+const SWING_MAX_W = 5.5;     // rad/s cap (a long rope still tops out sanely)
+const SWING_MAX_ANGLE = 2;   // rad (~115°): past this the rope goes slack
+const SWING_RELEASE_UP = 120; // px/s of extra lift when you let go
+const SWING_COOLDOWN = 0.3;  // seconds before the same bead can catch again
+const SILK_COLORS = ['#e8e0f0', '#c9bcd8', '#fdfbff'];
+
 // Water ('='): a body volume. You FLOAT on its surface; once the dive
 // relic is found, 'down' submerges you into a free 4-directional swim.
 // Everything is a fraction of MOVE_SPEED (water is heavy), buoyancy is a
@@ -121,6 +140,10 @@ const DUST_STEP_EVERY = 0.09; // seconds between motes while running
 // Bubbles trailing a swimmer (puff motes rise and fade — bubble-like).
 const WATER_BUBBLES = ['#bfeaff', '#7fd8d0', '#e6ffff'];
 
+function clamp(v: number, lo: number, hi: number): number {
+  return v < lo ? lo : v > hi ? hi : v;
+}
+
 /** Nudge a velocity toward a direction, capped at a terminal speed
  *  (the shared shape of every push: updrafts, currents). */
 function pushToward(v: number, dir: -1 | 0 | 1, step: number, max: number): number {
@@ -155,6 +178,7 @@ export class Player {
     smash: false,
     dive: false,
     shrink: false,
+    swing: false,
   };
   private airJumpsLeft = 0;
   private dashTimer = 0;    // >0 = dash in progress
@@ -169,6 +193,13 @@ export class Player {
   private plunging = false;    // a pound-plunge is still bobbing back up
   private mini = false;        // miniaturized (needs the shrink relic)
   private miniScale = 1;       // drawn scale, eased toward its target
+  // Swinging: the anchor point it hangs from, and the pendulum's state.
+  private anchorX = 0;
+  private anchorY = 0;
+  private ropeLen = 0;         // >0 = hanging from an anchor
+  private swingAngle = 0;      // rad from straight down, + is to the right
+  private swingOmega = 0;      // rad/s
+  private swingCooldown = 0;   // >0 = beads can't catch yet
 
   private launched = false; // external impulse (spring): no jump cut
   private dropTimer = 0;    // >0 = dropping through a plank (ignores them)
@@ -213,6 +244,9 @@ export class Player {
     this.plunging = false;
     this.mini = false; // spawns stand tall (never inside a burrow)
     this.miniScale = 1;
+    this.ropeLen = 0;  // and never still tied to an anchor
+    this.swingOmega = 0;
+    this.swingCooldown = 0;
     // Respawning INTO water is safe: seed the swim flag so we start
     // already floating (no phantom entry splash or plunge next frame).
     this.swimmingNow = this.inWater();
@@ -269,6 +303,118 @@ export class Player {
     return this.mini;
   }
 
+  /** Is it hanging from a silk anchor right now? (the anchor draws its
+   *  rope to the body while true, and no other bead may catch it). */
+  get swinging(): boolean {
+    return this.ropeLen > 0;
+  }
+
+  /** Is it hanging from THIS anchor point? (an anchor asks, so only the
+   *  one actually holding the body draws its rope bent to it). */
+  heldBy(ax: number, ay: number): boolean {
+    return this.ropeLen > 0 && this.anchorX === ax && this.anchorY === ay;
+  }
+
+  /** Can a bead catch it this frame? (in the air, with the relic, not
+   *  already hanging, and past the cooldown of the last release). */
+  get canGrab(): boolean {
+    return (
+      this.abilities.swing &&
+      this.ropeLen <= 0 &&
+      this.swingCooldown <= 0 &&
+      !this.onGround &&
+      !this.swimmingNow &&
+      this.dashTimer <= 0
+    );
+  }
+
+  /**
+   * Tie to an anchor: the body starts orbiting (ax, ay) at `len` px, and
+   * whatever speed it arrived with becomes the swing's energy (only the
+   * part ALONG the arc — the rope eats the rest, like a real rope going
+   * taut). Called by systems/devices when the bead is touched.
+   */
+  grabAnchor(ax: number, ay: number, len: number): void {
+    const cx = this.x + this.w / 2;
+    const cy = this.y + this.h / 2;
+    this.anchorX = ax;
+    this.anchorY = ay;
+    this.ropeLen = len;
+    this.swingAngle = Math.atan2(cx - ax, Math.max(1, cy - ay));
+    // Tangent unit vector at this angle; the speed along it is the energy
+    // that survives, so arriving fast means swinging wide.
+    const tx = Math.cos(this.swingAngle);
+    const ty = -Math.sin(this.swingAngle);
+    this.swingOmega = clamp((this.vx * tx + this.vy * ty) / len, -SWING_MAX_W, SWING_MAX_W);
+    this.isGliding = false;
+    this.isPounding = false;
+    this.launched = false;
+    this.airJumpsLeft = 1; // letting go leaves you with your air jump
+    this.particles.puff(cx, cy, 5, SILK_COLORS);
+    sfx.grab();
+  }
+
+  /** Let go: the arc hands its speed back as a TANGENT launch (plus a
+   *  little lift, so a well-timed release throws you up and out). */
+  private releaseAnchor(launch: boolean): void {
+    if (this.ropeLen <= 0) return;
+    if (launch) {
+      const speed = this.swingOmega * this.ropeLen;
+      this.vx = speed * Math.cos(this.swingAngle);
+      this.vy = -speed * Math.sin(this.swingAngle) - SWING_RELEASE_UP;
+      this.stretch = STRETCH_JUMP;
+      sfx.release();
+    }
+    this.ropeLen = 0;
+    this.swingOmega = 0;
+    this.swingCooldown = SWING_COOLDOWN;
+  }
+
+  /** One step of the pendulum: gravity pulls it toward the low point,
+   *  left/right pump it, and the body is PLACED on the arc (no vx/vy
+   *  integration here — that's what makes the motion curve). */
+  private updateSwing(dt: number): void {
+    let dir = 0;
+    if (isDown('left')) dir -= 1;
+    if (isDown('right')) dir += 1;
+
+    const alpha = -(SWING_G / this.ropeLen) * Math.sin(this.swingAngle);
+    this.swingOmega += (alpha + dir * SWING_PUMP) * dt;
+    this.swingOmega -= this.swingOmega * SWING_DAMP * dt;
+    this.swingOmega = clamp(this.swingOmega, -SWING_MAX_W, SWING_MAX_W);
+    this.swingAngle += this.swingOmega * dt;
+    // Past the limit the silk goes slack: it stops instead of looping.
+    if (Math.abs(this.swingAngle) > SWING_MAX_ANGLE) {
+      this.swingAngle = Math.sign(this.swingAngle) * SWING_MAX_ANGLE;
+      this.swingOmega = 0;
+    }
+
+    const cx = this.anchorX + Math.sin(this.swingAngle) * this.ropeLen;
+    const cy = this.anchorY + Math.cos(this.swingAngle) * this.ropeLen;
+    const nx = cx - this.w / 2;
+    const ny = cy - this.h / 2;
+    // Swinging into rock tears you off the rope: the arc never clips.
+    const box: Box = { x: nx, y: ny, w: this.w, h: this.h };
+    if (this.level.solidTilesIn(box).some((tile) => overlaps(box, tile))) {
+      this.releaseAnchor(false);
+      return;
+    }
+    // Keep vx/vy in sync with the arc, so everything that reads them
+    // (combat's stomp test, the camera, a release) sees the real motion.
+    const speed = this.swingOmega * this.ropeLen;
+    this.vx = speed * Math.cos(this.swingAngle);
+    this.vy = -speed * Math.sin(this.swingAngle);
+    this.x = nx;
+    this.y = ny;
+    this.onGround = false;
+    if (this.vx !== 0) this.facing = this.vx < 0 ? -1 : 1;
+
+    // A thread of silk motes trailing the arc.
+    if (Math.random() < 0.3) {
+      this.particles.puff(cx, cy, 1, SILK_COLORS, -Math.sign(this.vx) * 0.3);
+    }
+  }
+
   /** Push from an updraft: accelerates upward up to the
    *  rise velocity. Called by systems/devices while gliding
    *  inside the column. */
@@ -290,6 +436,7 @@ export class Player {
    *  (to chain) and a brief grace so it takes no damage from the
    *  same enemy while still overlapping (e.g. a boss that survives). */
   bounce(): void {
+    this.releaseAnchor(false); // stomping something lets go of the rope
     this.vy = -STOMP_BOUNCE;
     this.onGround = false;
     this.airJumpsLeft = 1;
@@ -319,6 +466,7 @@ export class Player {
    */
   hurt(fromX: number): boolean {
     if (this.invulnTimer > 0 || this.stompGrace > 0) return false;
+    this.releaseAnchor(false); // a hit tears you off the silk
     this.health--;
     this.invulnTimer = HURT_INVULN;
     this.hurtLock = HURT_LOCK;
@@ -351,12 +499,32 @@ export class Player {
     this.invulnTimer = Math.max(0, this.invulnTimer - dt);
     this.stompGrace = Math.max(0, this.stompGrace - dt);
     this.dropTimer = Math.max(0, this.dropTimer - dt);
+    this.swingCooldown = Math.max(0, this.swingCooldown - dt);
 
     // ---- Water: am I in it this frame? (drives buoyancy vs. gravity) ----
     const wasSwimming = this.swimmingNow;
     this.swimmingNow = this.inWater();
     if (this.swimmingNow && !wasSwimming) this.enterWater();
     else if (!this.swimmingNow && wasSwimming) this.exitWater();
+
+    // ---- Hanging from a silk anchor: the pendulum owns the step ----
+    // It places the body on its arc instead of integrating vx/vy, so it
+    // runs first and returns: gravity, jumps and walls don't apply while
+    // the rope holds. Jump lets go with the arc's speed; down just drops.
+    if (this.ropeLen > 0) {
+      if (this.swimmingNow || this.hurtLock > 0) {
+        this.releaseAnchor(false);
+      } else if (justPressed('jump')) {
+        this.releaseAnchor(true);
+      } else if (justPressed('down')) {
+        this.releaseAnchor(false);
+      } else {
+        this.updateSwing(dt);
+        this.stretch += (1 - this.stretch) * Math.min(1, STRETCH_RECOVER * dt);
+        this.animTime += dt;
+        return;
+      }
+    }
 
     // Did the dive land outside its own physics? (a moving
     // platform set it down during the devices pass): close the impact here.

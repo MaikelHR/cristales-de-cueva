@@ -163,6 +163,7 @@ const ISLAND_LOOKS: Record<string, { edge: string; slab: string; belly: string }
   fragua: { edge: '#7a4426', slab: '#3d2419', belly: '#140a06' },
   cenote: { edge: '#5fe0d0', slab: '#22585f', belly: '#0e2a30' },
   mina: { edge: '#a87848', slab: '#4c3624', belly: '#1c120a' },
+  seda: { edge: '#e8e0f0', slab: '#4c445c', belly: '#241e30' },
   puerta: { edge: '#e0cf9a', slab: '#5c4a70', belly: '#2e2244' },
 };
 const DEFAULT_LOOK = { edge: '#8064b0', slab: '#4a2e70', belly: '#2e1c48' };
@@ -368,6 +369,37 @@ function drawIslandBiome(
         ctx.globalAlpha = (1 - dp) * 0.7;
         ctx.fillStyle = '#8a6238';
         ctx.fillRect(Math.round(x - 3 + Math.sin(time * 2 + x) * 1.5), Math.round(y - 6 + dp * 7), 1, 1);
+        ctx.globalAlpha = 1;
+      }
+      break;
+    }
+    case 'seda': {
+      // Webbed over: strands stretched across the slab's corners, a
+      // cocoon swinging under its lip, and a bead of silk that glints.
+      ctx.fillStyle = '#c9bcd8';
+      ctx.fillRect(x - 7, y - 5, 4, 1); // strands snagged on the edges
+      ctx.fillRect(x - 7, y - 5, 1, 3);
+      ctx.fillRect(x + 4, y - 6, 3, 1);
+      ctx.fillRect(x + 6, y - 6, 1, 3);
+      ctx.fillStyle = '#e8e0f0';
+      ctx.fillRect(x - 6, y - 4, 1, 1);
+      ctx.fillRect(x + 5, y - 5, 1, 1);
+      // The cocoon hanging off the right lip.
+      ctx.fillStyle = '#a294b8';
+      ctx.fillRect(x + 5, y + 2, 1, 2);
+      ctx.fillStyle = '#e8e0f0';
+      ctx.fillRect(x + 4, y + 4, 3, 4);
+      ctx.fillStyle = '#645a78';
+      ctx.fillRect(x + 4, y + 5, 3, 1);
+      if (unlocked) {
+        drawGlow(ctx, x - 3, y - 2, 5, '#ffb0d0', 0.14 + (Math.sin(time * 2.4 + x) + 1) * 0.06);
+        ctx.fillStyle = '#ffb0d0'; // a pink glint: something is watching
+        ctx.fillRect(x - 3, y - 2, 1, 1);
+        // A loose strand drifting down off the web.
+        const sp = (time * 0.4 + x * 0.3) % 1;
+        ctx.globalAlpha = (1 - sp) * 0.6;
+        ctx.fillStyle = '#e8e0f0';
+        ctx.fillRect(Math.round(x + 1 + Math.sin(time * 1.6 + x) * 2), Math.round(y - 5 + sp * 9), 1, 1);
         ctx.globalAlpha = 1;
       }
       break;

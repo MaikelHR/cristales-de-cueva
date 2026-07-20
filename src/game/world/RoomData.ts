@@ -41,11 +41,19 @@ export type EnemyKind =
   | 'custodio'
   | 'vigia'
   | 'topo'
-  | 'capataz';
+  | 'capataz'
+  | 'tejedora'
+  | 'matriarca';
 
 export type EntitySpawn =
-  // Plain enemies (just a cell). medusa/anguila carry extra fields, below.
-  | (Cell & { type: Exclude<EnemyKind, 'medusa' | 'anguila'> })
+  // Plain enemies (just a cell). medusa/anguila/tejedora carry extra
+  // fields, below.
+  | (Cell & { type: Exclude<EnemyKind, 'medusa' | 'anguila' | 'tejedora'> })
+  // Hanging spider: perched at (x, y) on the ceiling, it drops straight
+  // down when you cross the air beneath it. Without `drop` it pays out
+  // thread all the way to the floor (which is what makes it a threat to
+  // someone walking); `drop` caps it short for a lane you swing through.
+  | (Cell & { type: 'tejedora'; drop?: number })
   | (Cell & { type: 'crystal' })
   | (Cell & { type: 'relic'; ability: AbilityName })
   | (Cell & { type: 'playerSpawn' })
@@ -71,6 +79,11 @@ export type EntitySpawn =
   // fixed cycle (it sputters before vanishing, motes gather before it
   // returns). `offset` staggers the cycle between platforms, like geysers.
   | (Cell & { type: 'blink'; offset?: number })
+  // Silk anchor: a thread fixed to the ceiling at (x, y) with a grab
+  // BEAD hanging `length` cells below it. Touching the bead in mid-air
+  // ties you on and you swing from it (needs the swing relic). The
+  // length IS the arc: pick it to design the swing, not by feel.
+  | (Cell & { type: 'ancla'; length: number })
   // Crumble plank: a 2-cell rotten mine board on fixed stone corbels.
   // Unlike the blink's fixed cycle, it REACTS: stepped on, it shudders
   // (the grace window), snaps loose and falls; later it re-forms on its

@@ -48,14 +48,19 @@ export function drawHud(
     ctx.fillText(formatTime(session.runTime), session.viewW / 2, 6);
   }
   ctx.textAlign = 'left';
-  if (session.collected === session.totalCrystals && inGame) {
-    if (session.bossAlive) {
-      ctx.fillStyle = '#ff5a7a';
-      ctx.fillText(t('hud_stomp_boss'), 6, 33);
-    } else {
-      ctx.fillStyle = '#b98bff';
-      ctx.fillText(t('hud_door_open'), 6, 33);
-    }
+  // A boss in the room states its verb as soon as you walk in — waiting
+  // for the last crystal to explain the fight is too late (playtest:
+  // "I jumped on her and just got hurt"). Each boss may bring its own
+  // line; the rest keep the plain "stomp it".
+  const bossHere = inGame
+    ? session.world.current.enemies.find((e) => e.isBoss && !e.dead)
+    : undefined;
+  if (bossHere) {
+    ctx.fillStyle = '#ff5a7a';
+    ctx.fillText(t(bossHere.hintKey ?? 'hud_stomp_boss'), 6, 33);
+  } else if (session.collected === session.totalCrystals && inGame) {
+    ctx.fillStyle = '#b98bff';
+    ctx.fillText(t('hud_door_open'), 6, 33);
   }
   // Big notice when gaining an ability (fades out at the end)
   if (session.announceTimer > 0) {

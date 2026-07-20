@@ -12,6 +12,7 @@
 // ============================================================
 
 import type { Box } from '../../engine/canvas';
+import type { StrKey } from '../i18n';
 import { TILE } from '../world/Level';
 import { drawGlow } from '../art/glow';
 import { sfx } from '../sfx';
@@ -72,6 +73,12 @@ export class Ajolote implements Enemy {
   /** The crest opens ONLY during the breach — that's the stomp window. */
   get stompable(): boolean {
     return this.state === 'breach';
+  }
+
+  /** Only its crest, only mid-breach: the HUD says so, because its
+   *  violet flanks look just as stompable and are not. */
+  get hintKey(): StrKey {
+    return this.state === 'breach' ? 'hud_stomp_now' : 'hud_crest';
   }
 
   private rage(): number {

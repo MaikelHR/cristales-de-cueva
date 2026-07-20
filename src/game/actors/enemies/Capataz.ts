@@ -42,6 +42,7 @@ export class Capataz implements Enemy {
   readonly h = 19;
   dead = false;
   readonly isBoss = true;
+  readonly hintKey = 'hud_lantern' as const; // his front shrugs off stomps
   readonly gooColors = ['#e08a4a', '#ffd9a0', '#8a837a'];
   hp = MAX_HP;
 

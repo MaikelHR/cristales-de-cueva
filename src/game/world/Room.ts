@@ -25,6 +25,8 @@ import { Custodio } from '../actors/enemies/Custodio';
 import { Vigia } from '../actors/enemies/Vigia';
 import { Topo } from '../actors/enemies/Topo';
 import { Capataz } from '../actors/enemies/Capataz';
+import { Tejedora } from '../actors/enemies/Tejedora';
+import { Matriarca } from '../actors/enemies/Matriarca';
 import { Medusa } from '../actors/Medusa';
 import { Anguila } from '../actors/Anguila';
 import { Ajolote } from '../actors/Ajolote';
@@ -34,6 +36,7 @@ import { Spring } from '../actors/devices/Spring';
 import { MovingPlatform } from '../actors/devices/MovingPlatform';
 import { BlinkPlatform } from '../actors/devices/Blink';
 import { Crumble } from '../actors/devices/Crumble';
+import { Ancla } from '../actors/devices/Ancla';
 import { Vent } from '../actors/devices/Vent';
 import { Corriente } from '../actors/Corriente';
 
@@ -87,6 +90,12 @@ export class Room {
         case 'capataz':
           this.actors.push(new Capataz(px, py, this.level));
           break;
+        case 'tejedora':
+          this.actors.push(new Tejedora(px, py, this.level, e.drop));
+          break;
+        case 'matriarca':
+          this.actors.push(new Matriarca(px, py, this.level));
+          break;
         case 'medusa':
           this.actors.push(new Medusa(px, py, e.range));
           break;
@@ -116,6 +125,9 @@ export class Room {
           break;
         case 'crumble':
           this.actors.push(new Crumble(px, py));
+          break;
+        case 'ancla':
+          this.actors.push(new Ancla(px, py, e.length));
           break;
         case 'vent':
           this.actors.push(new Vent(px, py, e.height, clock));

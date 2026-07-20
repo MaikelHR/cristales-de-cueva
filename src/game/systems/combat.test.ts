@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isDashKill, isStomp } from './combat';
+import { isDashKill, isStomp, isSwingCut } from './combat';
 import { Player } from '../actors/Player';
 import { Level } from '../world/Level';
 import { Particles } from '../effects/Particles';
@@ -102,5 +102,17 @@ describe('Player.heal (el corazón que devuelve un enemigo derrotado)', () => {
     player.heal();
     player.heal(); // this one finds it already full
     expect(player.health).toBe(player.maxHealth);
+  });
+});
+
+// El tercer verbo de combate del juego (tras el pisotón y la embestida):
+// el ARCO. Solo un jugador columpiándose corta el hilo del que cuelga
+// la Matriarca, y ese hilo es la única forma de bajarla.
+describe('isSwingCut: el arco como arma', () => {
+  it('corta solo si hay hilo Y vienes columpiándote', () => {
+    expect(isSwingCut(true, true)).toBe(true);
+    expect(isSwingCut(true, false)).toBe(false); // caminando por debajo, nada
+    expect(isSwingCut(false, true)).toBe(false); // sin hilo que cortar, nada
+    expect(isSwingCut(false, false)).toBe(false);
   });
 });

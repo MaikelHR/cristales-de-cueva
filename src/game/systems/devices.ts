@@ -16,12 +16,14 @@ import type { GameSession } from '../session';
 import { MovingPlatform } from '../actors/devices/MovingPlatform';
 import { BlinkPlatform } from '../actors/devices/Blink';
 import { Crumble } from '../actors/devices/Crumble';
+import { Ancla } from '../actors/devices/Ancla';
 import { Spring, SPRING_SPEED } from '../actors/devices/Spring';
 import { Vent, VENT_ACCEL, VENT_RISE } from '../actors/devices/Vent';
 import { Corriente } from '../actors/Corriente';
 import { sfx } from '../sfx';
 
 const DUST_COLORS = ['#9b86c4', '#6f5a9e', '#d7c9ec'];
+const SILK_COLORS = ['#e8e0f0', '#c9bcd8', '#fdfbff'];
 
 /** Step 1: move the platforms and carry the rider along with them. */
 export function carryAndAdvanceDevices(session: GameSession, dt: number): void {
@@ -96,6 +98,21 @@ export function resolveDeviceContacts(session: GameSession, dt: number): void {
       // releasing jump lets go of the wind (and drops at will).
       if (player.glideHeld && overlaps(player.box(), b)) {
         player.liftBy(dt, VENT_ACCEL, VENT_RISE);
+      }
+    } else if (d instanceof Ancla) {
+      // The bead catches a player in the air (like the vent's glide gate,
+      // it only grips someone in the right state), and keeps holding
+      // until the Player's pendulum lets go on its own.
+      d.holding = player.swinging && player.heldBy(d.x, d.y);
+      if (d.holding) {
+        d.holdX = player.x + player.w / 2;
+        d.holdY = player.y + player.h / 2;
+      } else if (player.canGrab && overlaps(player.box(), b)) {
+        player.grabAnchor(d.x, d.y, d.len);
+        d.holding = true;
+        d.holdX = player.x + player.w / 2;
+        d.holdY = player.y + player.h / 2;
+        session.particles.puff(b.x + b.w / 2, b.y, 5, SILK_COLORS);
       }
     } else if (d instanceof Corriente) {
       // The current only shoves a SUBMERGED swimmer (a state gate, just

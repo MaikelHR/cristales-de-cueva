@@ -14,6 +14,7 @@
 // ============================================================
 
 import type { Box } from '../../../engine/canvas';
+import type { StrKey } from '../../i18n';
 import { Level, TILE } from '../../world/Level';
 import { drawGlow } from '../../art/glow';
 import type { Enemy } from './Enemy';
@@ -66,6 +67,12 @@ export class Ariete implements Enemy {
    *  bounces off without hurting it (and touching its side burns, as always). */
   get stompable(): boolean {
     return this.state === 'stun';
+  }
+
+  /** The HUD tells you WHEN, because "stomp it" alone gets you burned:
+   *  wait for the wall slam, then jump. */
+  get hintKey(): StrKey {
+    return this.state === 'stun' ? 'hud_stomp_now' : 'hud_wait_stun';
   }
 
   box(): Box {

@@ -25,6 +25,7 @@
 // ============================================================
 
 import type { Box } from '../../../engine/canvas';
+import type { StrKey } from '../../i18n';
 import { Level, TILE } from '../../world/Level';
 import { drawGlow } from '../../art/glow';
 import { sfx } from '../../sfx';
@@ -130,6 +131,15 @@ export class Custodio implements Enemy {
   /** Only the CYAN window (2 hp): the dash-lunge is the answer. */
   get dashVulnerable(): boolean {
     return this.state === 'window' && this.hp === 2;
+  }
+
+  /** Its halo names the verb and the verb CHANGES with each life, so
+   *  the HUD changes with it: stomp, then dash-lunge, then pound.
+   *  A single "stomp the guardian" line would be wrong twice. */
+  get hintKey(): StrKey {
+    if (this.hp === 2) return 'hud_dash_boss';
+    if (this.hp === 1) return 'hud_pound_boss';
+    return 'hud_stomp_boss';
   }
 
   box(): Box {

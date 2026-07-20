@@ -110,6 +110,24 @@ const MINE_TOP = [
   'ssssssss',
 ];
 
+// --- Seda: rock swallowed by old web — the top is matted silk you
+//     walk on, with loose strands snagged along the seam ---
+const SILK_PALETTE: Palette = {
+  r: '#3b3348', o: '#4c445c', s: '#1d1826',
+  m: '#8d7fa4', t: '#c9bcd8',
+  W: '#e8e0f0', w: '#a294b8',
+};
+const SILK_TOP = [
+  'WWwWWWwW', // the matted silk carpet you stand on
+  'wwWwwWww',
+  'wtoomttw', // its frayed fringe caught at the seam
+  'orrrrrro',
+  'rrtrrrrr', // stray strands still threaded through the rock
+  'rrrrrtor',
+  'rorrrrrr',
+  'ssssssss',
+];
+
 // --- Puerta: worked marble — cut stone with gold veins in the seams.
 //     The threshold of the door was BUILT, not grown: the first
 //     terrain in the grotto with a mason's hand on it. ---
@@ -165,6 +183,15 @@ const SETS: Record<string, TileSet> = {
     rimL: '#8a6238',
     rimR: '#54402a',
     shadow: '#100b06',
+  },
+  seda: {
+    top: new Sprite(SILK_TOP, SILK_PALETTE),
+    fill: new Sprite(FILL, SILK_PALETTE),
+    fill2: new Sprite(FILL2, SILK_PALETTE),
+    fill3: new Sprite(FILL3, SILK_PALETTE),
+    rimL: '#a294b8',
+    rimR: '#645a78',
+    shadow: '#151020',
   },
   puerta: {
     top: new Sprite(MARBLE_TOP, MARBLE_PALETTE),

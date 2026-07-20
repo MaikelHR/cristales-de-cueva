@@ -49,6 +49,16 @@ export function isDashKill(dashVulnerable: boolean, dashing: boolean): boolean {
 }
 
 /**
+ * The arc is a weapon too: a SWINGING player who crosses an enemy's
+ * `swingSpot` trips it (the Matriarch's thread). Pure and tested, like
+ * the other two decisions, so a physics tweak can't quietly break the
+ * only way to reach a boss that hangs out of everyone's reach.
+ */
+export function isSwingCut(hasSpot: boolean, swinging: boolean): boolean {
+  return hasSpot && swinging;
+}
+
+/**
  * Resolves the player's contacts with the current room's enemies
  * (body and projectiles). At most one contact per step, so the most
  * damage possible is one heart per frame.
@@ -59,6 +69,19 @@ export function resolveEnemyContacts(session: GameSession, dt: number): void {
 
   for (const e of session.world.current.enemies) {
     if (e.dead) continue;
+
+    // The swing cut goes FIRST: a thread hangs across the arc's path,
+    // and reaching it must never be read as bumping into the body.
+    const spot = e.swingSpot?.() ?? null;
+    if (isSwingCut(spot !== null, player.swinging) && overlaps(pbox, spot!)) {
+      if (e.onSwingCut?.()) {
+        session.particles.burst(spot!.x + spot!.w / 2, pbox.y, 14, ['#e8e0f0', '#c9bcd8', '#fdfbff']);
+        session.camera.shake(3, 0.3);
+        session.hitStop = 0.06;
+      }
+      continue;
+    }
+
     const eb = e.box();
     if (overlaps(pbox, eb)) {
       const feetY = pbox.y + pbox.h;

@@ -82,6 +82,18 @@ export const sfx = {
     playTone({ freq: 700, duration: 0.05, type: 'triangle', volume: 0.1, delay: 0.02 });
   },
 
+  /** Catching a silk bead: a soft thread going taut. */
+  grab(): void {
+    playTone({ freq: 900, freqEnd: 420, duration: 0.09, type: 'triangle', volume: 0.1 });
+    playTone({ freq: 2200, duration: 0.04, type: 'noise', volume: 0.06, delay: 0.01 });
+  },
+
+  /** Letting go at the top of the arc: the thread twangs and you fly. */
+  release(): void {
+    playTone({ freq: 300, freqEnd: 760, duration: 0.13, type: 'triangle', volume: 0.12 });
+    playTone({ freq: 1500, duration: 0.05, type: 'triangle', volume: 0.07, delay: 0.04 });
+  },
+
   /** Shrinking: a quick crystal chirp collapsing downward — magic, not pain. */
   shrink(): void {
     playTone({ freq: 880, freqEnd: 320, duration: 0.1, type: 'triangle', volume: 0.1 });

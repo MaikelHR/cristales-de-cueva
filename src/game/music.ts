@@ -27,6 +27,9 @@
 //   · mina       — a ghost work-song in C minor: the PICK's dry clink
 //                  is the percussion, a mine-cart rattle is the bass,
 //                  and the miner's whistle says the theme with air.
+//   · seda       — the only WALTZ: F minor in three, no drums and no
+//                  bass — a plucked thread is the pulse — with the
+//                  theme sung thin and high, as if from a cocoon.
 //
 //  Timbral palette: triangle = crystal bells, sine = pads
 //  and kicks, square = bright melody, sawtooth = grit, noise =
@@ -894,6 +897,93 @@ const mina: Song = {
 };
 
 // ------------------------------------------------------------
+// SEDA — level 9 (F minor, 88 bpm, 12 bars of 3: a WALTZ)
+// The only theme in triple time: everything in the nest hangs and
+// SWAYS, so the music swings too — one-two-three, one-two-three.
+// No drums and no bass line: the pulse is a plucked THREAD (a dry
+// pizzicato on the downbeat, its harmonic answering on three), the
+// pads breathe like something asleep, and the melody says the crystal
+// theme (F→A♭→C) high and thin, as if from inside a cocoon. The
+// half-diminished chord in the middle is the moment you notice how
+// many eyes are up there.
+// ------------------------------------------------------------
+
+/** A plucked thread: dry attack, and a harmonic sighing after it. */
+function pluck(beat: number, note: string, harmonic = true): SongNote[] {
+  const f = n(note);
+  const out: SongNote[] = [
+    { beat, freq: f, beats: 0.3, type: 'triangle', vol: 0.05 },
+  ];
+  if (harmonic) {
+    out.push({ beat: beat + 2, freq: f * 2, beats: 0.5, type: 'sine', vol: 0.03 });
+  }
+  return out;
+}
+
+const sedaBars = ['F2', 'C3', 'D#2', 'A#2', 'F2', 'D2', 'G#2', 'D#2',
+  'F2', 'C3', 'C2', 'F2'];
+
+const sedaBells = voice(
+  [
+    // The theme, thin and high — a lullaby nobody meant kindly.
+    [0, 'F5', 1], [1, 'G#5', 1], [2, 'C6', 2],
+    [4, 'A#5', 0.5], [4.5, 'G#5', 0.5], [5, 'A#5', 1],
+    [6, 'G5', 2], [8, 'F5', 1],
+    // It drifts down, swaying.
+    [9, 'C5', 1], [10, 'D#5', 1], [11, 'G5', 1],
+    [12, 'F5', 2], [14, 'D#5', 1],
+    [15, 'C5', 1], [16, 'D5', 1], [17, 'F5', 1],
+    // The half-diminished turn: something up there moved.
+    [18, 'D5', 1], [19, 'F5', 1], [20, 'G#5', 1],
+    [21, 'B5', 2], [23, 'A#5', 1],
+    // And the theme again, an octave down, closer to the floor.
+    [24, 'F4', 1], [25, 'G#4', 1], [26, 'C5', 2],
+    [28, 'D#5', 0.5], [28.5, 'C5', 0.5], [29, 'D#5', 1],
+    [30, 'C5', 2], [32, 'A#4', 1],
+    [33, 'G#4', 1], [34, 'C5', 1], [35, 'D#5', 1],
+    // It hangs on the dominant and lets the loop pull it back up.
+    [36, 'C5', 2], [38, 'D5', 1],
+    [39, 'E5', 1], [40, 'G5', 1], [41, 'C6', 1],
+    [42, 'A#5', 2], [44, 'G5', 1],
+    [45, 'F5', 1], [46, 'E5', 1], [47, 'C5', 1],
+  ],
+  { type: 'triangle', vol: 0.046 },
+);
+
+const seda: Song = {
+  id: 'seda',
+  bpm: 88,
+  loopBeats: 36,
+  notes: [
+    // The threads: one plucked per bar of three, with its harmonic
+    // answering on the third beat — the waltz's whole rhythm section.
+    ...sedaBars.flatMap((root, bar) => pluck(bar * 3, root)),
+    // A second, higher thread on the offbeat of two: the sway.
+    ...sedaBars.flatMap((root, bar) => {
+      const fifth = { F2: 'C4', C3: 'G4', 'D#2': 'A#3', 'A#2': 'F4', D2: 'A3', 'G#2': 'D#4', C2: 'G3' }[root]!;
+      return voice([[bar * 3 + 1.5, fifth, 0.4]], { type: 'triangle', vol: 0.024 });
+    }),
+    ...sedaBells.filter((note) => note.beat < 36),
+    ...echo(sedaBells.filter((note) => note.beat < 36), 36, 0.28),
+    // Sleeping pads: two voices per chord, very slow to open.
+    ...voice(
+      [
+        [0, 'F2', 8.5], [0, 'C3', 8.5], [9, 'D#2', 8.5], [9, 'A#2', 8.5],
+        [18, 'D2', 8.5], [18, 'G#2', 8.5], [27, 'C2', 8.5], [27, 'G2', 8.5],
+      ],
+      { type: 'sine', vol: 0.042, attack: 2 },
+    ),
+    // Far-off ticks: something walking a web in the dark.
+    { beat: 8.5, freq: 5200, beats: 0.05, type: 'noise', vol: 0.02 },
+    { beat: 8.75, freq: 4800, beats: 0.05, type: 'noise', vol: 0.018 },
+    { beat: 20.5, freq: 5200, beats: 0.05, type: 'noise', vol: 0.02 },
+    { beat: 20.75, freq: 4600, beats: 0.05, type: 'noise', vol: 0.016 },
+    { beat: 32.5, freq: 5000, beats: 0.05, type: 'noise', vol: 0.02 },
+    drip(14.5, 2349), drip(29.25, 1976),
+  ],
+};
+
+// ------------------------------------------------------------
 // PUERTA — level 10 (A minor, 72 bpm, 16 bars)
 // The title theme comes home: the same A→C→E the menu sings, now
 // as a slow procession up to the door — pillar bass stepping in
@@ -1073,6 +1163,7 @@ export const LEVEL_SONGS: Record<string, Song> = {
   fragua,
   cenote,
   mina,
+  seda,
   puerta,
 };
 

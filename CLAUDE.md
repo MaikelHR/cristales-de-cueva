@@ -88,7 +88,12 @@ SUBMERGED swimmer, ~vent strength: ride it WITH the flow, a gate AGAINST it, den
 stream is the telegraph, or `{ type: 'blink', offset: 2.2, x: 20, y: 15 }` — a 3-tile
 crystal slab that PHASES on a fixed cycle (~2.8s there / 1.6s gone): it sputters before
 vanishing, a ghost outline holds the spot and motes converge before it returns; offsets
-stagger a chain into a rhythm, or `{ type: 'crumble', x, y }` — a 2-tile rotten mine
+stagger a chain into a rhythm, or `{ type: 'ancla', length: 8, x, y }` — a silk thread
+fixed to the ceiling at (x,y) with a grab BEAD hanging `length` tiles below it: touching
+the bead in mid-air ties you on and you SWING from it. The bead's grab box is a full
+tile (deliberately fatter than it draws: missing the silk by 2px reads as the game
+cheating). `length` IS the arc — pick it, don't guess it: hanging from L and pumping to
+~60° lifts you 0.5·L and carries you 0.87·L sideways, or `{ type: 'crumble', x, y }` — a 2-tile rotten mine
 board on fixed stone corbels: unlike the blink's cycle it REACTS — first footfall starts
 a ~0.45s shudder (the grace window), then it snaps loose, falls, and re-forms ~3.3s
 later; the corbels never vanish, so its spot stays readable while it's gone. Place it at
@@ -119,7 +124,19 @@ noticing + ~0.9s turning, facing flips only at the END — is the whole window; 
 spins him to face you instantly and enrages him (faster pace and turns), and a shovel
 slam answers anyone dancing at his face. Fight him in a low gallery (4-tile ceiling — he
 almost fills it) whose 1-tile burrows are the flanking routes: nothing like the ariete's
-stun-on-wall or the ajolote's breach), custodio (the game's ONLY bullet hell — the danmaku is the BOSS's, never level
+stun-on-wall or the ajolote's breach), tejedora (the first thing in the game that lives
+on the CEILING: hangs still until you cross the air beneath it, its thread SHIVERS (the
+tell), then it DROPS straight down through the lane you were about to swing through and
+reels back up. A plain stomp kills it; it is a beat to time, not a wall), matriarca (the
+silk nest's boss, and the only one with a THIRD combat verb: she hangs from the ceiling
+out of everyone's reach — no stomp climbs that high and her body burns — so the target
+is her THREAD. Swing through it (`swingSpot`/`onSwingCut`, gated by `isSwingCut`: only a
+SWINGING player counts, so a double jump can't poach it) and the silk parts; she drops,
+cracks on the floor and lies stunned — the only stomp window. 3 hits, and each time she
+climbs a fresh thread elsewhere along the ceiling. She strolls SLOWLY and stands still
+while winding up a spit: an arc takes most of a second to reach her, and a brisk walk
+made every cut a coin flip. Combat resolves the cut BEFORE body contact, so an arc that
+grazes her while cutting still counts), custodio (the game's ONLY bullet hell — the danmaku is the BOSS's, never level
 furniture. Never travels: dissolves into motes and RE-FORMS on a FIXED anchor wheel,
 left → right → top (gather = intangible) — learnable, like a dance. One honest loop per
 life: pattern → travel move → verb window, repeated unchanged until the hit lands (no
@@ -141,8 +158,8 @@ FINAL level, 'puerta', is pinned to the map's LAST node — the great door — v
 one playerSpawn + a door per level, connected rooms open their borders at matching
 rows — transitions preserve player y). Each level's `startAbilities` are what previous
 levels taught; its new ability comes from a relic inside (order so far: doubleJump →
-wallJump → dash → glide → pound → smash → dive → shrink). The final level ('puerta',
-6 rooms) is the exception: NO relic — it starts with all eight, keeps ONE coherent biome (the built
+wallJump → dash → glide → pound → smash → dive → shrink → swing). The final level
+('puerta', 6 rooms) is the exception: NO relic — it starts with all nine, keeps ONE coherent biome (the built
 marble sanctum: no ice/water/geyser quotes) and teaches its own language instead: blink
 slabs → vigía sentries → the watched climb and the long gallery → breather chapel → the
 Custodio. Regular rooms use normal, readable enemies; the bullet hell is the boss's
@@ -173,7 +190,22 @@ run, bait and jump, but never a clean flight over him (a cramped 4-tile box read
 "no arena" in playtest); its 1-tile burrows at both ends are the taught flanking routes.
 CRUMBLE boards are the level's real platforming: they only bite when a FALL costs
 something, so span them over spike beds or the topo's pit and stagger their heights —
-a board bridge over safe floor is decoration, not a device (playtest verdict). Level 1 id ('cavernas') is pinned in save.ts for migration.
+a board bridge over safe floor is decoration, not a device (playtest verdict).
+SWING — and the numbers here were MEASURED in the running game, because eyeballing them
+was wrong twice. From a ledge the player reaches 9.6 tiles with jump+dash+double jump…
+and 27.6 WITH THE GLIDE, which poaches any honest chasm. But the glide needs altitude
+and altitude comes from the double jump, so the gate is headroom, not width: every ledge
+in a swing room is a LOW TUNNEL (3 tiles of air — you can walk and hop, never climb) and
+every chasm is a TALL CAVERN (long ropes = long arcs). Step out with no altitude and the
+glide just sinks into the spikes. Leaving that ceiling open is what made the first two
+versions of the nest crossable without the relic at all.
+Sizing: a rope of L lifts 0.5·L and carries 0.87·L, so one arc spans ~8 tiles and a 20-
+tile chasm wants THREE beads (release at the top of one, catch the next mid-flight).
+The FIRST bead of a chasm must hang one tile out and at LIP HEIGHT: leaving a low tunnel
+you are already falling, so a bead placed 6 tiles out and high is one you drop past.
+A ceiling boss is reached at the arc's EXTREME, never from the anchor beneath it (the
+low point is under the anchor; it climbs at the ends) — flank its patrol with beads ~7
+tiles to either side, and hang it low enough that its thread crosses the arc's own lane. Level 1 id ('cavernas') is pinned in save.ts for migration.
 
 ## Level design standards (the bar every room must clear)
 
@@ -227,6 +259,15 @@ Hard-won from playtesting. Check ALL of these before calling a room done:
   the capataz wears his tells on his body: the helmet lamp blinks white
   while he notices you, the shovel rises before it slams, and the back
   lantern pulses hard exactly while your side of him is the open one.
+- **A boss whose verb isn't "jump on it" must SAY so**: the HUD shows a
+  boss's `hintKey` the moment you enter its room (not when the last
+  crystal drops — too late). The Matriarch's flips between "cut her
+  thread" and "now jump on her" as she falls; the foreman's names the
+  lantern. Without it players read an armored front as a broken fight.
+- **A hazard that can't reach the player is scenery**: the tejedora
+  pays out thread all the way to the FLOOR by default. The first pass
+  capped its drop mid-air over a walking lane and it did nothing at
+  all (playtest: "they never reach me").
 - **Work the grid like a surveyor**: before editing a room, print its tiles
   with a column ruler (node one-liner) and verify row widths, border openings
   matching the neighbor rooms, and the design metrics above. `npm test`
@@ -251,7 +292,12 @@ Player-facing text is **neutral LatAm Spanish (tuteo)** + English,
   axes, never a squashed crouch: playtesting rejected the duck-walk look; hitbox 11px →
   6px, fits 1-tile burrows; plank-drop wins over shrinking on planks, a burrow's roof
   keeps you small till there's headroom, and jumping/dashing grows you back first —
-  both refuse while the roof pins you). The touch pause menu stays DOM buttons (touch.ts); its "exit to
+  both refuse while the roof pins you), swing = touch an ancla's bead in mid-air and
+  you're tied on (no new button: the bead catches you), left/right PUMP the arc, jump
+  lets go along the tangent + a lift, down just drops. While the rope holds, the
+  pendulum OWNS the step: it places the body on its arc instead of integrating vx/vy
+  (gravity, wall slides and double jumps don't apply), but it keeps vx/vy in sync so
+  combat and the camera read the real motion. Swinging into rock tears you off. The touch pause menu stays DOM buttons (touch.ts); its "exit to
   map" arrives as the 'quit' action; the ES/EN DOM chip is touch-only, menus-only.
   Both languages must have every key (the `en` table is typed to enforce it).
 - Behavior-preserving details matter here (game feel): coyote time, jump buffer,
@@ -300,5 +346,5 @@ Player-facing text is **neutral LatAm Spanish (tuteo)** + English,
 
 Browser console: `__game` (session), `__scenes`, `__debug.hitboxes = true`,
 `__debug.warp('<room-id>')` (rooms of the CURRENT level, e.g. 'galeria', 'chimenea'),
-`__debug.level('cavernas' | 'galerias' | 'corazon' | 'esporas' | 'glaciar' | 'fragua' | 'cenote' | 'mina' | 'puerta')`,
+`__debug.level('cavernas' | 'galerias' | 'corazon' | 'esporas' | 'glaciar' | 'fragua' | 'cenote' | 'mina' | 'seda' | 'puerta')`,
 `__sprites`, `__audio()`.
