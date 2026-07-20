@@ -15,7 +15,7 @@
  *  'overworld' is the level map: navigated with the pad (the touch
  *  move/jump buttons show as if playing). */
 export interface UiState {
-  state: 'title' | 'overworld' | 'playing' | 'won' | 'gameover';
+  state: 'title' | 'overworld' | 'playing' | 'won' | 'gameover' | 'ending';
   paused: boolean;
 }
 

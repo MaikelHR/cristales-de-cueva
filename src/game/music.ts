@@ -1201,6 +1201,12 @@ export function syncMusic(ui: UiState, levelId: string, bossFight = false): void
       setSong(boss ?? LEVEL_SONGS[levelId] ?? cavernas);
       break;
     }
+    case 'ending':
+      // The credits play THE theme: the title's slow, grand reading of
+      // the crystal motif — the same tune the game opened with, closing
+      // it. (won/gameover stay silent; those belong to the sfx stingers.)
+      setSong(title);
+      break;
     case 'won':
     case 'gameover':
       setSong(null);

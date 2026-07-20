@@ -344,3 +344,107 @@ function drawRecordLine(
     ctx.fillText(t('best_score_short', { n: best }), cx, y);
   }
 }
+
+/**
+ * THE ENDING (world 1 completed). The great door has just given way, so
+ * the screen does what the door does: light floods it. Everything is a
+ * function of `t` (seconds since the win) so the moment BREATHES —
+ * the glow swells, the title lands, the tally writes itself line by
+ * line — instead of dumping a card on screen the way a level win does.
+ * The run's numbers aren't the point here; the whole grotto is, so it
+ * tallies the world: levels, crystals and the sum of every best time.
+ */
+export function drawEndingOverlay(
+  ctx: CanvasRenderingContext2D,
+  session: GameSession,
+  t0: number,
+): void {
+  const { viewW, viewH, time, save } = session;
+  const cx = viewW / 2;
+  const cy = viewH / 2;
+
+  // The light coming through the door: it swells over the first two
+  // seconds and then just breathes, washing the cave out behind it.
+  const flood = Math.min(1, t0 / 2.2);
+  ctx.fillStyle = `rgba(26,16,40,${0.55 + flood * 0.4})`;
+  ctx.fillRect(0, 0, viewW, viewH);
+  const rays = ctx.createRadialGradient(cx, cy - 6, 4, cx, cy - 6, viewH * (0.35 + flood * 0.5));
+  rays.addColorStop(0, `rgba(255,231,160,${0.32 * flood})`);
+  rays.addColorStop(1, 'rgba(255,214,106,0)');
+  ctx.fillStyle = rays;
+  ctx.fillRect(0, 0, viewW, viewH);
+
+  // Motes of light drifting up through the doorway.
+  for (let i = 0; i < 14; i++) {
+    const p = ((time * 0.35 + i * 0.137) % 1);
+    const mx = cx + Math.sin(time * 0.6 + i * 2.1) * (24 + i * 5);
+    const my = viewH - p * (viewH + 12);
+    ctx.globalAlpha = Math.sin(p * Math.PI) * 0.55 * flood;
+    ctx.fillStyle = i % 3 === 0 ? '#fff3c0' : '#ffd76a';
+    ctx.fillRect(Math.round(mx), Math.round(my), i % 4 === 0 ? 2 : 1, i % 4 === 0 ? 2 : 1);
+  }
+  ctx.globalAlpha = 1;
+
+  ctx.textAlign = 'center';
+  // Each line waits its turn, so the ending reads like a curtain call.
+  const line = (delay: number, draw: () => void): void => {
+    if (t0 < delay) return;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, (t0 - delay) * 2.5);
+    draw();
+    ctx.restore();
+  };
+
+  line(0.5, () => {
+    drawGlow(ctx, cx, cy - 44, 40, '#ffd76a', 0.3 + Math.sin(time * 2) * 0.08);
+    ctx.fillStyle = '#ffe25a';
+    ctx.font = font(20);
+    ctx.fillText(t('end_title'), cx, cy - 38);
+  });
+  line(1.1, () => {
+    ctx.fillStyle = '#fff3c0';
+    ctx.font = font(9);
+    ctx.fillText(t('end_sub'), cx, cy - 22);
+  });
+
+  // The tally of the whole grotto, not of the last run.
+  const done = LEVELS.filter((l) => levelRecord(save, l.id).completions > 0).length;
+  const crystals = LEVELS.reduce(
+    (n, l) => n + l.rooms.reduce((r, room) => r + room.entities.filter((e) => e.type === 'crystal').length, 0),
+    0,
+  );
+  const totalTime = LEVELS.reduce((s, l) => s + levelRecord(save, l.id).bestTime, 0);
+  line(1.7, () => {
+    ctx.fillStyle = '#7ce0ff';
+    ctx.font = font(8);
+    ctx.fillText(t('end_levels', { n: done, m: LEVELS.length }), cx, cy - 4);
+  });
+  line(2.1, () => {
+    ctx.fillStyle = '#b98bff';
+    ctx.font = font(8);
+    ctx.fillText(t('end_crystals', { n: crystals }), cx, cy + 8);
+  });
+  line(2.5, () => {
+    ctx.fillStyle = '#ffd36e';
+    ctx.font = font(8);
+    ctx.fillText(t('end_total_time', { t: formatTime(totalTime) }), cx, cy + 20);
+  });
+  line(3.2, () => {
+    ctx.fillStyle = '#e9d6ff';
+    ctx.font = font(7);
+    ctx.fillText(t('end_flavor'), cx, cy + 38);
+  });
+  line(4, () => {
+    const dev = inputDevice();
+    const back = dev === 'touch'
+      ? t('end_back_touch')
+      : dev === 'gamepad'
+        ? t('end_back_gp', padLabels())
+        : t('end_back');
+    ctx.globalAlpha *= 0.55 + Math.sin(time * 4) * 0.45;
+    ctx.fillStyle = '#9b86c4';
+    ctx.font = font(8);
+    ctx.fillText(back, cx, cy + 54);
+  });
+  ctx.textAlign = 'left';
+}

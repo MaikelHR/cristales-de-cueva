@@ -22,7 +22,9 @@ import { sfx } from '../sfx';
 import type { Scene, SceneManager, UiState } from './Scene';
 import { PauseScene } from './PauseScene';
 import { WonScene } from './WonScene';
+import { EndingScene } from './EndingScene';
 import { GameOverScene } from './GameOverScene';
+import { FINAL_LEVEL_ID } from '../world/rooms';
 
 // A footing must hold this long before it counts as "safe ground".
 const SAFE_AFTER = 0.35;
@@ -134,11 +136,16 @@ export class GameplayScene implements Scene {
       s.safeTimer = 0;
     }
 
-    // Reaching the door with all crystals and no bosses alive -> win
+    // Reaching the door with all crystals and no bosses alive -> win.
+    // The LAST level's door is the end of the world, not another
+    // level card: it gets the ending instead.
     const door = room.doorBox;
     if (door && s.doorOpen && overlaps(s.player.box(), door)) {
       s.endRun(true);
-      this.scenes.replace(new WonScene(s, this.scenes));
+      const finale = s.level.id === FINAL_LEVEL_ID;
+      this.scenes.replace(
+        finale ? new EndingScene(s, this.scenes) : new WonScene(s, this.scenes),
+      );
       sfx.win();
       return;
     }
