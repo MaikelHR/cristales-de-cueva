@@ -12,7 +12,8 @@ export type AbilityName =
   | 'glide'
   | 'pound'
   | 'smash'
-  | 'dive';
+  | 'dive'
+  | 'shrink';
 
 export const ABILITY_NAMES: readonly AbilityName[] = [
   'doubleJump',
@@ -22,4 +23,5 @@ export const ABILITY_NAMES: readonly AbilityName[] = [
   'pound',
   'smash',
   'dive',
+  'shrink',
 ];

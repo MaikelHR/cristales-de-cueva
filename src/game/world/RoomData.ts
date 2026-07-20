@@ -39,7 +39,9 @@ export type EnemyKind =
   | 'anguila'
   | 'ajolote'
   | 'custodio'
-  | 'vigia';
+  | 'vigia'
+  | 'topo'
+  | 'capataz';
 
 export type EntitySpawn =
   // Plain enemies (just a cell). medusa/anguila carry extra fields, below.
@@ -69,6 +71,11 @@ export type EntitySpawn =
   // fixed cycle (it sputters before vanishing, motes gather before it
   // returns). `offset` staggers the cycle between platforms, like geysers.
   | (Cell & { type: 'blink'; offset?: number })
+  // Crumble plank: a 2-cell rotten mine board on fixed stone corbels.
+  // Unlike the blink's fixed cycle, it REACTS: stepped on, it shudders
+  // (the grace window), snaps loose and falls; later it re-forms on its
+  // corbels — which never vanish, so you always know where it lives.
+  | (Cell & { type: 'crumble' })
   // Jellyfish: drifts up and down `range` cells around (x, y). An
   // untouchable hazard — nothing kills it, you route around it.
   | (Cell & { type: 'medusa'; range: number })

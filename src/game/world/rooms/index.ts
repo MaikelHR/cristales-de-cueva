@@ -10,6 +10,8 @@
 //   5. Glaciar   — the POUND, ice, cracked blocks and erizos.
 //   6. Fragua    — the CHARGE, geysers and the Igneous Guardian.
 //   7. Cenote    — the DIVE, water, currents and the Axolotl.
+//   8. Mina      — the SHRINK, crumble boards, the burrowing topo
+//      and the Iron Foreman (a boss you flank, not out-jump).
 //  10. Puerta    — the FINAL EXAM: the built sanctum. Blink slabs
 //      and vigía sentries guard the six rooms; the bullet hell
 //      belongs to the Custodio ALONE (no relic: you arrive
@@ -19,10 +21,10 @@
 //  old records: don't rename it lightly.)
 //
 //  The overworld has 10 nodes but the FINAL level lives at the great
-//  door (the last node), whatever comes before: while levels 8-9
-//  don't exist yet, nodes 8-9 stay as '?' stones you walk PAST.
+//  door (the last node), whatever comes before: while level 9
+//  doesn't exist yet, node 9 stays a '?' stone you walk PAST.
 //  levelAtNode/nodeOfLevel below are the single source of that
-//  mapping; when the missing levels land, it becomes the identity.
+//  mapping; when the missing level lands, it becomes the identity.
 // ============================================================
 
 import type { LevelDef } from '../LevelData';
@@ -47,6 +49,9 @@ import { nucleo } from './fragua/nucleo';
 import { orilla } from './cenote/orilla';
 import { perla } from './cenote/perla';
 import { guarida } from './cenote/guarida';
+import { bocamina } from './mina/bocamina';
+import { veta } from './mina/veta';
+import { socavon } from './mina/socavon';
 import { atrio } from './puerta/atrio';
 import { claustro } from './puerta/claustro';
 import { roseton } from './puerta/roseton';
@@ -97,6 +102,12 @@ export const LEVELS: LevelDef[] = [
     rooms: [orilla, perla, guarida],
     startAbilities: ['doubleJump', 'wallJump', 'dash', 'glide', 'pound', 'smash'],
   },
+  {
+    id: 'mina',
+    nameKey: 'lvl_mina',
+    rooms: [bocamina, veta, socavon],
+    startAbilities: ['doubleJump', 'wallJump', 'dash', 'glide', 'pound', 'smash', 'dive'],
+  },
   // The final level: no relic inside — it examines everything the
   // grotto taught, and teaches the sanctum's own language (blink
   // slabs, vigía sentries) on the way to the Custodio's bullet hell.
@@ -105,7 +116,7 @@ export const LEVELS: LevelDef[] = [
     id: 'puerta',
     nameKey: 'lvl_puerta',
     rooms: [atrio, claustro, roseton, espira, capilla, dintel],
-    startAbilities: ['doubleJump', 'wallJump', 'dash', 'glide', 'pound', 'smash', 'dive'],
+    startAbilities: ['doubleJump', 'wallJump', 'dash', 'glide', 'pound', 'smash', 'dive', 'shrink'],
   },
 ];
 

@@ -6,3 +6,6 @@ dist
 .vscode/*
 !.vscode/extensions.json
 .idea
+
+# artefactos del MCP de Playwright (snapshots de sesión)
+.playwright-mcp

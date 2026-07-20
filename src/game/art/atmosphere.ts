@@ -141,6 +141,21 @@ const THEMES: Record<string, CaveTheme> = {
     drip: '#a8f0ff',
     fog: ['#3f9aa0', '#2c7078', '#1e565e'],
   },
+  // The forgotten mine: shored galleries in warm lamplight — brown
+  // dark, coal dust, copper glints where the timber holds the roof.
+  mina: {
+    gradTop: '#150e08', gradBottom: '#332416',
+    strata: '#20160c',
+    crystals: ['#6b4a2e', '#7a5433', '#8a6238'], spark: '#ffd9a0',
+    skyline: '#241809',
+    haze: 'rgba(224, 150, 70, 0.06)',
+    ray: '236,200,150',
+    mid: '#1c120a', midEdge: '#4c3624', root: '#2c1c10',
+    accent: '#ffb86a', accentLight: '#ffe9c8',
+    near: '#180f08', nearTop: '#342414',
+    drip: '#ffd9a0',
+    fog: ['#8a6a44', '#66492e', '#4c3622'],
+  },
   // The great door's threshold: violet cave stone flooded from above
   // by the gold light leaking around the seal — dawn inside the rock.
   puerta: {
@@ -198,6 +213,7 @@ interface Mound { x: number; w: number; h: number; }
 interface Stalagmite { x: number; w: number; h: number; }
 interface Shroom { x: number; h: number; phase: number; }
 interface Bubble { x: number; speed: number; phase: number; size: number; }
+interface Prop { x: number; w: number; lamp: boolean; phase: number; }
 
 interface BgLayers {
   strata: Strata[];
@@ -213,6 +229,8 @@ interface BgLayers {
   shrooms: Shroom[];
   /** Only the flooded cenote breathes these; empty for every other biome. */
   bubbles: Bubble[];
+  /** Timber post-and-lintel frames shoring the roof; mina only. */
+  props: Prop[];
 }
 
 let bg: BgLayers | null = null;
@@ -316,7 +334,16 @@ function ensureBackground(worldW: number, viewH: number, variant: number, themeI
     }
   }
 
-  bg = { strata, wallCrystals, towers, fringe, godRays, stalactites, roots, drips, mounds, stalagmites, shrooms, bubbles };
+  // Timber props: exclusive to the mine's shored galleries. Spaced far
+  // apart so they read as structure, not noise; some carry a lamp.
+  const props: Prop[] = [];
+  if (themeId === 'mina') {
+    for (let x = 40 + Math.floor(rng() * 40); x < worldW; x += 100 + Math.floor(rng() * 50)) {
+      props.push({ x, w: 26 + Math.floor(rng() * 14), lamp: rng() < 0.55, phase: rng() * Math.PI * 2 });
+    }
+  }
+
+  bg = { strata, wallCrystals, towers, fringe, godRays, stalactites, roots, drips, mounds, stalagmites, shrooms, bubbles, props };
 }
 
 export function drawBackground(
@@ -512,6 +539,35 @@ export function drawBackground(
       const q = (p - 0.25) / 0.75;
       const y = y0 + q * q * (midFloor - y0);
       ctx.fillRect(x, Math.round(y), 1, 2);
+    }
+  }
+
+  // Timber props (mina only): post-and-lintel frames shoring the roof,
+  // some with a copper lamp swinging gently under the beam.
+  for (const pr of L.props) {
+    const x = pr.x - parMid;
+    if (x + pr.w < -12 || x > viewW + 12) continue;
+    const x0 = Math.round(x);
+    const beamY = Math.round(midCeil + 6);
+    ctx.fillStyle = theme.root;
+    ctx.fillRect(x0, beamY, 3, Math.round(midFloor - beamY) + 10);       // left post
+    ctx.fillRect(x0 + pr.w - 3, beamY, 3, Math.round(midFloor - beamY) + 10); // right post
+    ctx.fillRect(x0 - 2, beamY, pr.w + 4, 3);                            // the lintel
+    ctx.fillStyle = theme.midEdge; // lamplit edges facing down-left
+    ctx.fillRect(x0, beamY, 1, Math.round(midFloor - beamY) + 10);
+    ctx.fillRect(x0 - 2, beamY, pr.w + 4, 1);
+    if (pr.lamp) {
+      const sway = Math.sin(time * 0.9 + pr.phase) * 2;
+      const lx = Math.round(x0 + pr.w / 2 + sway);
+      const ly = beamY + 6;
+      ctx.fillStyle = theme.root;
+      ctx.fillRect(lx, beamY + 3, 1, 3); // the chain
+      const flicker = 0.3 + (Math.sin(time * 5 + pr.phase * 3) + 1) * 0.1;
+      drawGlow(ctx, lx, ly + 1, 9, theme.accent, flicker);
+      ctx.fillStyle = theme.accent;
+      ctx.fillRect(lx - 1, ly, 3, 3);
+      ctx.fillStyle = theme.accentLight;
+      ctx.fillRect(lx, ly + 1, 1, 1);
     }
   }
 

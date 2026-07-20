@@ -23,6 +23,8 @@ import { Geyser } from '../actors/enemies/Geyser';
 import { Ariete } from '../actors/enemies/Ariete';
 import { Custodio } from '../actors/enemies/Custodio';
 import { Vigia } from '../actors/enemies/Vigia';
+import { Topo } from '../actors/enemies/Topo';
+import { Capataz } from '../actors/enemies/Capataz';
 import { Medusa } from '../actors/Medusa';
 import { Anguila } from '../actors/Anguila';
 import { Ajolote } from '../actors/Ajolote';
@@ -31,6 +33,7 @@ import { Relic } from '../actors/pickups/Relic';
 import { Spring } from '../actors/devices/Spring';
 import { MovingPlatform } from '../actors/devices/MovingPlatform';
 import { BlinkPlatform } from '../actors/devices/Blink';
+import { Crumble } from '../actors/devices/Crumble';
 import { Vent } from '../actors/devices/Vent';
 import { Corriente } from '../actors/Corriente';
 
@@ -78,6 +81,12 @@ export class Room {
         case 'vigia':
           this.actors.push(new Vigia(px, py, this.level));
           break;
+        case 'topo':
+          this.actors.push(new Topo(px, py, this.level));
+          break;
+        case 'capataz':
+          this.actors.push(new Capataz(px, py, this.level));
+          break;
         case 'medusa':
           this.actors.push(new Medusa(px, py, e.range));
           break;
@@ -104,6 +113,9 @@ export class Room {
           break;
         case 'blink':
           this.actors.push(new BlinkPlatform(px, py, e.offset));
+          break;
+        case 'crumble':
+          this.actors.push(new Crumble(px, py));
           break;
         case 'vent':
           this.actors.push(new Vent(px, py, e.height, clock));

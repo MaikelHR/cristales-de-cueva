@@ -53,6 +53,18 @@ export const sfx = {
     playTone({ freq: 900, duration: 0.05, type: 'noise', volume: 0.08, delay: 0.01 });
   },
 
+  /** Creak: rotten wood groaning underfoot — the crumble plank's warning. */
+  creak(): void {
+    playTone({ freq: 180, freqEnd: 110, duration: 0.16, type: 'sawtooth', volume: 0.09 });
+    playTone({ freq: 90, duration: 0.06, type: 'square', volume: 0.06, delay: 0.09 });
+  },
+
+  /** Snap: the board breaking loose and dropping away. */
+  snap(): void {
+    playTone({ freq: 2400, duration: 0.06, type: 'noise', volume: 0.12 });
+    playTone({ freq: 200, freqEnd: 70, duration: 0.14, type: 'square', volume: 0.09, delay: 0.02 });
+  },
+
   /** Cracked block bursting: crunch of shards + a dull thud. */
   crack(): void {
     playTone({ freq: 3200, duration: 0.08, type: 'noise', volume: 0.16 });
@@ -68,6 +80,24 @@ export const sfx = {
   stomp(): void {
     playTone({ freq: 420, freqEnd: 130, duration: 0.09, type: 'square', volume: 0.14 });
     playTone({ freq: 700, duration: 0.05, type: 'triangle', volume: 0.1, delay: 0.02 });
+  },
+
+  /** Shrinking: a quick crystal chirp collapsing downward — magic, not pain. */
+  shrink(): void {
+    playTone({ freq: 880, freqEnd: 320, duration: 0.1, type: 'triangle', volume: 0.1 });
+    playTone({ freq: 1320, duration: 0.05, type: 'triangle', volume: 0.07, delay: 0.02 });
+  },
+
+  /** Growing back: the same chirp, played the other way up. */
+  grow(): void {
+    playTone({ freq: 320, freqEnd: 880, duration: 0.1, type: 'triangle', volume: 0.1 });
+    playTone({ freq: 1320, duration: 0.05, type: 'triangle', volume: 0.07, delay: 0.06 });
+  },
+
+  /** The mole bursting out of the floor: a dry ground-pop of soil. */
+  emerge(): void {
+    playTone({ freq: 120, freqEnd: 320, duration: 0.12, type: 'square', volume: 0.11 });
+    playTone({ freq: 1800, duration: 0.08, type: 'noise', volume: 0.1, delay: 0.01 });
   },
 
   /** Crackle: the eel coiling — electric charge rising before it darts. */

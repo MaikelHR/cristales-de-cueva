@@ -26,6 +26,12 @@ Before considering a change done: `npm test` and `npm run build` must both pass.
 - `src/game/session.ts` — `GameSession`: ALL run state (world, player, camera, score,
   checkpoint, records) + lifecycle ops (startLevel, reset, respawn, endRun). Carries the
   current `level` (LevelDef) and `mode` ('normal' | 'trial'). No flow, no rendering.
+  DEATH RESPAWN (game-wide): a pit or spike death returns you to `lastSafe` — the last
+  footing you HELD for 0.35s, full-size, on real grid rock. Devices (crumble boards,
+  moving/blink slabs) and one-way planks never count as ground, GameplayScene records
+  the spot AFTER the death checks (so a lethal tile can't be saved), and
+  `safeSpotHolds()` falls back to the room-mouth `checkpoint` if that rock was since
+  shattered. The punishment is the heart, not re-walking the room.
 - `src/game/scenes/` — flow as a scene STACK (Title, Overworld, OverworldPause, Gameplay,
   Pause, Won, GameOver). Only the top scene updates; all draw bottom-up (Pause is pushed over
   Gameplay and freezes it by covering it). New screen = new scene. Flow: Title →
@@ -82,8 +88,12 @@ SUBMERGED swimmer, ~vent strength: ride it WITH the flow, a gate AGAINST it, den
 stream is the telegraph, or `{ type: 'blink', offset: 2.2, x: 20, y: 15 }` — a 3-tile
 crystal slab that PHASES on a fixed cycle (~2.8s there / 1.6s gone): it sputters before
 vanishing, a ghost outline holds the spot and motes converge before it returns; offsets
-stagger a chain into a rhythm). Never put entity characters in the
-tile grid. Enemies: slime, flyer, chaser, spitter (static, lobs arcing spores, inflates
+stagger a chain into a rhythm, or `{ type: 'crumble', x, y }` — a 2-tile rotten mine
+board on fixed stone corbels: unlike the blink's cycle it REACTS — first footfall starts
+a ~0.45s shudder (the grace window), then it snaps loose, falls, and re-forms ~3.3s
+later; the corbels never vanish, so its spot stays readable while it's gone. Place it at
+the floor row it should sit flush with (`y` = the walking row). Never put entity
+characters in the tile grid. Enemies: slime, flyer, chaser, spitter (static, lobs arcing spores, inflates
 first as telegraph), erizo (spiky — stomping it HURTS, only a pound kills it), boss,
 ariete (grounded ram boss: paces → rears up → charges, smashing `%` barricades in its
 path; stompable ONLY while stunned after slamming a wall — 3 hits, each slam rains
@@ -97,7 +107,19 @@ bubbles BOIL under your column → BREACHES in an arc, crest stompable ONLY mid-
 violet flanks hurt; 3 stomps, each enrages + looses a medusa), vigia (sentry rune-eye:
 posted still, tracks you, iris FLARES white while charging (~0.65s), then ONE straight
 bolt at where you were on release — the game's straight-shooter lesson; one stomp
-kills), custodio (the game's ONLY bullet hell — the danmaku is the BOSS's, never level
+kills), topo (the mine's ground-stalker: swims through SOLID floor — all you see is the
+mound tracking your feet, UNTOUCHABLE while under (box lives off-world, geyser-style);
+stand still over it and it stops, QUAKES (the tell), then BURSTS ~3.6 tiles up and
+wobbles dizzy on the surface — the only stomp window; it never leaves its own stretch of
+floor, and its burst passes clean through crumble boards), capataz (mine boss: an
+iron-plated melee hulk with NO projectiles — he MARCHES, never hurries; the shovel at
+his front shrugs off stomp AND pound (`invulnerable` from ahead) and the LANTERN on his
+back is the only weak point (`stompable` from behind). His slow half-turn — ~0.45s
+noticing + ~0.9s turning, facing flips only at the END — is the whole window; a hit
+spins him to face you instantly and enrages him (faster pace and turns), and a shovel
+slam answers anyone dancing at his face. Fight him in a low gallery (4-tile ceiling — he
+almost fills it) whose 1-tile burrows are the flanking routes: nothing like the ariete's
+stun-on-wall or the ajolote's breach), custodio (the game's ONLY bullet hell — the danmaku is the BOSS's, never level
 furniture. Never travels: dissolves into motes and RE-FORMS on a FIXED anchor wheel,
 left → right → top (gather = intangible) — learnable, like a dance. One honest loop per
 life: pattern → travel move → verb window, repeated unchanged until the hit lands (no
@@ -119,8 +141,8 @@ FINAL level, 'puerta', is pinned to the map's LAST node — the great door — v
 one playerSpawn + a door per level, connected rooms open their borders at matching
 rows — transitions preserve player y). Each level's `startAbilities` are what previous
 levels taught; its new ability comes from a relic inside (order so far: doubleJump →
-wallJump → dash → glide → pound → smash → dive). The final level ('puerta', 6 rooms) is
-the exception: NO relic — it starts with all seven, keeps ONE coherent biome (the built
+wallJump → dash → glide → pound → smash → dive → shrink). The final level ('puerta',
+6 rooms) is the exception: NO relic — it starts with all eight, keeps ONE coherent biome (the built
 marble sanctum: no ice/water/geyser quotes) and teaches its own language instead: blink
 slabs → vigía sentries → the watched climb and the long gallery → breather chapel → the
 Custodio. Regular rooms use normal, readable enemies; the bullet hell is the boss's
@@ -139,7 +161,19 @@ must ALWAYS have a mountable ≤3-tile edge (water can't softlock); surface swim
 MOVE_SPEED, submerged 4-dir ≈70%; the water HOP (held jump) mounts a 3-tile ledge, never
 4; pre-dive you can't sink past ~1.5 tiles and a pound-plunge dives ~3 tiles then bobs
 back; the aquatic LUNGE ≈60% of a dash (smash still shatters `%` underwater); a corriente
-pushes ≈11 tiles/s (~vent), submerged-only. Level 1 id ('cavernas') is pinned in save.ts for migration.
+pushes ≈11 tiles/s (~vent), submerged-only. Shrink: a 1-tile burrow (one `.` row between
+solids) passes ONLY the miniaturized body (hitbox 11px → 6px; mini walk ≈63% MOVE_SPEED,
+a running entry keeps its skid); keep burrows FLAT (never a drop mid-burrow), never open
+one on a room border (transitions need 2 contiguous open rows), and remember
+dash/double-jump are disabled while the roof pins you small. Topo: its burst peaks ~4.6 tiles over its floor
+— keep walkways ≥2 tiles above that (≥ 7 tiles over the floor), and cut its stretch with
+a solid-at-walking-row tile wherever it must not follow. Capataz gallery: 32 tiles of
+fighting floor under a 5-tile roof with rock TEETH hanging every 6 columns — room to
+run, bait and jump, but never a clean flight over him (a cramped 4-tile box read as
+"no arena" in playtest); its 1-tile burrows at both ends are the taught flanking routes.
+CRUMBLE boards are the level's real platforming: they only bite when a FALL costs
+something, so span them over spike beds or the topo's pit and stagger their heights —
+a board bridge over safe floor is decoration, not a device (playtest verdict). Level 1 id ('cavernas') is pinned in save.ts for migration.
 
 ## Level design standards (the bar every room must clear)
 
@@ -187,7 +221,12 @@ Hard-won from playtesting. Check ALL of these before calling a room done:
   inflates, the ariete rears up before charging and its core glows when
   stompable, the anguila coils + crackles before it darts (dazed = the lunge
   window), the ajolote boils bubbles under your feet before breaching (its
-  crest glows gold only while stompable).
+  crest glows gold only while stompable), the crumble board shudders and
+  sheds dust before snapping (and looks rotten while intact: this wood is
+  DONE), the topo's mound quakes and jumps pebbles before the burst, and
+  the capataz wears his tells on his body: the helmet lamp blinks white
+  while he notices you, the shovel rises before it slams, and the back
+  lantern pulses hard exactly while your side of him is the open one.
 - **Work the grid like a surveyor**: before editing a room, print its tiles
   with a column ruler (node one-liner) and verify row widths, border openings
   matching the neighbor rooms, and the design metrics above. `npm test`
@@ -207,7 +246,12 @@ Player-facing text is **neutral LatAm Spanish (tuteo)** + English,
   abilities reuse existing inputs on EVERY device (no new buttons): glide = hold jump
   while falling (vents only push while `player.glideHeld`), pound = press down in
   mid-air (breaks `%` under feet on landing; `player.pounding` lets isStomp defeat
-  spiky enemies), smash = the normal dash shatters `%` ahead once unlocked. The touch pause menu stays DOM buttons (touch.ts); its "exit to
+  spiky enemies), smash = the normal dash shatters `%` ahead once unlocked, shrink =
+  hold down on solid ground (MINIATURIZES you — the sprite scales down WHOLE on both
+  axes, never a squashed crouch: playtesting rejected the duck-walk look; hitbox 11px →
+  6px, fits 1-tile burrows; plank-drop wins over shrinking on planks, a burrow's roof
+  keeps you small till there's headroom, and jumping/dashing grows you back first —
+  both refuse while the roof pins you). The touch pause menu stays DOM buttons (touch.ts); its "exit to
   map" arrives as the 'quit' action; the ES/EN DOM chip is touch-only, menus-only.
   Both languages must have every key (the `en` table is typed to enforce it).
 - Behavior-preserving details matter here (game feel): coyote time, jump buffer,
@@ -256,5 +300,5 @@ Player-facing text is **neutral LatAm Spanish (tuteo)** + English,
 
 Browser console: `__game` (session), `__scenes`, `__debug.hitboxes = true`,
 `__debug.warp('<room-id>')` (rooms of the CURRENT level, e.g. 'galeria', 'chimenea'),
-`__debug.level('cavernas' | 'galerias' | 'corazon' | 'esporas' | 'glaciar' | 'fragua' | 'cenote' | 'puerta')`,
+`__debug.level('cavernas' | 'galerias' | 'corazon' | 'esporas' | 'glaciar' | 'fragua' | 'cenote' | 'mina' | 'puerta')`,
 `__sprites`, `__audio()`.

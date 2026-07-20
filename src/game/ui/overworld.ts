@@ -162,6 +162,7 @@ const ISLAND_LOOKS: Record<string, { edge: string; slab: string; belly: string }
   glaciar: { edge: '#bfeaff', slab: '#3a6484', belly: '#20405a' },
   fragua: { edge: '#7a4426', slab: '#3d2419', belly: '#140a06' },
   cenote: { edge: '#5fe0d0', slab: '#22585f', belly: '#0e2a30' },
+  mina: { edge: '#a87848', slab: '#4c3624', belly: '#1c120a' },
   puerta: { edge: '#e0cf9a', slab: '#5c4a70', belly: '#2e2244' },
 };
 const DEFAULT_LOOK = { edge: '#8064b0', slab: '#4a2e70', belly: '#2e1c48' };
@@ -341,6 +342,32 @@ function drawIslandBiome(
         ctx.globalAlpha = (1 - bp) * 0.8;
         ctx.fillStyle = '#a8f0ff';
         ctx.fillRect(Math.round(x - 3 + Math.sin(time * 3 + x) * 1.5), Math.round(y - 2 - bp * 8), 1, 1);
+        ctx.globalAlpha = 1;
+      }
+      break;
+    }
+    case 'mina': {
+      // A shored mine mouth set into the slab: timber posts, a lintel,
+      // the gallery's dark inside — and a copper lamp by the door.
+      ctx.fillStyle = '#0e0a06';
+      ctx.fillRect(x - 5, y - 6, 5, 4); // the dark doorway
+      ctx.fillStyle = '#6b4a2e';
+      ctx.fillRect(x - 6, y - 6, 1, 4); // left post
+      ctx.fillRect(x, y - 6, 1, 4);     // right post
+      ctx.fillRect(x - 7, y - 7, 9, 1); // the lintel
+      ctx.fillStyle = '#a87848';
+      ctx.fillRect(x - 7, y - 7, 2, 1); // its lamplit end
+      if (unlocked) drawGlow(ctx, x + 5, y - 4, 5, '#ffb86a', 0.2 + (Math.sin(time * 3 + x) + 1) * 0.08);
+      ctx.fillStyle = '#4c3624';
+      ctx.fillRect(x + 5, y - 6, 1, 2); // the lamp's bracket
+      ctx.fillStyle = '#ffd9a0';
+      ctx.fillRect(x + 4, y - 4, 2, 2); // the copper lamp
+      if (unlocked) {
+        // Coal dust drifting DOWN off the lintel (the mine breathes down).
+        const dp = (time * 0.5 + x * 0.3) % 1;
+        ctx.globalAlpha = (1 - dp) * 0.7;
+        ctx.fillStyle = '#8a6238';
+        ctx.fillRect(Math.round(x - 3 + Math.sin(time * 2 + x) * 1.5), Math.round(y - 6 + dp * 7), 1, 1);
         ctx.globalAlpha = 1;
       }
       break;

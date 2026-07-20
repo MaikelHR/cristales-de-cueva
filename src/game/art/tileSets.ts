@@ -92,6 +92,24 @@ const CENOTE_TOP = [
   'ssssssss',
 ];
 
+// --- Mina: shored-up dark rock — worn timber sleepers you walk on,
+//     coal seams and copper glints deep in the stone below ---
+const MINE_PALETTE: Palette = {
+  r: '#3a2c20', o: '#4c3a2a', s: '#191209',
+  m: '#8a5a30', t: '#e0a050',
+  W: '#a87848', w: '#6b4a2e', N: '#e08a4a',
+};
+const MINE_TOP = [
+  'WWWwWWWW', // the worn timber sleeper you walk on
+  'wwNwwwNw', // its underside, studded with copper nails
+  'oorrrsoo',
+  'orrrrrro',
+  'rrrsrrrr', // a coal seam deep in the rock
+  'rrrrrror',
+  'rorrrrrr',
+  'ssssssss',
+];
+
 // --- Puerta: worked marble — cut stone with gold veins in the seams.
 //     The threshold of the door was BUILT, not grown: the first
 //     terrain in the grotto with a mason's hand on it. ---
@@ -138,6 +156,15 @@ const SETS: Record<string, TileSet> = {
     rimL: '#4a8f8a',
     rimR: '#2c5658',
     shadow: '#0c1418',
+  },
+  mina: {
+    top: new Sprite(MINE_TOP, MINE_PALETTE),
+    fill: new Sprite(FILL, MINE_PALETTE),
+    fill2: new Sprite(FILL2, MINE_PALETTE),
+    fill3: new Sprite(FILL3, MINE_PALETTE),
+    rimL: '#8a6238',
+    rimR: '#54402a',
+    shadow: '#100b06',
   },
   puerta: {
     top: new Sprite(MARBLE_TOP, MARBLE_PALETTE),

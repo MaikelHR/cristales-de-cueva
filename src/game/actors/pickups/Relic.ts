@@ -24,6 +24,7 @@ const ABILITY_KEY: Record<AbilityName, StrKey> = {
   pound: 'ab_pound',
   smash: 'ab_smash',
   dive: 'ab_dive',
+  shrink: 'ab_shrink',
 };
 
 const ABILITY_GLOW: Record<AbilityName, string> = {
@@ -34,6 +35,7 @@ const ABILITY_GLOW: Record<AbilityName, string> = {
   pound: '#bfeaff',
   smash: '#ffb03a',
   dive: '#3ddccb', // teal — the turquoise of the cenote's deep water
+  shrink: '#e08a4a', // copper — the lamplight of the forgotten mine
 };
 
 export class Relic implements Pickup {

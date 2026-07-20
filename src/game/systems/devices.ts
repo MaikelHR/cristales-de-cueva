@@ -15,6 +15,7 @@ import { overlaps } from '../../engine/canvas';
 import type { GameSession } from '../session';
 import { MovingPlatform } from '../actors/devices/MovingPlatform';
 import { BlinkPlatform } from '../actors/devices/Blink';
+import { Crumble } from '../actors/devices/Crumble';
 import { Spring, SPRING_SPEED } from '../actors/devices/Spring';
 import { Vent, VENT_ACCEL, VENT_RISE } from '../actors/devices/Vent';
 import { Corriente } from '../actors/Corriente';
@@ -68,6 +69,18 @@ export function resolveDeviceContacts(session: GameSession, dt: number): void {
         player.vy = 0;
         player.onGround = true;
         d.rider = true;
+      }
+    } else if (d instanceof Crumble) {
+      // One-way while the board holds — and the very footfall that lands
+      // on it starts the shudder (it reacts to you, it has no cycle).
+      d.rider = false;
+      if (!d.solid || player.vy < 0 || !xOverlap) continue;
+      if (feet >= b.y && prevFeet <= b.y + 3) {
+        player.y = b.y - player.h;
+        player.vy = 0;
+        player.onGround = true;
+        d.rider = true;
+        d.trigger();
       }
     } else if (d instanceof Spring) {
       // Step on the bellows band with the feet (falling or walking).

@@ -10,6 +10,7 @@
 import { justPressed } from '../../engine/input';
 import type { GameSession } from '../session';
 import { overlaps } from '../../engine/canvas';
+import { TILE } from '../world/Level';
 import { handleRoomTransition } from '../systems/transitions';
 import { collectPickups } from '../systems/pickups';
 import { resolveEnemyContacts } from '../systems/combat';
@@ -22,6 +23,23 @@ import type { Scene, SceneManager, UiState } from './Scene';
 import { PauseScene } from './PauseScene';
 import { WonScene } from './WonScene';
 import { GameOverScene } from './GameOverScene';
+
+// A footing must hold this long before it counts as "safe ground".
+const SAFE_AFTER = 0.35;
+
+/** Solid GRID tiles underfoot — not a device, not a one-way plank:
+ *  the kind of floor worth re-spawning on. */
+function standsOnRock(s: GameSession): boolean {
+  const p = s.player;
+  const level = s.world.current.level;
+  const row = Math.floor((p.y + p.h + 1) / TILE);
+  const c0 = Math.floor(p.x / TILE);
+  const c1 = Math.floor((p.x + p.w) / TILE);
+  for (let col = c0; col <= c1; col++) {
+    if (level.solidCell(row, col)) return true;
+  }
+  return false;
+}
 
 export class GameplayScene implements Scene {
   readonly ui: UiState = { state: 'playing', paused: false };
@@ -95,7 +113,7 @@ export class GameplayScene implements Scene {
     collectPickups(s);
     resolveEnemyContacts(s, dt);
 
-    // Stepping on spikes -> lose a heart and respawn at the checkpoint
+    // Stepping on spikes -> lose a heart and respawn on safe ground
     if (room.level.touchesSpike(s.player.box())) {
       s.loseLifeAndRespawn();
     }
@@ -103,6 +121,17 @@ export class GameplayScene implements Scene {
     // Falling out of the world -> lose a heart and respawn
     if (s.player.y > room.level.heightPx + 24) {
       s.loseLifeAndRespawn();
+    }
+
+    // Remember the last SAFE footing (where those deaths send you back):
+    // only after a beat of stability, full-size, on real grid rock — a
+    // crumbling board, a slab or a plank is never "the ground", and this
+    // runs AFTER the death checks so a lethal spot is never recorded.
+    if (!s.deadFrozen && s.player.onGround && !s.player.shrunk && standsOnRock(s)) {
+      s.safeTimer += dt;
+      if (s.safeTimer >= SAFE_AFTER) s.rememberSafeSpot();
+    } else {
+      s.safeTimer = 0;
     }
 
     // Reaching the door with all crystals and no bosses alive -> win

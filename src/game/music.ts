@@ -24,6 +24,9 @@
 //   · cenote     — the deepest, slowest theme: G minor water at 63 bpm,
 //                  no drums —the pulse is the DRIP—; sunken pads overlap
 //                  into a reverb wash and an echoing pluck ripple flows.
+//   · mina       — a ghost work-song in C minor: the PICK's dry clink
+//                  is the percussion, a mine-cart rattle is the bass,
+//                  and the miner's whistle says the theme with air.
 //
 //  Timbral palette: triangle = crystal bells, sine = pads
 //  and kicks, square = bright melody, sawtooth = grit, noise =
@@ -785,6 +788,112 @@ const cenote: Song = {
 };
 
 // ------------------------------------------------------------
+// MINA — level 8 (C minor, 100 bpm, 16 bars)
+// A ghost work-song. The percussion is the PICK against the rock
+// (a dry metallic clink on the offbeats — the mine still being
+// worked by nobody), the bass is an empty cart rattling somewhere
+// in the dark, and the melody is the miner's WHISTLE: the crystal
+// theme in C minor (C→E♭→G), said with air between the phrases.
+// Section B lifts it an octave — the seam glitters — over a warm
+// inner voice and a dust-arpeggio; the B natural at the cadence is
+// the lamp that begs the verse to come back around.
+// ------------------------------------------------------------
+
+/** Mine-cart rattle: low eighths rocking root–fifth with a ♭7 catch —
+ *  the empty cart rolling somewhere in the dark. */
+function traqueteo(bar: number, root: string): SongNote[] {
+  const low = n(root);
+  const semis = [0, 0, 7, 0, 10, 0, 7, 5];
+  return semis.map((s, i) => ({
+    beat: bar * 4 + i * 0.5,
+    freq: up(low, s),
+    beats: 0.42,
+    type: 'triangle' as const,
+    vol: 0.05,
+  }));
+}
+
+/** The pick against the rock: a dry high clink, over in an instant. */
+function pico(beat: number): SongNote[] {
+  return [
+    { beat, freq: 5200, beats: 0.06, type: 'noise', vol: 0.028 },
+    { beat: beat + 0.02, freq: 1976, freqEnd: 1568, beats: 0.1, type: 'triangle', vol: 0.03 },
+  ];
+}
+
+const minaBars = ['C2', 'C2', 'G#1', 'A#1', 'C2', 'G#1', 'F2', 'G2',
+  'C2', 'D#2', 'G#1', 'F2', 'C2', 'G#1', 'G2', 'G2'];
+
+const minaLead = voice(
+  [
+    // A: the whistle says the theme at half voice, air between phrases.
+    [0, 'C4', 0.5], [0.5, 'D#4', 0.5], [1, 'G4', 1.5],
+    [2.5, 'F4', 0.5], [3, 'D#4', 0.5], [3.5, 'F4', 0.5],
+    [4, 'D4', 1.5], [5.5, 'A#3', 0.5], [6, 'C4', 2],
+    // Sequence over the ♭VI: the same phrase, a floor brighter.
+    [8, 'D#4', 0.5], [8.5, 'G4', 0.5], [9, 'C5', 1.5],
+    [10.5, 'A#4', 0.5], [11, 'G#4', 0.5], [11.5, 'A#4', 0.5],
+    [12, 'G4', 1.5], [13.5, 'D#4', 0.5], [14, 'F4', 2],
+    // Response: climbs and settles back down the seam.
+    [16, 'C4', 0.5], [16.5, 'D#4', 0.5], [17, 'G4', 1.5],
+    [18.5, 'A#4', 0.5], [19, 'C5', 1.5],
+    [20.5, 'A#4', 0.5], [21, 'G4', 1], [22, 'F4', 0.5], [22.5, 'D#4', 0.5], [23, 'F4', 1],
+    // Cadence: down the ladder, and the B natural lights the lamp.
+    [24, 'G#4', 1], [25, 'G4', 1], [26, 'F4', 1.5], [27.5, 'D#4', 0.5],
+    [28, 'D4', 1.5], [29.5, 'B3', 0.5], [30, 'C4', 2],
+    // B: the theme an octave up — the seam glitters.
+    [32, 'C5', 0.5], [32.5, 'D#5', 0.5], [33, 'G5', 1.5],
+    [34.5, 'F5', 0.5], [35, 'D#5', 0.5], [35.5, 'F5', 0.5],
+    [36, 'D5', 1.5], [37.5, 'A#4', 0.5], [38, 'C5', 2],
+    [40, 'D#5', 0.5], [40.5, 'G5', 0.5], [41, 'A#5', 1.5],
+    [42.5, 'G#5', 0.5], [43, 'A#5', 1],
+    [44, 'C6', 1.5], [45.5, 'A#5', 0.5], [46, 'G5', 1.5],
+    [48, 'F5', 0.5], [48.5, 'G#5', 0.5], [49, 'C6', 1],
+    [50, 'A#5', 0.5], [50.5, 'G#5', 0.5], [51, 'G5', 1],
+    [52, 'F5', 0.5], [52.5, 'D#5', 0.5], [53, 'D5', 1.5], [54.5, 'D#5', 0.5], [55, 'F5', 1],
+    // Final cadence: the lamp again, and the loop rolls the cart home.
+    [56, 'G5', 1], [57, 'F5', 1], [58, 'D#5', 1.5], [59.5, 'D5', 0.5],
+    [60, 'C5', 0.5], [60.5, 'B4', 0.5], [61, 'D5', 0.5], [61.5, 'F5', 0.5], [62, 'G4', 2],
+  ],
+  { type: 'square', vol: 0.038 },
+);
+
+const mina: Song = {
+  id: 'mina',
+  bpm: 100,
+  loopBeats: 64,
+  notes: [
+    ...minaBars.flatMap((root, bar) => traqueteo(bar, root)),
+    // The picks: two dry clinks per bar on the offbeats; every fourth
+    // bar the miner strikes twice (clink-clink), like real work.
+    ...minaBars.flatMap((_, bar) => [
+      ...pico(bar * 4 + 1.5),
+      ...pico(bar * 4 + 3.5),
+      ...(bar % 4 === 3 ? pico(bar * 4 + 3.75) : []),
+    ]),
+    ...minaLead,
+    ...echo(minaLead, 64),
+    // Warm inner voice, only while the seam glitters (section B).
+    ...voice(
+      [
+        [32, 'D#4', 7.5], [40, 'G#3', 7.5], [48, 'F3', 7.5], [56, 'D4', 7.5],
+      ],
+      { type: 'sine', vol: 0.028, attack: 1.2 },
+    ),
+    // The dust-arpeggio running under section B.
+    ...arp(32, 4, ['C3', 'D#3', 'G3', 'D#3'], 0.022),
+    ...arp(36, 4, ['D#3', 'G3', 'A#3', 'G3'], 0.022),
+    ...arp(40, 4, ['G#2', 'C3', 'D#3', 'C3'], 0.022),
+    ...arp(44, 4, ['F2', 'G#2', 'C3', 'G#2'], 0.022),
+    ...arp(48, 4, ['C3', 'D#3', 'G3', 'D#3'], 0.022),
+    ...arp(52, 4, ['G#2', 'C3', 'D#3', 'C3'], 0.022),
+    ...arp(56, 8, ['G2', 'B2', 'D3', 'B2'], 0.022),
+    // Old leaks, counted, echoing off in the dark.
+    drip(7.25, 1760), drip(23.5, 2093), drip(39.25, 1568), drip(55.5, 1976),
+  ],
+};
+
+// ------------------------------------------------------------
 // PUERTA — level 10 (A minor, 72 bpm, 16 bars)
 // The title theme comes home: the same A→C→E the menu sings, now
 // as a slow procession up to the door — pillar bass stepping in
@@ -963,6 +1072,7 @@ export const LEVEL_SONGS: Record<string, Song> = {
   glaciar,
   fragua,
   cenote,
+  mina,
   puerta,
 };
 

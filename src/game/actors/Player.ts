@@ -59,6 +59,18 @@ const ICE_GRIP = 4.5;        // per second: how fast the foot "grips"
 // version — playtests showed nobody guesses the combo unprompted).
 const PLANK_DROP_HOLD = 0.25; // seconds of held 'down' standing on planks
 
+// Shrink: holding 'down' on solid ground MINIATURIZES you — the whole
+// body, proportionally, down to one tile tall (never a squashed crouch:
+// playtesting read that as "ugly duck-walk"). It's the only way through
+// a 1-tile burrow. Entering at a run keeps the speed and bleeds it off
+// smoothly; under a burrow's roof you stay small (growing would clip).
+const FULL_H = 11;          // standing hitbox height
+const MINI_H = 6;           // shrunken hitbox: fits an 8px (1-tile) burrow
+const MINI_SPEED = 58;      // px/s of the little legs (~63% MOVE_SPEED)
+const MINI_GRIP = 6;        // per second: the entry skid bleeds off smoothly
+const MINI_SCALE = 0.58;    // the sprite draws whole at this scale
+const MINI_LERP = 16;       // per second: how fast the size change animates
+
 // Water ('='): a body volume. You FLOAT on its surface; once the dive
 // relic is found, 'down' submerges you into a free 4-directional swim.
 // Everything is a fraction of MOVE_SPEED (water is heavy), buoyancy is a
@@ -121,7 +133,6 @@ export class Player {
   x = 0;
   y = 0;
   readonly w = 6;
-  readonly h = 11;
   vx = 0;
   vy = 0;
   facing: 1 | -1 = 1;
@@ -143,6 +154,7 @@ export class Player {
     pound: false,
     smash: false,
     dive: false,
+    shrink: false,
   };
   private airJumpsLeft = 0;
   private dashTimer = 0;    // >0 = dash in progress
@@ -155,6 +167,8 @@ export class Player {
   private swimmingNow = false; // hitbox overlaps water this frame
   private diving = false;      // submerged: free swim (needs the dive relic)
   private plunging = false;    // a pound-plunge is still bobbing back up
+  private mini = false;        // miniaturized (needs the shrink relic)
+  private miniScale = 1;       // drawn scale, eased toward its target
 
   private launched = false; // external impulse (spring): no jump cut
   private dropTimer = 0;    // >0 = dropping through a plank (ignores them)
@@ -169,6 +183,11 @@ export class Player {
     private level: Level,
     private particles: Particles,
   ) {}
+
+  /** Hitbox height: full standing, one tile short while miniaturized. */
+  get h(): number {
+    return this.mini ? MINI_H : FULL_H;
+  }
 
   /** On changing rooms, the player starts colliding against the new one. */
   setLevel(level: Level): void {
@@ -192,6 +211,8 @@ export class Player {
     this.isGliding = false;
     this.diving = false;
     this.plunging = false;
+    this.mini = false; // spawns stand tall (never inside a burrow)
+    this.miniScale = 1;
     // Respawning INTO water is safe: seed the swim flag so we start
     // already floating (no phantom entry splash or plunge next frame).
     this.swimmingNow = this.inWater();
@@ -243,6 +264,11 @@ export class Player {
     return this.dashTimer > 0;
   }
 
+  /** Is it miniaturized? (the shrink relic's stance). */
+  get shrunk(): boolean {
+    return this.mini;
+  }
+
   /** Push from an updraft: accelerates upward up to the
    *  rise velocity. Called by systems/devices while gliding
    *  inside the column. */
@@ -277,6 +303,7 @@ export class Player {
    *  key shortens the hop) does NOT eat this impulse: the spring rules
    *  up to the highest point. Also recharges the air jump. */
   springLaunch(speed: number): void {
+    if (this.mini && !this.headBlocked()) this.setMini(false);
     this.vy = -speed;
     this.onGround = false;
     this.launched = true;
@@ -351,15 +378,36 @@ export class Player {
       sfx.pound();
     }
 
-    // ---- Dash: does one start? ----
+    // ---- Shrink: 'down' on the ground miniaturizes you ----
+    // Planks keep their drop (they're checked first); the burrow's roof
+    // keeps you small until there's headroom, so you never clip rock.
+    if (this.mini) {
+      const wants =
+        this.onGround && isDown('down') && !this.onPlankOnly() && !this.swimmingNow;
+      if (!wants && !this.headBlocked()) this.setMini(false);
+    } else if (
+      this.abilities.shrink &&
+      this.onGround &&
+      isDown('down') &&
+      !this.onPlankOnly() &&
+      !this.swimmingNow &&
+      this.dashTimer <= 0 &&
+      this.hurtLock <= 0
+    ) {
+      this.setMini(true);
+    }
+
+    // ---- Dash: does one start? (growing back first, if mini) ----
     this.dashCooldown = Math.max(0, this.dashCooldown - dt);
     if (
       this.dashTimer <= 0 &&
       !this.isPounding &&
       justPressed('dash') &&
       this.abilities.dash &&
-      this.dashCooldown === 0
+      this.dashCooldown === 0 &&
+      (!this.mini || !this.headBlocked())
     ) {
+      this.setMini(false); // the dash is a full-size move
       this.dashTimer = DASH_TIME;
       this.dashCooldown = DASH_COOLDOWN;
       this.stretch = DASH_SQUASH; // flattened by the speed
@@ -483,6 +531,11 @@ export class Player {
         // After a wall jump, a few frames of fixed push: without this,
         // holding the key toward the wall would re-stick you instantly.
         this.vx = this.wallLockDir * WALL_JUMP_H;
+      } else if (this.mini) {
+        // Little legs: slower feet, but a running entry keeps its speed
+        // and bleeds it off smoothly — the skid carries you INTO the burrow.
+        this.vx += (dir * MINI_SPEED - this.vx) * Math.min(1, MINI_GRIP * dt);
+        if (dir !== 0) this.facing = dir as 1 | -1;
       } else if (this.onGround && this.onIce()) {
         // Ice underfoot: control arrives sliding — the velocity
         // chases the intention instead of obeying it instantly.
@@ -515,7 +568,8 @@ export class Player {
         if (this.coyoteTimer > 0 && isDown('down') && this.onPlankOnly()) {
           // Down + jump on a plank: instead of jumping, drops through it.
           this.dropThroughPlank();
-        } else if (this.coyoteTimer > 0) {
+        } else if (this.coyoteTimer > 0 && (!this.mini || !this.headBlocked())) {
+          this.setMini(false); // jumping grows you back (never in a burrow)
           this.vy = -JUMP_SPEED;
           this.onGround = false;
           this.bufferTimer = 0;
@@ -536,8 +590,9 @@ export class Player {
           const px = wall === 1 ? this.x + this.w : this.x;
           this.particles.puff(px, this.y + this.h / 2, 4, DUST_COLORS, -wall);
           sfx.wallJump();
-        } else if (this.abilities.doubleJump && this.airJumpsLeft > 0) {
-          // Double jump: an extra impulse mid-air.
+        } else if (this.abilities.doubleJump && this.airJumpsLeft > 0 && !this.mini) {
+          // Double jump: an extra impulse mid-air (never while mini:
+          // inside a burrow it would just bonk the roof).
           this.airJumpsLeft--;
           this.vy = -JUMP_SPEED * DOUBLE_JUMP;
           this.launched = false;
@@ -650,6 +705,11 @@ export class Player {
     this.stretch += (1 - this.stretch) * Math.min(1, STRETCH_RECOVER * dt);
     if (Math.abs(this.stretch - 1) < 0.01) this.stretch = 1;
 
+    // The size change eases too: menguar/crecer is an animation, not a snap.
+    const targetScale = this.mini ? MINI_SCALE : 1;
+    this.miniScale += (targetScale - this.miniScale) * Math.min(1, MINI_LERP * dt);
+    if (Math.abs(this.miniScale - targetScale) < 0.01) this.miniScale = targetScale;
+
     this.animTime += dt;
   }
 
@@ -662,6 +722,26 @@ export class Player {
     if (this.level.isSolidAt(leftX, top) || this.level.isSolidAt(leftX, bottom)) return -1;
     if (this.level.isSolidAt(rightX, top) || this.level.isSolidAt(rightX, bottom)) return 1;
     return 0;
+  }
+
+  /** Shrink/grow keeping the FEET planted: the hitbox change happens at
+   *  the head end, so the floor contact never pops. A puff of motes and
+   *  a little chime sell the size change. */
+  private setMini(on: boolean): void {
+    if (this.mini === on) return;
+    this.y += on ? FULL_H - MINI_H : MINI_H - FULL_H;
+    this.mini = on;
+    this.particles.puff(this.x + this.w / 2, this.y + this.h - 2, 6, DUST_COLORS);
+    if (on) sfx.shrink();
+    else sfx.grow();
+  }
+
+  /** Is there rock where the full-size head would go? While true, you
+   *  can't grow back (a burrow's roof): standing up would clip. */
+  private headBlocked(): boolean {
+    const rise = FULL_H - MINI_H;
+    const strip: Box = { x: this.x, y: this.y - rise, w: this.w, h: rise - 0.01 };
+    return this.level.solidTilesIn(strip).some((tile) => overlaps(strip, tile));
   }
 
   /** Is it standing ONLY on planks? (not a single solid tile underfoot).
@@ -737,6 +817,8 @@ export class Player {
     this.wallLock = 0;       // no wall control in water
     this.coyoteTimer = 0;    // the hop is the exit move: no coyote from water
     this.bufferTimer = 0;    // a buffered land-jump doesn't survive into water
+    // Water grows you back (you swim full-size), headroom allowing.
+    if (this.mini && !this.headBlocked()) this.setMini(false);
     if (this.isPounding) {
       // Pound into water: a bounded plunge (~3 tiles), then buoyancy lifts.
       this.isPounding = false;
@@ -851,13 +933,15 @@ export class Player {
     drawGlow(ctx, this.x + this.w / 2 - camX, this.y + this.h / 2 - camY, 16, currentSkin().glow, 0.35);
 
     // Anchored to the feet and deformed: stretching loses width and
-    // squashing gains it (rough "volume" conservation).
+    // squashing gains it (rough "volume" conservation). The mini scale
+    // multiplies BOTH axes: shrunk, you are the whole character, smaller
+    // — never a squashed silhouette.
     sprite.drawStretched(
       ctx,
       this.x + this.w / 2 - camX,
       this.y + this.h - camY,
-      2 - this.stretch,
-      this.stretch,
+      (2 - this.stretch) * this.miniScale,
+      this.stretch * this.miniScale,
       this.facing === -1,
     );
   }

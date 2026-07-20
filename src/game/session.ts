@@ -11,6 +11,7 @@
 import { Camera } from './Camera';
 import type { Clock } from './clock';
 import { World } from './world/World';
+import { TILE } from './world/Level';
 import type { LevelDef } from './world/LevelData';
 import { LEVELS } from './world/rooms';
 import { Player } from './actors/Player';
@@ -46,8 +47,14 @@ export class GameSession {
   level: LevelDef = LEVELS[0];
   /** Run mode: normal or time-trial. */
   mode: GameMode = 'normal';
-  // Checkpoint: the room and spot where you respawn on death.
+  // Checkpoint: the room mouth you last entered through (the fallback).
   checkpoint = { roomId: '', x: 0, y: 0 };
+  // Last SAFE footing: where dying to a pit or spikes sends you back.
+  // The gameplay step records it after a beat of stability on REAL grid
+  // rock (a crumbling board, a moving slab or a one-way plank never
+  // counts, and neither does the shrunken crawl — you re-spawn standing).
+  lastSafe = { roomId: '', x: 0, y: 0, feetRow: 0 };
+  safeTimer = 0; // seconds of continuous proven footing
   // Rooms already explored: the ones the minimap shows.
   visited = new Set<string>();
   // Big on-screen notice (on gaining an ability, on killing the boss).
@@ -97,6 +104,39 @@ export class GameSession {
       x: this.player.x,
       y: this.player.y,
     };
+    // Crossing a mouth resets the safe footing to it: it's the last
+    // firm ground this room has proven so far.
+    this.lastSafe = { ...this.checkpoint, feetRow: this.playerFeetRow() };
+    this.safeTimer = 0;
+  }
+
+  /** The grid row just under the player's feet. */
+  private playerFeetRow(): number {
+    return Math.floor((this.player.y + this.player.h + 1) / TILE);
+  }
+
+  /** The player has PROVEN this footing (stable, full-size, on grid
+   *  rock): a pit or spike death brings them back here, not to the
+   *  room's mouth. Called by the gameplay step. */
+  rememberSafeSpot(): void {
+    this.lastSafe = {
+      roomId: this.world.current.data.id,
+      x: this.player.x,
+      y: this.player.y,
+      feetRow: this.playerFeetRow(),
+    };
+  }
+
+  /** Is the remembered footing still standable? (The rock under it may
+   *  have been a cracked block the player later shattered.) */
+  private safeSpotHolds(): boolean {
+    const room = this.world.get(this.lastSafe.roomId);
+    const c0 = Math.floor(this.lastSafe.x / TILE);
+    const c1 = Math.floor((this.lastSafe.x + this.player.w) / TILE);
+    for (let col = c0; col <= c1; col++) {
+      if (room.level.solidCell(this.lastSafe.feetRow, col)) return true;
+    }
+    return false;
   }
 
   /** The camera fits itself to the current room's size. */
@@ -165,11 +205,14 @@ export class GameSession {
     this.hitStop = 0;
   }
 
-  /** Return to the last checkpoint after dying. */
+  /** Return to the last SAFE footing after dying (pit, spikes) — the
+   *  room's mouth only as a fallback, e.g. if the rock under that
+   *  footing has since been shattered. */
   respawnPlayer(): void {
-    this.world.goTo(this.checkpoint.roomId);
+    const spot = this.safeSpotHolds() ? this.lastSafe : this.checkpoint;
+    this.world.goTo(spot.roomId);
     this.player.setLevel(this.world.current.level);
-    this.player.respawnAt(this.checkpoint.x, this.checkpoint.y);
+    this.player.respawnAt(spot.x, spot.y);
     this.makeCamera();
   }
 
