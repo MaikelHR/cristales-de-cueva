@@ -17,6 +17,7 @@ import { MovingPlatform } from '../actors/devices/MovingPlatform';
 import { BlinkPlatform } from '../actors/devices/Blink';
 import { Crumble } from '../actors/devices/Crumble';
 import { Ancla } from '../actors/devices/Ancla';
+import { Compuerta } from '../actors/devices/Compuerta';
 import { Contrapeso } from '../actors/devices/Contrapeso';
 import { Spring, SPRING_SPEED } from '../actors/devices/Spring';
 import { Vent, VENT_ACCEL, VENT_RISE } from '../actors/devices/Vent';
@@ -24,6 +25,7 @@ import { Corriente } from '../actors/Corriente';
 import { sfx } from '../sfx';
 
 const DUST_COLORS = ['#9b86c4', '#6f5a9e', '#d7c9ec'];
+const VALVE_COLORS = ['#ffb84a', '#e0be62', '#fff3c0'];
 const SILK_COLORS = ['#e8e0f0', '#c9bcd8', '#fdfbff'];
 
 /** Step 1: move the platforms and carry the rider along with them. */
@@ -118,6 +120,12 @@ export function resolveDeviceContacts(session: GameSession, dt: number): void {
           d.rider = side;
           break;
         }
+      }
+    } else if (d instanceof Compuerta) {
+      // The valve answers ONLY to the pound: it is a thing you hit from
+      // above, so it can never be thrown by brushing past it on a ledge.
+      if (player.pounding && overlaps(player.box(), b)) {
+        if (d.throwIt()) session.particles.puff(b.x + b.w / 2, b.y, 6, VALVE_COLORS);
       }
     } else if (d instanceof Ancla) {
       // The bead catches a player in the air (like the vent's glide gate,

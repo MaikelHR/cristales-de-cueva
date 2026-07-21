@@ -27,6 +27,7 @@ import { Topo } from '../actors/enemies/Topo';
 import { Capataz } from '../actors/enemies/Capataz';
 import { Tejedora } from '../actors/enemies/Tejedora';
 import { Matriarca } from '../actors/enemies/Matriarca';
+import { Zapatero } from '../actors/enemies/Zapatero';
 import { Medusa } from '../actors/Medusa';
 import { Anguila } from '../actors/Anguila';
 import { Ajolote } from '../actors/Ajolote';
@@ -36,6 +37,8 @@ import { Spring } from '../actors/devices/Spring';
 import { MovingPlatform } from '../actors/devices/MovingPlatform';
 import { BlinkPlatform } from '../actors/devices/Blink';
 import { Crumble } from '../actors/devices/Crumble';
+import { Cisterna } from '../actors/devices/Cisterna';
+import { Compuerta } from '../actors/devices/Compuerta';
 import { Ancla } from '../actors/devices/Ancla';
 import { Contrapeso } from '../actors/devices/Contrapeso';
 import { Vent } from '../actors/devices/Vent';
@@ -48,6 +51,8 @@ export class Room {
   readonly playerSpawn: Cell | null = null;
   /** The door (goal) box, if this room has one. */
   readonly doorBox: Box | null = null;
+  /** Sluices waiting for their tank (they are built before the cisterns). */
+  private readonly valves: { valve: Compuerta; tank: number }[] = [];
 
   constructor(readonly data: RoomData, clock: Clock) {
     this.level = new Level(data.tiles);
@@ -97,6 +102,9 @@ export class Room {
         case 'matriarca':
           this.actors.push(new Matriarca(px, py, this.level));
           break;
+        case 'zapatero':
+          this.actors.push(new Zapatero(px, py, e.range, this.level));
+          break;
         case 'medusa':
           this.actors.push(new Medusa(px, py, e.range));
           break;
@@ -127,6 +135,18 @@ export class Room {
         case 'crumble':
           this.actors.push(new Crumble(px, py));
           break;
+        case 'compuerta': {
+          const valve = new Compuerta(px, py);
+          // It is linked below, once every cistern of the room exists.
+          this.actors.push(valve);
+          this.valves.push({ valve, tank: e.tank ?? 0 });
+          break;
+        }
+        case 'cisterna':
+          this.actors.push(
+            new Cisterna(px, py, e.w, e.h, e.period, e.offset ?? 0, this.level),
+          );
+          break;
         case 'ancla':
           this.actors.push(new Ancla(px, py, e.length));
           break;
@@ -144,6 +164,10 @@ export class Room {
           break;
       }
     }
+
+    // Every cistern exists now, so each sluice can take hold of its own.
+    const tanks = this.actors.filter((a): a is Cisterna => a instanceof Cisterna);
+    for (const { valve, tank } of this.valves) valve.tank = tanks[tank] ?? tanks[0] ?? null;
   }
 
   get enemies(): Enemy[] {

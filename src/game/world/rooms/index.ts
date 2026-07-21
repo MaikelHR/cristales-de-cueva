@@ -70,6 +70,21 @@ import { torre } from './simas/torre';
 import { pozo } from './simas/pozo';
 import { aguja } from './simas/aguja';
 import { corona } from './simas/corona';
+import { aljibe } from './reloj/aljibe';
+import { canal } from './reloj/canal';
+import { sifon } from './reloj/sifon';
+import { acequia } from './reloj/acequia';
+import { arqueta } from './reloj/arqueta';
+import { remanso } from './reloj/remanso';
+import { esclusa } from './reloj/esclusa';
+import { azud } from './reloj/azud';
+import { arcaduz } from './reloj/arcaduz';
+import { noria } from './reloj/noria';
+import { cauce } from './reloj/cauce';
+import { dique } from './reloj/dique';
+import { gotera } from './reloj/gotera';
+import { clepsidra } from './reloj/clepsidra';
+import { esfera } from './reloj/esfera';
 import { atrio } from './puerta/atrio';
 import { claustro } from './puerta/claustro';
 import { roseton } from './puerta/roseton';
@@ -154,6 +169,18 @@ export const LEVELS: LevelDef[] = [
     rooms: [
       brocal, caida, vena, polea, vertigo, fondo,
       resquicio, cadenas, torre, pozo, aguja, corona,
+    ],
+    startAbilities: [
+      'doubleJump', 'wallJump', 'dash', 'glide', 'pound', 'smash', 'dive', 'shrink', 'swing',
+    ],
+  },
+  {
+    id: 'reloj',
+    nameKey: 'lvl_reloj',
+    rooms: [
+      aljibe, canal, sifon, acequia, arqueta,
+      remanso, esclusa, azud, arcaduz, noria,
+      cauce, dique, gotera, clepsidra, esfera,
     ],
     startAbilities: [
       'doubleJump', 'wallJump', 'dash', 'glide', 'pound', 'smash', 'dive', 'shrink', 'swing',

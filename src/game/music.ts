@@ -1043,6 +1043,74 @@ const simas: Song = {
 };
 
 // ------------------------------------------------------------
+// RELOJ — the second challenge level (D minor, 88 bpm, 12 bars)
+// A machine still running with nobody left to read it. Here the
+// PERCUSSION IS THE MECHANISM: an escapement ticking every single
+// beat, two pitches alternating, never once out of step. Against
+// that grid everything else breathes, because the water is the only
+// thing in the room that's alive — the motif arrives as a music-box
+// chime (D→F→A) half a beat LATE, so the melody and the machine
+// never quite agree, and long bronze swells mark the tide turning.
+// ------------------------------------------------------------
+
+/** The escapement: two dry ticks alternating. The level's metronome,
+ *  kept very quiet — it plays on every beat for as long as you're in
+ *  the room, so it has to sit under everything, like a hi-hat. */
+function tock(beat: number, high: boolean): SongNote[] {
+  return [
+    { beat, freq: high ? 3200 : 2200, beats: 0.04, type: 'noise', vol: 0.02 },
+    {
+      beat,
+      freq: high ? 880 : 620,
+      freqEnd: high ? 700 : 470,
+      beats: 0.07,
+      type: 'square',
+      vol: 0.018,
+    },
+  ];
+}
+
+const relojChime = voice(
+  [
+    // The motif on the box: D→F→A, always a half beat behind the tick.
+    [0.5, 'D5', 1.5], [2.5, 'F5', 1.5], [4.5, 'A5', 2],
+    [8.5, 'G5', 1.5], [10.5, 'F5', 1.5], [12.5, 'D5', 2],
+    [16.5, 'A5', 1.5], [18.5, 'C6', 1.5], [20.5, 'A5', 2],
+    [24.5, 'F5', 1.5], [26.5, 'E5', 1.5], [28.5, 'D5', 2],
+    [32.5, 'D5', 1.5], [34.5, 'F5', 1.5], [36.5, 'A5', 1.5], [38.5, 'D6', 2],
+    [42.5, 'C6', 1.5], [44.5, 'A5', 3],
+  ],
+  { type: 'triangle', vol: 0.05 },
+);
+
+const reloj: Song = {
+  id: 'reloj',
+  bpm: 88,
+  loopBeats: 48,
+  notes: [
+    // The escapement, one tick per beat, alternating high and low.
+    ...Array.from({ length: 48 }, (_, b) => tock(b, b % 2 === 1)).flat(),
+    // The pendulum: a low note every two beats, swinging D–A.
+    ...voice(
+      Array.from(
+        { length: 24 },
+        (_, i) => [i * 2, i % 2 === 0 ? 'D2' : 'A1', 1.3] as [number, string, number],
+      ),
+      { type: 'sine', vol: 0.045 },
+    ),
+    ...relojChime,
+    // Bronze swells: the tanks turning over.
+    ...voice(
+      [[0, 'D3', 11], [12, 'A#2', 11], [24, 'F3', 11], [36, 'A2', 11]],
+      { type: 'sine', vol: 0.038, attack: 2.2 },
+    ),
+    // Water finding its way out somewhere.
+    ...droplet(7.25), ...droplet(15.75, 2200), ...droplet(23.5, 3000),
+    ...droplet(31.25, 2400), ...droplet(39.75, 2800), ...droplet(46.5, 2000),
+  ],
+};
+
+// ------------------------------------------------------------
 // PUERTA — level 10 (A minor, 72 bpm, 16 bars)
 // The title theme comes home: the same A→C→E the menu sings, now
 // as a slow procession up to the door — pillar bass stepping in
@@ -1225,6 +1293,7 @@ export const LEVEL_SONGS: Record<string, Song> = {
   seda,
   puerta,
   simas,
+  reloj,
 };
 
 /** Boss themes, by level id: they take over WHILE the fight is

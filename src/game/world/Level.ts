@@ -122,6 +122,34 @@ export class Level {
   }
 
   /**
+   * Floods or drains a cell. The water clock's tide moves its surface at
+   * runtime, and since the water grid is read LIVE by both the physics
+   * (touchesWater, waterSurfaceY) and the tile renderer, moving it here
+   * moves everything — floating, diving, the animated waterline —
+   * without another line of code anywhere else.
+   * Rock is never flooded: a tank's own walls stay dry.
+   */
+  setWet(row: number, col: number, on: boolean): void {
+    if (row < 0 || row >= this.rows || col < 0 || col >= this.cols) return;
+    if (on && this.solid[row][col]) return;
+    this.wet[row][col] = on;
+  }
+
+  /**
+   * The water's surface in this column, in world px, or null if the column
+   * is dry. Anything that RIDES the waterline (the skater) asks for it
+   * every frame, because with the tide the answer changes constantly.
+   */
+  waterSurfaceAt(px: number): number | null {
+    const col = Math.floor(px / TILE);
+    if (col < 0 || col >= this.cols) return null;
+    for (let row = 0; row < this.rows; row++) {
+      if (this.wet[row][col]) return row * TILE;
+    }
+    return null;
+  }
+
+  /**
    * Does the box touch any spike? Each spike's hurt box is smaller
    * than its cell (the bottom half, with 1px margin on the sides):
    * grazing the cell's edge doesn't punish, stepping on it does.

@@ -43,12 +43,13 @@ export type EnemyKind =
   | 'topo'
   | 'capataz'
   | 'tejedora'
-  | 'matriarca';
+  | 'matriarca'
+  | 'zapatero';
 
 export type EntitySpawn =
   // Plain enemies (just a cell). medusa/anguila/tejedora carry extra
   // fields, below.
-  | (Cell & { type: Exclude<EnemyKind, 'medusa' | 'anguila' | 'tejedora'> })
+  | (Cell & { type: Exclude<EnemyKind, 'medusa' | 'anguila' | 'tejedora' | 'zapatero'> })
   // Hanging spider: perched at (x, y) on the ceiling, it drops straight
   // down when you cross the air beneath it. Without `drop` it pays out
   // thread all the way to the floor (which is what makes it a threat to
@@ -90,11 +91,26 @@ export type EntitySpawn =
   // ties you on and you swing from it (needs the swing relic). The
   // length IS the arc: pick it to design the swing, not by feel.
   | (Cell & { type: 'ancla'; length: number })
+  // Cistern: a `w`×`h` tank whose water FILLS and EMPTIES on a cycle of
+  // `period` seconds, one tile per notch (`offset` staggers several of
+  // them, like the geysers). (x, y) is its top-left corner and the rect
+  // is the water's full extent — leave those cells as air in the tile
+  // rows, the tide writes the water in. It is the whole language of the
+  // water clock: high tide is a way UP, low tide is a way THROUGH.
+  | (Cell & { type: 'cisterna'; w: number; h: number; period: number; offset?: number })
+  // Sluice valve: a bronze wheel you POUND to freeze (or release) a
+  // cistern where it stands. `tank` is which cistern of the room it
+  // commands, in the order they are listed here (0 = the first one).
+  | (Cell & { type: 'compuerta'; tank?: number })
   // Crumble plank: a 2-cell rotten mine board on fixed stone corbels.
   // Unlike the blink's fixed cycle, it REACTS: stepped on, it shudders
   // (the grace window), snaps loose and falls; later it re-forms on its
   // corbels — which never vanish, so you always know where it lives.
   | (Cell & { type: 'crumble' })
+  // Water strider: skates the WATERLINE, patrolling `range` cells either
+  // side of (x, y). It rises and sinks with the tide, and when its column
+  // runs dry it drops and lies stranded. A plain stomp kills it.
+  | (Cell & { type: 'zapatero'; range: number })
   // Jellyfish: drifts up and down `range` cells around (x, y). An
   // untouchable hazard — nothing kills it, you route around it.
   | (Cell & { type: 'medusa'; range: number })

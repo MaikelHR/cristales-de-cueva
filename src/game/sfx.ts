@@ -53,6 +53,14 @@ export const sfx = {
     playTone({ freq: 900, duration: 0.05, type: 'noise', volume: 0.08, delay: 0.01 });
   },
 
+  /** The water clock's notch: a bronze drop falling into the tank.
+   *  It fires once per tile the tide moves, so it has to be SHORT and
+   *  quiet — it's a metronome, not an event. */
+  tick(): void {
+    playTone({ freq: 1180, freqEnd: 760, duration: 0.06, type: 'sine', volume: 0.07 });
+    playTone({ freq: 2400, duration: 0.03, type: 'noise', volume: 0.04, delay: 0.02 });
+  },
+
   /** Creak: rotten wood groaning underfoot — the crumble plank's warning. */
   creak(): void {
     playTone({ freq: 180, freqEnd: 110, duration: 0.16, type: 'sawtooth', volume: 0.09 });

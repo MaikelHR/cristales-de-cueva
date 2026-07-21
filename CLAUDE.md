@@ -112,7 +112,12 @@ first as telegraph), erizo (spiky — stomping it HURTS, only a pound kills it),
 ariete (grounded ram boss: paces → rears up → charges, smashing `%` barricades in its
 path; stompable ONLY while stunned after slamming a wall — 3 hits, each slam rains
 embers and enrages it. Bosses must not share a silhouette/moveset/arena shape with a
-previous boss — each fight gets its own verb), medusa (jellyfish — UNTOUCHABLE: stomp
+previous boss — each fight gets its own verb), zapatero (water strider: the water clock's only living thing, and the tide owns it — it
+skates ON the waterline, so it rides up and down with the water and is always exactly at
+the height a floating player is; when its column runs dry it drops and lies STRANDED on
+the floor, twitching, which is the easy kill. A plain stomp does it. It exists because a
+level whose only creature is an untouchable medusa has no combat and, worse, no way to
+get a heart back — defeating something IS the healing), medusa (jellyfish — UNTOUCHABLE: stomp
 AND pound bounce off, `invulnerable` in combat; read its slow bob and route around),
 anguila (eel — lurks a lane, coils + crackles to telegraph, DARTS, then drifts stunned;
 `invulnerable` to stomp/pound, killable ONLY by the dash-lunge while stunned —
@@ -191,7 +196,33 @@ must ALWAYS have a mountable ≤3-tile edge (water can't softlock); surface swim
 MOVE_SPEED, submerged 4-dir ≈70%; the water HOP (held jump) mounts a 3-tile ledge, never
 4; pre-dive you can't sink past ~1.5 tiles and a pound-plunge dives ~3 tiles then bobs
 back; the aquatic LUNGE ≈60% of a dash (smash still shatters `%` underwater); a corriente
-pushes ≈11 tiles/s (~vent), submerged-only. Shrink: a 1-tile burrow (one `.` row between
+pushes ≈11 tiles/s (~vent), submerged-only.
+`{ type: 'cisterna', x, y, w, h, period, offset }` is the tank and
+`{ type: 'compuerta', x, y, tank }` the bronze valve that POUNDS to freeze it
+(`tank` = which cistern of the room, in listing order). Give the valve its own dry
+platform ABOVE the full waterline: pounding is a dry, standing verb and you cannot
+throw it while swimming.
+THE TIDE (`cisterna`, X2's device) is water that MOVES: a tank rect whose surface climbs
+and sinks one tile per notch on a cycle, rewriting the level's water grid — which the
+physics and the renderer read live, so floating, diving and the waterline follow for
+free. It lifts a floater at the water's own speed, so the tide IS an elevator, and the
+whole design problem is that WALL JUMPS make elevators optional: a player climbs any
+wall taller than himself. So in a tide room nothing the water serves may sit on top of a
+climbable face. Give the destination an UNDERCUT — let the tank's void continue two
+tiles UNDER the ledge/tunnel and start the rock below that — and the climber's wall
+remates against the ledge's own floor with no lip to pull onto, while a floater at high
+tide simply swims in over the top. Verified the honest way: freeze the tide empty
+(`c.surfaceAt = () => <fila vacía>`) and try to escape from four spots; if any works, the
+room's water is decoration. Danger and refuge belong together: a spiked bed underneath
+makes the wait matter, floating slabs are where you wait it out, and setting them so the
+rising water swallows them IN ORDER turns waiting into climbing ahead of the flood.
+Keep the entry landing dry all the way under the first slab — a teaching room must not
+charge a heart for missing its own tutorial hop.
+And mind what the tide does to the OTHER verbs: shrinking needs solid ground and you
+cannot shrink while swimming, so a burrow you can only reach by FLOATING is impossible by
+construction — every burrow mouth wants three tiles of dry standing ledge (the water may
+cover it later; it just has to be standable when you get there). Same shape of trap in
+reverse: a valve you pound needs its own dry platform. Shrink: a 1-tile burrow (one `.` row between
 solids) passes ONLY the miniaturized body (hitbox 11px → 6px; mini walk ≈63% MOVE_SPEED,
 a running entry keeps its skid); keep burrows FLAT (never a drop mid-burrow), never open
 one on a room border (transitions need 2 contiguous open rows), and remember

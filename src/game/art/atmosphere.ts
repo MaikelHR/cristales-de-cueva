@@ -172,6 +172,23 @@ const THEMES: Record<string, CaveTheme> = {
     drip: '#9fd8ff',
     fog: ['#3f5570', '#2a3a50', '#1a2434'],
   },
+  // The water clock: the machine that measured the cave's time, still
+  // running. Wet travertine gone gold-green, bronze blooming verdigris,
+  // and everything lit from BELOW — the only biome whose light comes
+  // off a surface that moves.
+  reloj: {
+    gradTop: '#0b1412', gradBottom: '#1d3330',
+    strata: '#13221f',
+    crystals: ['#2c4a44', '#356057', '#41756a'], spark: '#8ff0dc',
+    skyline: '#102019',
+    haze: 'rgba(120, 230, 210, 0.06)',
+    ray: '150,240,220',
+    mid: '#0e1c19', midEdge: '#2f5a50', root: '#16302a',
+    accent: '#7fe4d0', accentLight: '#e6fffa',
+    near: '#0a1512', nearTop: '#1a3029',
+    drip: '#8ff0dc',
+    fog: ['#3f8a7c', '#2c6459', '#1e4840'],
+  },
   // The silk nest: everything swallowed by old web — pearl greys, a
   // cold hush, and the pink glint of eyes that may or may not be there.
   seda: {

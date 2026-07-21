@@ -147,6 +147,29 @@ const ABYSS_TOP = [
   'ssssssss',
 ];
 
+// --- Reloj: travertine the water terraced, with the clock's bronze
+//     channelling laid along the top and going green with verdigris.
+//     The only ground in the game that was PLUMBED. ---
+const CLOCK_PALETTE: Palette = {
+  // Pale, and deliberately so: this is TRAVERTINE, stone the water laid
+  // down and then polished, and the level has to read as something BUILT
+  // standing in the dark — the first pass came out the same mud brown as
+  // the mine and the whole biome vanished into its own background.
+  r: '#6d6553', o: '#877d66', s: '#2a251b',
+  m: '#b3a684', t: '#8ff0dc',
+  B: '#c9a227', b: '#7a6220', v: '#5fd0c0',
+};
+const CLOCK_TOP = [
+  'BvBBvBvB', // the bronze channel, blooming verdigris
+  'bBbbBBbb',
+  'ooorrooo', // the stone lip the water polished smooth
+  'orrrrrro',
+  'rrrtrrrr', // a seam still wet
+  'rrrrrror',
+  'rorrmrrr',
+  'ssssssss',
+];
+
 // --- Puerta: worked marble — cut stone with gold veins in the seams.
 //     The threshold of the door was BUILT, not grown: the first
 //     terrain in the grotto with a mason's hand on it. ---
@@ -220,6 +243,15 @@ const SETS: Record<string, TileSet> = {
     rimL: '#5c6b80',
     rimR: '#2f3846',
     shadow: '#05070a',
+  },
+  reloj: {
+    top: new Sprite(CLOCK_TOP, CLOCK_PALETTE),
+    fill: new Sprite(FILL, CLOCK_PALETTE),
+    fill2: new Sprite(FILL2, CLOCK_PALETTE),
+    fill3: new Sprite(FILL3, CLOCK_PALETTE),
+    rimL: '#d9cba8',
+    rimR: '#6b6250',
+    shadow: '#151109',
   },
   puerta: {
     top: new Sprite(MARBLE_TOP, MARBLE_PALETTE),
