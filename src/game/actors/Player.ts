@@ -87,7 +87,11 @@ const SWING_DAMP = 0.1;      // per second: an unpumped swing dies down slowly
 const SWING_MAX_W = 5.5;     // rad/s cap (a long rope still tops out sanely)
 const SWING_MAX_ANGLE = 2;   // rad (~115°): past this the rope goes slack
 const SWING_RELEASE_UP = 120; // px/s of extra lift when you let go
-const SWING_COOLDOWN = 0.3;  // seconds before the same bead can catch again
+const SWING_COOLDOWN = 0.2;  // seconds before the same bead can catch again
+                             // (just enough to clear its 9px box: longer and
+                             // a steep release, which throws you almost
+                             // straight UP, came back down onto a bead that
+                             // was still deaf and dropped you into the pit)
 const SILK_COLORS = ['#e8e0f0', '#c9bcd8', '#fdfbff'];
 
 // Water ('='): a body volume. You FLOAT on its surface; once the dive
@@ -102,6 +106,8 @@ const WATER_HOP = 193;       // surface jump: mounts a 3-tile ledge, never 4
 const SWIM_STROKE = 122;     // upward kick while submerged (jump = a stroke)
 const SWIM_DRIFT = 6;        // gentle idle rise submerged (water floats you)
 const LUNGE_SPEED = 150;     // 60% DASH_SPEED: the aquatic dash-lunge
+const DEEP_ENTRY = 10;       // px under the surface that count as "already under"
+const FLOAT_RISE_MAX = 70;   // px/s cap on buoyancy: it lifts, never yanks
 const FLOAT_REST = 5;        // equilibrium: feet this far under the surface
 const FLOAT_MAX_DEPTH = 12;  // hard cap: a floater never sinks past ~1.5 tiles
 const FLOAT_STIFF = 26;      // buoyancy spring stiffness (toward the rest line)
@@ -199,7 +205,9 @@ export class Player {
   private ropeLen = 0;         // >0 = hanging from an anchor
   private swingAngle = 0;      // rad from straight down, + is to the right
   private swingOmega = 0;      // rad/s
-  private swingCooldown = 0;   // >0 = beads can't catch yet
+  private swingCooldown = 0;   // >0 = the bead just released can't catch yet
+  private lastAnchorX = NaN;   // ...and it is THAT bead (only it goes deaf)
+  private lastAnchorY = NaN;
 
   private launched = false; // external impulse (spring): no jump cut
   private dropTimer = 0;    // >0 = dropping through a plank (ignores them)
@@ -315,17 +323,27 @@ export class Player {
     return this.ropeLen > 0 && this.anchorX === ax && this.anchorY === ay;
   }
 
-  /** Can a bead catch it this frame? (in the air, with the relic, not
-   *  already hanging, and past the cooldown of the last release). */
+  /** Can a bead catch it this frame? (in the air, with the relic and
+   *  not already hanging). */
   get canGrab(): boolean {
     return (
       this.abilities.swing &&
       this.ropeLen <= 0 &&
-      this.swingCooldown <= 0 &&
       !this.onGround &&
       !this.swimmingNow &&
       this.dashTimer <= 0
     );
+  }
+
+  /** Can THIS bead catch it? Only the bead you just let go of goes deaf
+   *  for a moment — otherwise it would re-catch you on the way out. Any
+   *  OTHER bead takes you the instant you touch it, and that is what
+   *  makes a chain flow: a blanket cooldown left a blind stretch of
+   *  four tiles right after every release, so a chasm's middle beads
+   *  were decorative and a short launch died between them. */
+  canGrabFrom(ax: number, ay: number): boolean {
+    if (!this.canGrab) return false;
+    return !(this.swingCooldown > 0 && ax === this.lastAnchorX && ay === this.lastAnchorY);
   }
 
   /**
@@ -365,6 +383,8 @@ export class Player {
       this.stretch = STRETCH_JUMP;
       sfx.release();
     }
+    this.lastAnchorX = this.anchorX;
+    this.lastAnchorY = this.anchorY;
     this.ropeLen = 0;
     this.swingOmega = 0;
     this.swingCooldown = SWING_COOLDOWN;
@@ -658,6 +678,12 @@ export class Player {
         if (this.vy > -WATER_HOP * 0.5) {
           this.vy += -FLOAT_STIFF * (feet - restFeet) * dt;
           this.vy -= this.vy * Math.min(1, FLOAT_DAMP * dt);
+          // ...and it never SHOOTS you up. Entering a pool from the side,
+          // deep, the spring used to fire the body to the surface in a
+          // couple of frames, which read as a teleport (playtest, and it
+          // did the same in the cenote after smashing a wall between two
+          // pools). Capped, it's a rise you can watch.
+          if (this.vy < -FLOAT_RISE_MAX) this.vy = -FLOAT_RISE_MAX;
         }
         // No dive relic yet: 'down' answers with a token ~5px dip and a puff
         // of bubbles, so the locked depth reads as "not yet", not dead input.
@@ -987,6 +1013,13 @@ export class Player {
     this.bufferTimer = 0;    // a buffered land-jump doesn't survive into water
     // Water grows you back (you swim full-size), headroom allowing.
     if (this.mini && !this.headBlocked()) this.setMini(false);
+    // Coming in SIDEWAYS, deep — through a flooded tunnel, or through a
+    // wall you just smashed between two pools — you are already under:
+    // start submerged instead of being yanked to the surface by
+    // buoyancy, which read as the game teleporting you upward.
+    if (this.abilities.dive && this.y - this.waterSurfaceY() > DEEP_ENTRY) {
+      this.diving = true;
+    }
     if (this.isPounding) {
       // Pound into water: a bounded plunge (~3 tiles), then buoyancy lifts.
       this.isPounding = false;

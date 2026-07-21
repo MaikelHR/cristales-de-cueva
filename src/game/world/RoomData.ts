@@ -79,6 +79,12 @@ export type EntitySpawn =
   // fixed cycle (it sputters before vanishing, motes gather before it
   // returns). `offset` staggers the cycle between platforms, like geysers.
   | (Cell & { type: 'blink'; offset?: number })
+  // Counterweight: TWO 3-cell plates on one chain over a pulley. The
+  // left one sits at (x, y), the right one in column `right` at the
+  // same height, and both hang from row `ceil`. Standing on either
+  // drives it down and hauls the other up by as much; step off and
+  // they even out. Ride one down, cross to the one you lifted.
+  | (Cell & { type: 'contrapeso'; right: number; ceil: number })
   // Silk anchor: a thread fixed to the ceiling at (x, y) with a grab
   // BEAD hanging `length` cells below it. Touching the bead in mid-air
   // ties you on and you swing from it (needs the swing relic). The

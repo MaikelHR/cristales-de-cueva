@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { LEVELS, levelAtNode, nodeOfLevel, WORLD_NODE_COUNT, FINAL_LEVEL_ID } from './index';
+import {
+  LEVELS, levelAtNode, nodeOfLevel, WORLD_NODE_COUNT, GROTTO_NODE_COUNT,
+  FINAL_LEVEL_ID, isChallengeNode,
+} from './index';
 import { validateRooms } from '../RoomData';
 import { validateLevels } from '../LevelData';
 import { FIRST_LEVEL_ID } from '../../save';
@@ -45,19 +48,23 @@ describe('los niveles del juego', () => {
     }
   });
 
-  it('el nivel final vive en la gran puerta (el último nodo del mapa)', () => {
-    // The final level is pinned to the door; every other level stands
-    // on its own index and the unbuilt nodes in between are '?' stones.
-    expect(LEVELS[LEVELS.length - 1].id).toBe(FINAL_LEVEL_ID);
-    expect(nodeOfLevel(LEVELS.length - 1)).toBe(WORLD_NODE_COUNT - 1);
-    expect(levelAtNode(WORLD_NODE_COUNT - 1)?.id).toBe(FINAL_LEVEL_ID);
-    for (let i = 0; i < LEVELS.length - 1; i++) {
+  it('la gran puerta cierra la gruta, y el camino sigue hacia los desafíos', () => {
+    // Every level stands on the node of its own index (LEVELS order IS
+    // map order), the door is the TENTH — it closes world 1 and fires
+    // the ending — and anything past it is a challenge node.
+    expect(LEVELS[GROTTO_NODE_COUNT - 1].id).toBe(FINAL_LEVEL_ID);
+    expect(levelAtNode(GROTTO_NODE_COUNT - 1)?.id).toBe(FINAL_LEVEL_ID);
+    for (let i = 0; i < LEVELS.length; i++) {
       expect(nodeOfLevel(i)).toBe(i);
       expect(levelAtNode(i)?.id).toBe(LEVELS[i].id);
     }
-    for (let node = LEVELS.length - 1; node < WORLD_NODE_COUNT - 1; node++) {
+    // Nodes without a level yet are '?' stones, never a crash.
+    for (let node = LEVELS.length; node < WORLD_NODE_COUNT; node++) {
       expect(levelAtNode(node)).toBeNull();
     }
+    // The challenge road starts right after the grotto.
+    expect(isChallengeNode(GROTTO_NODE_COUNT - 1)).toBe(false);
+    expect(isChallengeNode(GROTTO_NODE_COUNT)).toBe(true);
   });
 
   it('las salidas son recíprocas: si A sale a B, B vuelve a A', () => {

@@ -45,8 +45,8 @@ initTouchControls(canvas);
 // Debug hooks: with the browser console open (F12) you can
 // inspect the game live, e.g. `__game.player.vy`,
 // turn on `__debug.hitboxes = true`, jump to a room of the current
-// level with `__debug.warp('galeria')` or load another level with
-// `__debug.level('corazon')`.
+// level with `__debug.warp('galeria')`, load another level with
+// `__debug.level('corazon')` or open the map with `__debug.unlock(10)`.
 // They only exist in development: the production build doesn't include them.
 if (import.meta.env.DEV) {
   const dev = window as unknown as Record<string, unknown>;
@@ -71,6 +71,22 @@ if (import.meta.env.DEV) {
       session.startLevel(def, 'normal');
       const { GameplayScene } = await import('./game/scenes/GameplayScene');
       scenes.replace(new GameplayScene(session, scenes));
+    },
+    /** Marks the first `count` levels as completed so the map opens up
+     *  without replaying them — testing a late level shouldn't cost an
+     *  hour of walking. It only ever ADDS a completion to a level that
+     *  had none: existing scores and times are left untouched. */
+    async unlock(count = 99): Promise<number> {
+      const { LEVELS } = await import('./game/world/rooms');
+      const { loadSave, writeSave, emptyRecord } = await import('./game/save');
+      const save = loadSave();
+      for (const def of LEVELS.slice(0, count)) {
+        const rec = save.levels[def.id] ?? emptyRecord();
+        if (rec.completions === 0) rec.completions = 1;
+        save.levels[def.id] = rec;
+      }
+      writeSave(save);
+      return Math.min(count, LEVELS.length);
     },
   });
 }

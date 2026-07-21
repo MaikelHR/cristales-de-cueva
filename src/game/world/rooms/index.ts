@@ -58,6 +58,18 @@ import { socavon } from './mina/socavon';
 import { telar } from './seda/telar';
 import { cuna } from './seda/cuna';
 import { matriz } from './seda/matriz';
+import { brocal } from './simas/brocal';
+import { caida } from './simas/caida';
+import { vena } from './simas/vena';
+import { polea } from './simas/polea';
+import { vertigo } from './simas/vertigo';
+import { fondo } from './simas/fondo';
+import { resquicio } from './simas/resquicio';
+import { cadenas } from './simas/cadenas';
+import { torre } from './simas/torre';
+import { pozo } from './simas/pozo';
+import { aguja } from './simas/aguja';
+import { corona } from './simas/corona';
 import { atrio } from './puerta/atrio';
 import { claustro } from './puerta/claustro';
 import { roseton } from './puerta/roseton';
@@ -132,28 +144,53 @@ export const LEVELS: LevelDef[] = [
       'doubleJump', 'wallJump', 'dash', 'glide', 'pound', 'smash', 'dive', 'shrink', 'swing',
     ],
   },
+  // ---- The challenge road: extra levels for whoever wants more.
+  // They come AFTER the door, so the same "beat one, open the next"
+  // rule reveals them once world 1 is finished. No new relics: you
+  // arrive with the nine verbs and they ask you to chain them.
+  {
+    id: 'simas',
+    nameKey: 'lvl_simas',
+    rooms: [
+      brocal, caida, vena, polea, vertigo, fondo,
+      resquicio, cadenas, torre, pozo, aguja, corona,
+    ],
+    startAbilities: [
+      'doubleJump', 'wallJump', 'dash', 'glide', 'pound', 'smash', 'dive', 'shrink', 'swing',
+    ],
+  },
 ];
 
 // ------------------------------------------------------------
-// The overworld path has 10 nodes; the FINAL level is pinned to
-// the last one (the world's great door). Any node in between
-// without a level yet is a '?' stone: steppable, not enterable.
+// The overworld path: the first ten nodes are THE GROTTO (world 1,
+// ending at the great door). Past them the path KEEPS GOING into
+// the challenge nodes — extra levels for whoever wants more, hidden
+// until the grotto is finished and unlocked by the same rule as
+// everything else: beat one, the next opens. A node without a level
+// yet is a '?' stone: steppable, not enterable.
+// Levels sit on the node of their own index, so LEVELS order IS the
+// map order — the door must stay the tenth entry.
 // ------------------------------------------------------------
 
-export const WORLD_NODE_COUNT = 10;
+/** Nodes belonging to world 1 proper (the grotto). */
+export const GROTTO_NODE_COUNT = 10;
+/** Every node on the path, challenges included. */
+export const WORLD_NODE_COUNT = 13;
+/** The level that closes the grotto (it fires the ending). */
 export const FINAL_LEVEL_ID = 'puerta';
 
 /** The node a level (by index in LEVELS) stands on. */
 export function nodeOfLevel(index: number): number {
-  return LEVELS[index]?.id === FINAL_LEVEL_ID ? WORLD_NODE_COUNT - 1 : index;
+  return index;
 }
 
 /** The level standing on a node, or null (a '?' stone). */
 export function levelAtNode(node: number): LevelDef | null {
-  if (node === WORLD_NODE_COUNT - 1) {
-    const last = LEVELS[LEVELS.length - 1];
-    return last.id === FINAL_LEVEL_ID ? last : null;
-  }
-  const level = LEVELS[node] as LevelDef | undefined;
-  return level && level.id !== FINAL_LEVEL_ID ? level : null;
+  return (LEVELS[node] as LevelDef | undefined) ?? null;
+}
+
+/** Is this node past the grotto? (drawn as a challenge, and kept
+ *  hidden until world 1 is done). */
+export function isChallengeNode(node: number): boolean {
+  return node >= GROTTO_NODE_COUNT;
 }

@@ -88,12 +88,21 @@ SUBMERGED swimmer, ~vent strength: ride it WITH the flow, a gate AGAINST it, den
 stream is the telegraph, or `{ type: 'blink', offset: 2.2, x: 20, y: 15 }` — a 3-tile
 crystal slab that PHASES on a fixed cycle (~2.8s there / 1.6s gone): it sputters before
 vanishing, a ghost outline holds the spot and motes converge before it returns; offsets
-stagger a chain into a rhythm, or `{ type: 'ancla', length: 8, x, y }` — a silk thread
+stagger a chain into a rhythm, or `{ type: 'contrapeso', right: 21, ceil: 5, x: 13, y: 26 }`
+— TWO 3-tile plates on one chain over a pulley (left plate at x,y; right one in column
+`right`; both hang from row `ceil`). Standing on either drives it down 5 tiles and hauls
+the other up 5, and WHERE YOU LEAVE IT IS WHERE IT STAYS — a chain that sprang back
+would undo the lift the moment you stepped off to go use it, which made the machine
+unplayable for one player. Riding the other plate is what resets it. Hang it ≥5 tiles
+above anything lethal: the plate sinks that far and takes its passenger with it, or
+`{ type: 'ancla', length: 8, x, y }` — a silk thread
 fixed to the ceiling at (x,y) with a grab BEAD hanging `length` tiles below it: touching
 the bead in mid-air ties you on and you SWING from it. The bead's grab box is a full
 tile (deliberately fatter than it draws: missing the silk by 2px reads as the game
 cheating). `length` IS the arc — pick it, don't guess it: hanging from L and pumping to
-~60° lifts you 0.5·L and carries you 0.87·L sideways, or `{ type: 'crumble', x, y }` — a 2-tile rotten mine
+~60° lifts you 0.5·L and carries you 0.87·L sideways. After a release only the bead you
+just left goes deaf (0.2s, just enough to clear its box) — every OTHER bead catches you
+the instant you touch it, which is what lets a chain flow, or `{ type: 'crumble', x, y }` — a 2-tile rotten mine
 board on fixed stone corbels: unlike the blink's cycle it REACTS — first footfall starts
 a ~0.45s shudder (the grace window), then it snaps loose, falls, and re-forms ~3.3s
 later; the corbels never vanish, so its spot stays readable while it's gone. Place it at
@@ -167,7 +176,11 @@ alone. Design metrics (TILE=8): jump ≈ 4 tiles high
 (34px; jump+double ≈ 62px — a ledge whose top sits >62px above the feet can't be
 mounted: use TALL walls, not thin roofs, to block route skips), double jump ≈ 7,
 spring = 9, wall-jump chimneys 4 wide (a single tall wall is ALSO climbable by repeated
-wall jumps — cap or overhang anything that must not be scaled); a dash gate is ~14
+wall jumps — cap or overhang anything that must not be scaled; the cheap version is to
+UNDERCUT the far lip of a chasm: let its floor row jut two tiles out over the drop and
+start the rock below that, and a wall-jumper climbing the face bonks under the shelf
+instead of pulling himself onto it — that, not width, is what stops a long glide from
+poaching a swing crossing); a dash gate is ~14
 tiles at same height; gliding falls ~1 tile per 2 tiles forward (a glide gate = 19+
 tile gap; jump+double+dash tops out ~16-17 tiles); vents lift ~11 tiles/s while
 gliding; crack walls must span the FULL passable cross-section (a crack doorway framed
@@ -205,7 +218,40 @@ The FIRST bead of a chasm must hang one tile out and at LIP HEIGHT: leaving a lo
 you are already falling, so a bead placed 6 tiles out and high is one you drop past.
 A ceiling boss is reached at the arc's EXTREME, never from the anchor beneath it (the
 low point is under the anchor; it climbs at the ends) — flank its patrol with beads ~7
-tiles to either side, and hang it low enough that its thread crosses the arc's own lane. Level 1 id ('cavernas') is pinned in save.ts for migration.
+tiles to either side, and hang it low enough that its thread crosses the arc's own lane.
+CHAINING beads across a chasm has its own measured number, and it is NOT the arc's width:
+after a release the body flies +3 to +4.3 tiles before it sinks back through the catch
+band (which is 2.5 rows tall — a bead's 9px box plus the 11px body), and the release
+itself happens ~3 tiles past the anchor. So **the next anchor goes ~6 tiles along**, and
+that spacing holds for a timid pump and a brutal one alike. Beads at 4 tiles fall in the
+two dead zones (still rising over the near one, already below the far one) and read as
+decoration. Hang a SECOND line of longer beads between them, one row lower: a good flight
+passes over them untouched and only someone who released badly — steeply, which throws
+you almost straight up and lands you short — falls into them. That net is what turns the
+crossing from a timing exam into something everyone lands. Level 1 id ('cavernas') is pinned in save.ts for migration.
+
+Rooms don't have to be one screen tall. The view is 22 rows, and the camera clamps to
+`worldH - viewH`, so a room of 36 rows is TWO SCREENS of drop — that's what the challenge
+levels are built from. Keep every room in a level the SAME height: transitions match by
+row index, so equal heights let any room connect to the next at any altitude (the chained
+chasms zigzag between a high mouth at rows 8-9 and a low one at 30-31).
+
+A MOUTH IS ONLY WALKABLE IF THE FLOOR MEETS IT. A transition fires when the player's
+CENTER passes the room edge, so the body (6×11 px) has to fit through the opening's two
+rows, and it only does standing on a floor whose top is the row right BELOW them: mouth
+at rows 8-9 → floor at row 10. Put the floor two or three rows lower and the room still
+works when you ARRIVE (you fall in), but leaving is a wall you can only clear with a
+blind hop — several simas rooms shipped like that and read as "the level is broken".
+`validateRooms` can't see it: check it by hand, both directions. And this engine has no
+step-up, so a doorway at a different height than its ledge always costs a hop.
+
+## The challenge road (levels past the grotto)
+
+`GROTTO_NODE_COUNT` (10) is world 1; levels registered AFTER 'puerta' sit on nodes past
+it and are hidden until the door is beaten — the same "beat one, open the next" rule
+reveals them, no special casing. They ship with all nine abilities and no relic: their
+progression is CHAINING verbs, not learning them, and each brings one new device or
+enemy so it never reads as "the same rooms, harder".
 
 ## Level design standards (the bar every room must clear)
 

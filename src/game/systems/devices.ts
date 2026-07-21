@@ -17,6 +17,7 @@ import { MovingPlatform } from '../actors/devices/MovingPlatform';
 import { BlinkPlatform } from '../actors/devices/Blink';
 import { Crumble } from '../actors/devices/Crumble';
 import { Ancla } from '../actors/devices/Ancla';
+import { Contrapeso } from '../actors/devices/Contrapeso';
 import { Spring, SPRING_SPEED } from '../actors/devices/Spring';
 import { Vent, VENT_ACCEL, VENT_RISE } from '../actors/devices/Vent';
 import { Corriente } from '../actors/Corriente';
@@ -99,6 +100,25 @@ export function resolveDeviceContacts(session: GameSession, dt: number): void {
       if (player.glideHeld && overlaps(player.box(), b)) {
         player.liftBy(dt, VENT_ACCEL, VENT_RISE);
       }
+    } else if (d instanceof Contrapeso) {
+      // Both plates land like one-way planks, and whichever one you're
+      // standing on is the one that sinks — hauling its twin up by the
+      // same amount. Landing is checked per plate, since the pair is a
+      // single actor with two boxes.
+      d.rider = null;
+      if (player.vy < 0) continue; // going up: pass through both
+      for (const side of ['left', 'right'] as const) {
+        const plate = side === 'left' ? d.leftBox() : d.rightBox();
+        const over = pbox.x < plate.x + plate.w && pbox.x + pbox.w > plate.x;
+        if (!over) continue;
+        if (feet >= plate.y && prevFeet <= plate.y + 4) {
+          player.y = plate.y - player.h;
+          player.vy = 0;
+          player.onGround = true;
+          d.rider = side;
+          break;
+        }
+      }
     } else if (d instanceof Ancla) {
       // The bead catches a player in the air (like the vent's glide gate,
       // it only grips someone in the right state), and keeps holding
@@ -107,7 +127,7 @@ export function resolveDeviceContacts(session: GameSession, dt: number): void {
       if (d.holding) {
         d.holdX = player.x + player.w / 2;
         d.holdY = player.y + player.h / 2;
-      } else if (player.canGrab && overlaps(player.box(), b)) {
+      } else if (player.canGrabFrom(d.x, d.y) && overlaps(player.box(), b)) {
         player.grabAnchor(d.x, d.y, d.len);
         d.holding = true;
         d.holdX = player.x + player.w / 2;

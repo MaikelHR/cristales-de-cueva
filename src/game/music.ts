@@ -984,6 +984,65 @@ const seda: Song = {
 };
 
 // ------------------------------------------------------------
+// SIMAS — the first challenge level (C# minor, 80 bpm, 12 bars)
+// The abyss under everything, and the only theme with no melody in
+// the usual sense: a CHAIN is the rhythm section (a dry iron clank
+// on the beat, its echo two beats later, always) over a drone that
+// barely moves. The crystal motif shows up in the deepest register
+// the soundtrack has used — C#→E→G#, played as slow single notes,
+// like something remembering the tune rather than singing it. The
+// only brightness is a high harmonic that answers each phrase from
+// far above: the surface you're trying to climb back to.
+// ------------------------------------------------------------
+
+/** The chain: an iron clank and its echo, bouncing off the walls. */
+function clank(beat: number, vol = 0.05): SongNote[] {
+  return [
+    { beat, freq: 2400, beats: 0.07, type: 'noise', vol: vol * 0.6 },
+    { beat, freq: 220, freqEnd: 110, beats: 0.22, type: 'square', vol },
+    { beat: beat + 2, freq: 180, freqEnd: 95, beats: 0.3, type: 'square', vol: vol * 0.45 },
+  ];
+}
+
+const simasDeep = voice(
+  [
+    // The motif, said very low and very slow: C#→E→G#.
+    [0, 'C#2', 2], [2, 'E2', 2], [4, 'G#2', 3],
+    [8, 'F#2', 2], [10, 'E2', 2], [12, 'C#2', 3],
+    [16, 'A2', 2], [18, 'G#2', 2], [20, 'E2', 3],
+    [24, 'C#2', 2], [26, 'D#2', 2], [28, 'F#2', 3],
+    [32, 'B1', 3], [35, 'C#2', 4],
+  ],
+  { type: 'triangle', vol: 0.055 },
+);
+
+const simas: Song = {
+  id: 'simas',
+  bpm: 80,
+  loopBeats: 40,
+  notes: [
+    // The drone: two sine voices a fifth apart, almost still.
+    ...voice(
+      [
+        [0, 'C#1', 10.5], [0, 'G#1', 10.5], [10, 'A1', 10.5], [10, 'E2', 10.5],
+        [20, 'B1', 10.5], [20, 'F#2', 10.5], [30, 'C#1', 10.5], [30, 'G#1', 10.5],
+      ],
+      { type: 'sine', vol: 0.05, attack: 2.5 },
+    ),
+    ...simasDeep,
+    // The chain, one clank per bar, harder every fourth.
+    ...Array.from({ length: 10 }, (_, bar) => clank(bar * 4, bar % 4 === 0 ? 0.055 : 0.04)).flat(),
+    // The harmonic from far above: the surface, answering.
+    ...voice(
+      [[6, 'G#5', 2], [14, 'E5', 2], [22, 'C#6', 2], [30, 'G#5', 2], [38, 'B5', 2]],
+      { type: 'triangle', vol: 0.026, attack: 0.5 },
+    ),
+    // Stones coming loose somewhere in the dark.
+    drip(9.5, 1568), drip(19.25, 1319), drip(29.75, 1760), drip(37.5, 1174),
+  ],
+};
+
+// ------------------------------------------------------------
 // PUERTA — level 10 (A minor, 72 bpm, 16 bars)
 // The title theme comes home: the same A→C→E the menu sings, now
 // as a slow procession up to the door — pillar bass stepping in
@@ -1165,6 +1224,7 @@ export const LEVEL_SONGS: Record<string, Song> = {
   mina,
   seda,
   puerta,
+  simas,
 };
 
 /** Boss themes, by level id: they take over WHILE the fight is

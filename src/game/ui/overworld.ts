@@ -17,7 +17,7 @@ import { frameAt } from '../../engine/animation';
 import { inputDevice, padLabels } from '../../engine/input';
 import { getMove } from '../touchLayout';
 import type { GameSession, GameMode } from '../session';
-import { LEVELS, levelAtNode } from '../world/rooms';
+import { LEVELS, levelAtNode, isChallengeNode, GROTTO_NODE_COUNT, FINAL_LEVEL_ID } from '../world/rooms';
 import { levelRecord } from '../save';
 import { sprites } from '../art/sprites';
 import { playerSprites } from '../art/playerSkins';
@@ -27,8 +27,10 @@ import { drawBackground, drawDust, drawFog, drawVignette } from '../art/atmosphe
 import { t } from '../i18n';
 import { font, formatTime } from './text';
 
-/** The 10 nodes of world 1, snaking up the cave toward the great
- *  door. Only the first LEVELS.length have an actual level. */
+/** The path's nodes. The first ten snake up the cave to the great
+ *  door (world 1); the last three double BACK along the top of the
+ *  screen — the challenge road, which only exists once the grotto is
+ *  finished. Only the first LEVELS.length have an actual level. */
 export const OW_NODES: ReadonlyArray<{ x: number; y: number }> = [
   { x: 30, y: 120 },
   { x: 66, y: 100 },
@@ -40,6 +42,10 @@ export const OW_NODES: ReadonlyArray<{ x: number; y: number }> = [
   { x: 262, y: 84 },
   { x: 284, y: 60 },
   { x: 300, y: 38 },
+  // The challenge road, running back above the grotto's own path.
+  { x: 252, y: 44 },
+  { x: 204, y: 50 },
+  { x: 156, y: 44 },
 ];
 
 /** What the drawing needs to know about the overworld scene. */
@@ -71,8 +77,14 @@ export function drawOverworld(
   // Distant fauna: bats crossing the cave now and then.
   drawBats(ctx, viewW, time);
 
+  // The challenge road doesn't exist until the grotto is done: no
+  // islets, no path, no stones. Finishing world 1 makes it APPEAR,
+  // which is the reward reading "there's more".
+  const grottoDone = levelRecord(save, FINAL_LEVEL_ID).completions > 0;
+  const lastNode = grottoDone ? OW_NODES.length - 1 : GROTTO_NODE_COUNT - 1;
+
   // --- Rocky islets under each node, dressed in their biome ---
-  for (let i = 0; i < OW_NODES.length; i++) {
+  for (let i = 0; i <= lastNode; i++) {
     const levelId = levelAtNode(i)?.id ?? null;
     drawIsland(ctx, OW_NODES[i].x, OW_NODES[i].y, i <= view.maxNode, levelId, time);
   }
@@ -82,7 +94,7 @@ export function drawOverworld(
 
   // --- Dotted path with a pulse running forward ---
   let dTotal = 0; // accumulated distance: makes the pulse TRAVEL the path
-  for (let i = 0; i < OW_NODES.length - 1; i++) {
+  for (let i = 0; i < lastNode; i++) {
     const a = OW_NODES[i];
     const b = OW_NODES[i + 1];
     const reachable = i + 1 <= view.maxNode;
@@ -108,7 +120,7 @@ export function drawOverworld(
   }
 
   // --- Nodes ---
-  for (let i = 0; i < OW_NODES.length; i++) {
+  for (let i = 0; i <= lastNode; i++) {
     drawNode(ctx, session, view, i);
   }
 
@@ -164,6 +176,7 @@ const ISLAND_LOOKS: Record<string, { edge: string; slab: string; belly: string }
   cenote: { edge: '#5fe0d0', slab: '#22585f', belly: '#0e2a30' },
   mina: { edge: '#a87848', slab: '#4c3624', belly: '#1c120a' },
   seda: { edge: '#e8e0f0', slab: '#4c445c', belly: '#241e30' },
+  simas: { edge: '#6d7c90', slab: '#2a3440', belly: '#0b0e13' },
   puerta: { edge: '#e0cf9a', slab: '#5c4a70', belly: '#2e2244' },
 };
 const DEFAULT_LOOK = { edge: '#8064b0', slab: '#4a2e70', belly: '#2e1c48' };
@@ -404,6 +417,31 @@ function drawIslandBiome(
       }
       break;
     }
+    case 'simas': {
+      // A shaft mouth punched through the slab, with the chain that
+      // gives the level its name hanging into the dark.
+      ctx.fillStyle = '#05070a';
+      ctx.fillRect(x - 4, y - 2, 8, 3); // the hole itself
+      ctx.fillStyle = '#3d4654';
+      ctx.fillRect(x - 5, y - 3, 10, 1); // its iron rim
+      ctx.fillStyle = '#6d7c90';
+      ctx.fillRect(x - 5, y - 3, 3, 1);
+      // The chain, dropping in and swaying.
+      const sway = Math.round(Math.sin(time * 1.4 + x) * 1);
+      ctx.fillStyle = '#6d7c90';
+      ctx.fillRect(x + 4, y - 7, 1, 4);
+      ctx.fillRect(x + 4 + sway, y - 3, 1, 5);
+      if (unlocked) {
+        drawGlow(ctx, x, y - 1, 6, '#9fd8ff', 0.12 + (Math.sin(time * 2 + x) + 1) * 0.05);
+        // Cold light breathing UP out of the shaft.
+        const bp = (time * 0.4 + x * 0.2) % 1;
+        ctx.globalAlpha = (1 - bp) * 0.55;
+        ctx.fillStyle = '#9fd8ff';
+        ctx.fillRect(Math.round(x - 2 + Math.sin(time * 2 + x) * 1.5), Math.round(y - 2 - bp * 8), 1, 1);
+        ctx.globalAlpha = 1;
+      }
+      break;
+    }
     case 'puerta': {
       // Worked marble under the door: a carved gold rune inlaid in the
       // slab, breathing light — the threshold isn't cave anymore.
@@ -516,10 +554,11 @@ function drawNode(
   const done = level !== null && levelRecord(save, level.id).completions > 0;
   const current = i === view.node && !view.walking;
 
-  // The last node is the world's great door, guarded by two crystal
-  // torches. It draws FIRST (markers go over it) and follows the final
-  // level's state: sealed while locked, runes awake once you may enter.
-  if (i === OW_NODES.length - 1) {
+  // The grotto's last node is the world's great door, guarded by two
+  // crystal torches. It draws FIRST (markers go over it) and follows the
+  // final level's state: sealed while locked, runes awake once you may
+  // enter. (The challenge road continues PAST it.)
+  if (i === GROTTO_NODE_COUNT - 1) {
     const sealed = !(unlocked && level);
     const door = sealed
       ? sprites.doorLocked
@@ -575,11 +614,27 @@ function drawNode(
     ctx.fillText('?', x, y - 6);
   }
 
-  // Level number below the stone; the current one, highlighted.
+  // A challenge node wears a broken-chain crown: the road past the
+  // door is not more grotto, it's a dare.
+  if (isChallengeNode(i)) {
+    ctx.fillStyle = unlocked ? '#c9d8e8' : '#4a5464';
+    ctx.fillRect(x - 5, y - 9, 2, 2);
+    ctx.fillRect(x - 1, y - 11, 2, 2);
+    ctx.fillRect(x + 3, y - 9, 2, 2);
+    if (unlocked) {
+      drawGlow(ctx, x, y - 9, 8, '#9fd8ff', 0.2 + Math.sin(time * 3 + i) * 0.08);
+      ctx.fillStyle = '#eaf6ff';
+      ctx.fillRect(x - 1, y - 11, 1, 1);
+    }
+  }
+
+  // Level number below the stone; the current one, highlighted. The
+  // challenge road numbers itself apart (X1, X2, X3).
   ctx.fillStyle = current ? '#ffe25a' : '#6f5a94';
   ctx.font = font(7);
   ctx.textAlign = 'center';
-  ctx.fillText(String(i + 1), x, y + 12);
+  const label = isChallengeNode(i) ? `X${i - GROTTO_NODE_COUNT + 1}` : String(i + 1);
+  ctx.fillText(label, x, y + 12);
 }
 
 /** The map character: standing it breathes, walking it runs and

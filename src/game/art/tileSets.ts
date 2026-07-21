@@ -128,6 +128,25 @@ const SILK_TOP = [
   'ssssssss',
 ];
 
+// --- Simas: the abyss under everything. Black-blue basalt, worn
+//     smooth by the drop, with an iron rail bolted along the top and
+//     cold crystal glinting deep in the stone ---
+const ABYSS_PALETTE: Palette = {
+  r: '#1d242e', o: '#2a3440', s: '#0b0e13',
+  m: '#4a5464', t: '#9fd8ff',
+  I: '#6d7c90', i: '#3d4654',
+};
+const ABYSS_TOP = [
+  'IiIIIiII', // the iron rail you walk along
+  'iittiiti',
+  'oorrrroo',
+  'orrrrrro',
+  'rrrtrrrr', // a vein of cold crystal, deep in
+  'rrrrrror',
+  'rorrrrrr',
+  'ssssssss',
+];
+
 // --- Puerta: worked marble — cut stone with gold veins in the seams.
 //     The threshold of the door was BUILT, not grown: the first
 //     terrain in the grotto with a mason's hand on it. ---
@@ -192,6 +211,15 @@ const SETS: Record<string, TileSet> = {
     rimL: '#a294b8',
     rimR: '#645a78',
     shadow: '#151020',
+  },
+  simas: {
+    top: new Sprite(ABYSS_TOP, ABYSS_PALETTE),
+    fill: new Sprite(FILL, ABYSS_PALETTE),
+    fill2: new Sprite(FILL2, ABYSS_PALETTE),
+    fill3: new Sprite(FILL3, ABYSS_PALETTE),
+    rimL: '#5c6b80',
+    rimR: '#2f3846',
+    shadow: '#05070a',
   },
   puerta: {
     top: new Sprite(MARBLE_TOP, MARBLE_PALETTE),

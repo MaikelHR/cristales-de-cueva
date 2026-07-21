@@ -10,11 +10,22 @@ import { isTouchMode } from '../../engine/input';
 import type { GameSession } from '../session';
 
 export function drawMinimap(ctx: CanvasRenderingContext2D, session: GameSession): void {
-  const cellW = 12;
-  const cellH = 8;
-  const gap = 2;
   const rooms = session.world.allRooms;
   const maxX = Math.max(...rooms.map((r) => r.data.mapPos.x));
+  // The minimap grows with the level, and a twelve-room one used to
+  // reach the middle of the screen and sit on top of the CLOCK. It gets
+  // an allowance of the right-hand side and shrinks its cells to fit
+  // inside it, however long the level is.
+  const allowance = session.viewW * 0.4;
+  let cellW = 12;
+  let cellH = 8;
+  let gap = 2;
+  const needed = (maxX + 1) * cellW + maxX * gap;
+  if (needed > allowance) {
+    gap = 1;
+    cellW = Math.max(3, Math.floor((allowance - maxX * gap) / (maxX + 1)));
+    cellH = Math.max(3, Math.round(cellW * 0.66));
+  }
   // On touch we keep the top-right corner clear (the on-screen pause
   // button goes there), so we shift the minimap further left.
   const inset = isTouchMode() ? 44 : 6;

@@ -37,6 +37,7 @@ import { MovingPlatform } from '../actors/devices/MovingPlatform';
 import { BlinkPlatform } from '../actors/devices/Blink';
 import { Crumble } from '../actors/devices/Crumble';
 import { Ancla } from '../actors/devices/Ancla';
+import { Contrapeso } from '../actors/devices/Contrapeso';
 import { Vent } from '../actors/devices/Vent';
 import { Corriente } from '../actors/Corriente';
 
@@ -128,6 +129,9 @@ export class Room {
           break;
         case 'ancla':
           this.actors.push(new Ancla(px, py, e.length));
+          break;
+        case 'contrapeso':
+          this.actors.push(new Contrapeso(px, py, e.right, e.ceil));
           break;
         case 'vent':
           this.actors.push(new Vent(px, py, e.height, clock));

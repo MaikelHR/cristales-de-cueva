@@ -156,6 +156,22 @@ const THEMES: Record<string, CaveTheme> = {
     drip: '#ffd9a0',
     fog: ['#8a6a44', '#66492e', '#4c3622'],
   },
+  // The chained chasms: the abyss under the whole grotto. Almost no
+  // colour — blue-black basalt, cold crystal light, and a lot of dark
+  // to fall through. The only biome whose mood is DEPTH.
+  simas: {
+    gradTop: '#070a10', gradBottom: '#141c28',
+    strata: '#0d1520',
+    crystals: ['#2a3a4e', '#33485e', '#3d5670'], spark: '#9fd8ff',
+    skyline: '#0a111a',
+    haze: 'rgba(120, 180, 230, 0.05)',
+    ray: '160,210,240',
+    mid: '#0c1420', midEdge: '#2a3a4e', root: '#141d2a',
+    accent: '#9fd8ff', accentLight: '#eaf6ff',
+    near: '#080e16', nearTop: '#16202e',
+    drip: '#9fd8ff',
+    fog: ['#3f5570', '#2a3a50', '#1a2434'],
+  },
   // The silk nest: everything swallowed by old web — pearl greys, a
   // cold hush, and the pink glint of eyes that may or may not be there.
   seda: {
