@@ -17,7 +17,7 @@ import { resolveEnemyContacts } from '../systems/combat';
 import { carryAndAdvanceDevices, resolveDeviceContacts } from '../systems/devices';
 import { drawWorld } from '../render/drawWorld';
 import { drawHud } from '../ui/hud';
-import { drawMinimap } from '../ui/minimap';
+import { drawProgress } from '../ui/progress';
 import { sfx } from '../sfx';
 import type { Scene, SceneManager, UiState } from './Scene';
 import { PauseScene } from './PauseScene';
@@ -160,6 +160,6 @@ export class GameplayScene implements Scene {
   draw(ctx: CanvasRenderingContext2D): void {
     drawWorld(ctx, this.session);
     drawHud(ctx, this.session, true);
-    drawMinimap(ctx, this.session);
+    drawProgress(ctx, this.session);
   }
 }

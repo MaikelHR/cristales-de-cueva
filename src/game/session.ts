@@ -55,7 +55,7 @@ export class GameSession {
   // counts, and neither does the shrunken crawl — you re-spawn standing).
   lastSafe = { roomId: '', x: 0, y: 0, feetRow: 0 };
   safeTimer = 0; // seconds of continuous proven footing
-  // Rooms already explored: the ones the minimap shows.
+  // Rooms already explored: the ones the progress bar marks done.
   visited = new Set<string>();
   // Big on-screen notice (on gaining an ability, on killing the boss).
   announceText = '';

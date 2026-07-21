@@ -41,7 +41,7 @@ export class World {
     return [...this.rooms.values()].flatMap((r) => r.crystals);
   }
 
-  /** All the rooms (for the minimap). */
+  /** All the rooms (for the progress bar). */
   get allRooms(): Room[] {
     return [...this.rooms.values()];
   }
