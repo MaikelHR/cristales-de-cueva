@@ -189,6 +189,22 @@ const THEMES: Record<string, CaveTheme> = {
     drip: '#8ff0dc',
     fog: ['#3f8a7c', '#2c6459', '#1e4840'],
   },
+  // The crypt: the sanctum's cellar. Black stone, dead braziers, and a
+  // cold gold that glints without warming anything — the only biome lit
+  // by what is REMEMBERED rather than by anything burning now.
+  cripta: {
+    gradTop: '#08060e', gradBottom: '#1a1526',
+    strata: '#110d1a',
+    crystals: ['#2e2740', '#3b3252', '#4a3f66'], spark: '#f2e6c8',
+    skyline: '#0c0914',
+    haze: 'rgba(210, 190, 140, 0.05)',
+    ray: '220,205,160',
+    mid: '#0d0a16', midEdge: '#38304a', root: '#181328',
+    accent: '#d8cfae', accentLight: '#fff8e4',
+    near: '#070510', nearTop: '#1c1630',
+    drip: '#d8cfae',
+    fog: ['#4a4266', '#332c4a', '#221c33'],
+  },
   // The silk nest: everything swallowed by old web — pearl greys, a
   // cold hush, and the pink glint of eyes that may or may not be there.
   seda: {

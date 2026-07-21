@@ -85,6 +85,24 @@ import { dique } from './reloj/dique';
 import { gotera } from './reloj/gotera';
 import { clepsidra } from './reloj/clepsidra';
 import { esfera } from './reloj/esfera';
+import { portico } from './cripta/portico';
+import { nartex } from './cripta/nartex';
+import { osario } from './cripta/osario';
+import { nicho } from './cripta/nicho';
+import { girola } from './cripta/girola';
+import { columbario } from './cripta/columbario';
+import { tumulo } from './cripta/tumulo';
+import { estela } from './cripta/estela';
+import { catafalco } from './cripta/catafalco';
+import { arcosolio } from './cripta/arcosolio';
+import { hipogeo } from './cripta/hipogeo';
+import { sudario } from './cripta/sudario';
+import { panteon } from './cripta/panteon';
+import { cenotafio } from './cripta/cenotafio';
+import { abside } from './cripta/abside';
+import { presbiterio } from './cripta/presbiterio';
+import { cimborrio } from './cripta/cimborrio';
+import { sepulcro } from './cripta/sepulcro';
 import { atrio } from './puerta/atrio';
 import { claustro } from './puerta/claustro';
 import { roseton } from './puerta/roseton';
@@ -181,6 +199,18 @@ export const LEVELS: LevelDef[] = [
       aljibe, canal, sifon, acequia, arqueta,
       remanso, esclusa, azud, arcaduz, noria,
       cauce, dique, gotera, clepsidra, esfera,
+    ],
+    startAbilities: [
+      'doubleJump', 'wallJump', 'dash', 'glide', 'pound', 'smash', 'dive', 'shrink', 'swing',
+    ],
+  },
+  {
+    id: 'cripta',
+    nameKey: 'lvl_cripta',
+    rooms: [
+      portico, nartex, osario, nicho, girola, columbario,
+      tumulo, estela, catafalco, arcosolio, hipogeo, sudario,
+      panteon, cenotafio, abside, presbiterio, cimborrio, sepulcro,
     ],
     startAbilities: [
       'doubleJump', 'wallJump', 'dash', 'glide', 'pound', 'smash', 'dive', 'shrink', 'swing',

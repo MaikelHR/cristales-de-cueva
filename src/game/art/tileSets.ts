@@ -170,6 +170,25 @@ const CLOCK_TOP = [
   'ssssssss',
 ];
 
+// --- Cripta: black marble with bone inlays and cold gold in the seams.
+//     The sanctum's floor was polished for the living; this was cut for
+//     the dead — same mason's hand, no light left in it. ---
+const CRYPT_PALETTE: Palette = {
+  r: '#241f2b', o: '#332c3c', s: '#0b0910',
+  m: '#c9b98a', t: '#f2e6c8',
+  B: '#4a4256', b: '#161320', H: '#d8cfae',
+};
+const CRYPT_TOP = [
+  'BBbBBBbB', // the slab you walk on, polished and cold
+  'bbHbbbHb', // bone set into the joints
+  'ootmoroo', // gold caught in the first seam
+  'orrrrrro',
+  'rrrHrrrr', // a rib deeper in the block
+  'rrrrrror',
+  'rorrrrrr',
+  'ssssssss',
+];
+
 // --- Puerta: worked marble — cut stone with gold veins in the seams.
 //     The threshold of the door was BUILT, not grown: the first
 //     terrain in the grotto with a mason's hand on it. ---
@@ -252,6 +271,15 @@ const SETS: Record<string, TileSet> = {
     rimL: '#d9cba8',
     rimR: '#6b6250',
     shadow: '#151109',
+  },
+  cripta: {
+    top: new Sprite(CRYPT_TOP, CRYPT_PALETTE),
+    fill: new Sprite(FILL, CRYPT_PALETTE),
+    fill2: new Sprite(FILL2, CRYPT_PALETTE),
+    fill3: new Sprite(FILL3, CRYPT_PALETTE),
+    rimL: '#8d84a0',
+    rimR: '#3a3348',
+    shadow: '#07050c',
   },
   puerta: {
     top: new Sprite(MARBLE_TOP, MARBLE_PALETTE),

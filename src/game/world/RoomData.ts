@@ -98,6 +98,11 @@ export type EntitySpawn =
   // rows, the tide writes the water in. It is the whole language of the
   // water clock: high tide is a way UP, low tide is a way THROUGH.
   | (Cell & { type: 'cisterna'; w: number; h: number; period: number; offset?: number })
+  // Censer: a bronze weight hanging from (x, y) on a rod `length` cells
+  // long, swinging `arc` tenths of a radian either side with a round
+  // trip of `period` seconds (`offset` staggers a row of them). Its cap
+  // is a one-way floor that CARRIES you: the crypt's transport.
+  | (Cell & { type: 'badajo'; length: number; arc?: number; period?: number; offset?: number })
   // Sluice valve: a bronze wheel you POUND to freeze (or release) a
   // cistern where it stands. `tank` is which cistern of the room it
   // commands, in the order they are listed here (0 = the first one).
@@ -127,7 +132,7 @@ export interface RoomData {
   entities: EntitySpawn[];
   /** Which room you exit to on each edge. No exit = wall or void. */
   exits?: { left?: string; right?: string };
-  /** The cell this room occupies on the minimap. */
+  /** The cell this room occupies on the level map (progress bar / overworld). */
   mapPos: Cell;
 }
 

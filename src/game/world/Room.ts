@@ -39,6 +39,7 @@ import { BlinkPlatform } from '../actors/devices/Blink';
 import { Crumble } from '../actors/devices/Crumble';
 import { Cisterna } from '../actors/devices/Cisterna';
 import { Compuerta } from '../actors/devices/Compuerta';
+import { Badajo } from '../actors/devices/Badajo';
 import { Ancla } from '../actors/devices/Ancla';
 import { Contrapeso } from '../actors/devices/Contrapeso';
 import { Vent } from '../actors/devices/Vent';
@@ -134,6 +135,11 @@ export class Room {
           break;
         case 'crumble':
           this.actors.push(new Crumble(px, py));
+          break;
+        case 'badajo':
+          this.actors.push(
+            new Badajo(px, py, e.length, e.arc ?? 9, e.period ?? 3.4, e.offset ?? 0),
+          );
           break;
         case 'compuerta': {
           const valve = new Compuerta(px, py);

@@ -177,7 +177,19 @@ wallJump → dash → glide → pound → smash → dive → shrink → swing). 
 marble sanctum: no ice/water/geyser quotes) and teaches its own language instead: blink
 slabs → vigía sentries → the watched climb and the long gallery → breather chapel → the
 Custodio. Regular rooms use normal, readable enemies; the bullet hell is the boss's
-alone. Design metrics (TILE=8): jump ≈ 4 tiles high
+alone. A GROUNDED enemy goes in the row directly ABOVE the floor: the actors do
+`y = py + (TILE - h)`, so their feet land on that cell's bottom edge. Place one two rows
+higher and it FLOATS — and a floating boss is not a slightly-off boss, it is a broken
+one: it never touches ground, its pacing and charging never fire, it deals no damage,
+and you cannot get above it, so it cannot be killed. Both crypt bosses and an erizo in
+X1 shipped like that; a script now checks every grounded enemy has solid rock in the row
+under it. (The ones with their own gravity — zapatero, topo — and the ceiling-dwellers —
+matriarca, tejedora — are exempt by construction.)
+THE POLISH BAR for any step the route depends on, measured against the real jump: going
+UP, at most 3 rows within 5 columns (or 6 rows almost vertical, with the double jump);
+LEVEL, 8 columns at a run; FALLING, 9.6. Four rows plus horizontal travel is the jump
+that lands half the time, and a chain of those reads as a broken level even though every
+single jump is technically possible. Design metrics (TILE=8): jump ≈ 4 tiles high
 (34px; jump+double ≈ 62px — a ledge whose top sits >62px above the feet can't be
 mounted: use TALL walls, not thin roofs, to block route skips), double jump ≈ 7,
 spring = 9, wall-jump chimneys 4 wide (a single tall wall is ALSO climbable by repeated
@@ -197,6 +209,14 @@ MOVE_SPEED, submerged 4-dir ≈70%; the water HOP (held jump) mounts a 3-tile le
 4; pre-dive you can't sink past ~1.5 tiles and a pound-plunge dives ~3 tiles then bobs
 back; the aquatic LUNGE ≈60% of a dash (smash still shatters `%` underwater); a corriente
 pushes ≈11 tiles/s (~vent), submerged-only.
+`{ type: 'badajo', x, y, length, arc, period, offset }` is X3's device: a bronze censer
+on a rigid rod whose CAP is a one-way floor that carries you along its arc — the mirror
+of the silk anchor (there you were the pendulum and the rope obeyed; here the pendulum
+has its own beat and you fit into it). Board it ONLY where it stops: at mid-swing a 16-
+tile arc moves at ~14 tiles/s, faster than running, and no jump lands on it. So every
+badajo needs a standing landing under one of its EXTREMES, three rows below the head's
+height there — eleven of the crypt's twelve shipped without one until a script went
+looking. Keep periods around 5s: at 3.4 it is an obstacle, not transport.
 `{ type: 'cisterna', x, y, w, h, period, offset }` is the tank and
 `{ type: 'compuerta', x, y, tank }` the bronze valve that POUNDS to freeze it
 (`tank` = which cistern of the room, in listing order). Give the valve its own dry
@@ -235,6 +255,22 @@ run, bait and jump, but never a clean flight over him (a cramped 4-tile box read
 CRUMBLE boards are the level's real platforming: they only bite when a FALL costs
 something, so span them over spike beds or the topo's pit and stagger their heights —
 a board bridge over safe floor is decoration, not a device (playtest verdict).
+TRANSIENT PLATFORMS (blink, crumble) must be the ONLY footing on their stretch, or
+they're scenery even when they LOOK placed: a slab you can't reach reads as broken
+("ni me puedo parar en ellas"), and one you CAN reach but can walk around — continuous
+floor under it, or a rock ledge flush beside it at the same height — reads as pointless
+("no hacen nada"). Both shipped in the crypt (girola's blinks stranded over rock ledges,
+columbario's crumbles bridging safe floor, cimborrio's blink pasted next to a stone
+corbel). The fix is the same: rip out the redundant footing so the transient IS the
+path. A room that says "the floor disappears" wants NO continuous floor — just the
+extreme andenes, the devices, and spikes underneath. Prove it with a foothold-to-
+foothold flood (gravity + the polish bar) that does NOT count blink/crumble as ground:
+if the exit is still reachable, they can be skipped — decoration. (The generous
+air-is-crossable flood in the reachability audit can't see this: it steps over any gap.)
+CHAINED BLINKS want OVERLAP, not antiphase: with SOLID 2.8s / GONE 1.6s (period 4.4),
+offset ≈ period/4 (~1.2s) leaves a ~1.6s window with BOTH slabs solid — a humane
+"step, step". offset ≈ period/2 (~2.2s) puts them in antiphase (~0.6s common), a coin
+flip. Measured in the running game.
 SWING — and the numbers here were MEASURED in the running game, because eyeballing them
 was wrong twice. From a ledge the player reaches 9.6 tiles with jump+dash+double jump…
 and 27.6 WITH THE GLIDE, which poaches any honest chasm. But the glide needs altitude

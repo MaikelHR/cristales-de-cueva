@@ -48,7 +48,7 @@ export const vena: RoomData = {
     '########################################################',
   ],
   entities: [
-    { type: 'erizo', x: 24, y: 30 },
+    { type: 'erizo', x: 24, y: 33 },
     { type: 'crystal', x: 43, y: 20 },
     { type: 'crystal', x: 17, y: 30 },
   ],

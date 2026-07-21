@@ -14,6 +14,7 @@
 import { overlaps } from '../../engine/canvas';
 import type { GameSession } from '../session';
 import { MovingPlatform } from '../actors/devices/MovingPlatform';
+import { Badajo } from '../actors/devices/Badajo';
 import { BlinkPlatform } from '../actors/devices/Blink';
 import { Crumble } from '../actors/devices/Crumble';
 import { Ancla } from '../actors/devices/Ancla';
@@ -33,7 +34,7 @@ export function carryAndAdvanceDevices(session: GameSession, dt: number): void {
   const player = session.player;
   for (const d of session.world.current.devices) {
     d.update(dt, player);
-    if (d instanceof MovingPlatform && d.rider) {
+    if ((d instanceof MovingPlatform || d instanceof Badajo) && d.rider) {
       player.x += d.dx;
       player.y += d.dy;
     }
@@ -58,6 +59,17 @@ export function resolveDeviceContacts(session: GameSession, dt: number): void {
       if (player.vy < 0 || !xOverlap) continue; // moving up passes through
       // Landed this step, or still standing on top (gravity sinks it
       // a hair each frame; the margin absorbs it and re-seats it).
+      if (feet >= b.y && prevFeet <= b.y + 3) {
+        player.y = b.y - player.h;
+        player.vy = 0;
+        player.onGround = true;
+        d.rider = true;
+      }
+    } else if (d instanceof Badajo) {
+      // The censer's cap is a floor like the movers': one-way, and it
+      // carries its rider along the arc (the carry happens in step 1).
+      d.rider = false;
+      if (player.vy < 0 || !xOverlap) continue;
       if (feet >= b.y && prevFeet <= b.y + 3) {
         player.y = b.y - player.h;
         player.vy = 0;

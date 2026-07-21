@@ -1281,6 +1281,61 @@ const custodio: Song = {
 
 /** Each level's theme, by id. A future level without its own theme
  *  inherits cavernas' until someone composes one for it. */
+
+// ------------------------------------------------------------
+// CRIPTA — the last challenge level (E minor, 58 bpm, 12 bars)
+// The cellar under the sanctum, and the slowest thing in the game. A
+// BELL tolls every other bar and everything else waits for it: the
+// crypt is a place where nothing has happened in a long time, so the
+// music is mostly the SPACE between two strikes. The crystal motif
+// arrives as a lament, E→G→B, sung by one low voice with no answer —
+// this is the first theme where nothing echoes it back, because down
+// here there is nobody left to answer.
+// ------------------------------------------------------------
+
+/** The bell: a struck bronze note with its own long shadow under it. */
+function tolls(beat: number, freq: number, vol = 0.055): SongNote[] {
+  return [
+    { beat, freq, freqEnd: freq * 0.995, beats: 3.4, type: 'sine', vol },
+    { beat, freq: freq * 2.02, beats: 1.6, type: 'triangle', vol: vol * 0.4 },
+    { beat: beat + 0.04, freq: freq / 2, beats: 4, type: 'sine', vol: vol * 0.6 },
+  ];
+}
+
+const criptaLamento = voice(
+  [
+    // The motif, said once and left hanging: E→G→B.
+    [2, 'E3', 2], [4, 'G3', 2], [6, 'B3', 3],
+    [12, 'A3', 2], [14, 'G3', 2], [16, 'E3', 3],
+    [24, 'B3', 2], [26, 'C4', 2], [28, 'B3', 3],
+    [36, 'G3', 2], [38, 'F#3', 2], [40, 'E3', 4],
+  ],
+  { type: 'triangle', vol: 0.05, attack: 0.35 },
+);
+
+const cripta: Song = {
+  id: 'cripta',
+  bpm: 58,
+  loopBeats: 48,
+  notes: [
+    // The bell, every other bar, alternating its two notes.
+    ...tolls(0, n('E2')), ...tolls(8, n('B1'), 0.045),
+    ...tolls(16, n('E2')), ...tolls(24, n('G1'), 0.045),
+    ...tolls(32, n('E2')), ...tolls(40, n('B1'), 0.045),
+    // The vault: two voices holding, almost not moving.
+    ...voice(
+      [
+        [0, 'E1', 15], [0, 'B1', 15], [16, 'C2', 15], [16, 'G1', 15],
+        [32, 'E1', 15], [32, 'B1', 15],
+      ],
+      { type: 'sine', vol: 0.042, attack: 3.5 },
+    ),
+    ...criptaLamento,
+    // Dust falling somewhere in the dark, off the beat.
+    drip(9.5, 1245), drip(21.25, 1046), drip(33.75, 1397), drip(45.5, 932),
+  ],
+};
+
 export const LEVEL_SONGS: Record<string, Song> = {
   cavernas,
   galerias,
@@ -1294,20 +1349,24 @@ export const LEVEL_SONGS: Record<string, Song> = {
   puerta,
   simas,
   reloj,
+  cripta,
 };
 
 /** Boss themes, by level id: they take over WHILE the fight is
  *  engaged. A level absent here keeps its own theme during its boss. */
 export const BOSS_SONGS: Record<string, Song> = {
   puerta: custodio,
+  // Su cripta: el mismo tema, porque es el mismo guardián.
+  cripta: custodio,
 };
 
-export const SONGS: Song[] = [
-  title,
-  overworld,
-  ...Object.values(LEVEL_SONGS),
-  ...Object.values(BOSS_SONGS),
-];
+// Every song, once. Two levels may share a theme on purpose — the
+// Custodio's fight sounds the same in his sanctum and in his crypt,
+// because it is the same guardian — so the list is deduped by id.
+export const SONGS: Song[] = [...new Map(
+  [title, overworld, ...Object.values(LEVEL_SONGS), ...Object.values(BOSS_SONGS)]
+    .map((song) => [song.id, song]),
+).values()];
 
 /**
  * Call once per frame with the active scene's state: picks the
