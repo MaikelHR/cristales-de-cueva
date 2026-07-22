@@ -12,7 +12,9 @@
 //  the orbs drop, it trembles before the sweep and the slam, and the
 //  halo's color ALWAYS names the verb its life demands:
 //   · GOLD (3 hp) — rings of orbs whose gap rotates one half-step
-//     per burst; then it sinks to a low perch — a plain STOMP.
+//     per burst, and three shards that drop from the roof where the
+//     glints marked half a second earlier; then it sinks to a low
+//     perch — a plain STOMP.
 //   · CYAN (2 hp) — a slow two-armed spiral, then a SWEEP at body
 //     height (duck it or hop it) that leaves a sinking wake; it hangs
 //     dazed in MID-AIR — only the DASH-LUNGE (ride a blink slab up).
@@ -27,6 +29,7 @@
 import type { Box } from '../../../engine/canvas';
 import type { StrKey } from '../../i18n';
 import { Level, TILE } from '../../world/Level';
+import { VIEW_H } from '../../view';
 import { drawGlow } from '../../art/glow';
 import { sfx } from '../../sfx';
 import type { Enemy } from './Enemy';
@@ -43,7 +46,10 @@ const SLAM_SPEED = 300;      // px/s of the floor slam (1 hp)
 const PERCH_SPEED = 90;      // px/s while sinking to the gold perch
 const ARENA_HALF = 104;      // px it may stray from the spawn (sweep/curtain width)
 const ORB_LIFE = 6;          // seconds an orb lives if it hits nothing
-const SHARD_G = 240;         // gravity of the falling gold shards
+const SHARD_WARN = 0.55;     // glints on the roof before the gold shards drop
+const SHARD_VY = 18;         // their drop speed — the SAME every time
+const SHARD_G = 190;         // gravity of the falling gold shards
+const SHARD_STEP = 14;       // px between the columns of one drop
 const HIT_INVULN = 0.6;      // i-frames after a valid hit
 const CURTAIN_SLOTS = 13;    // columns per curtain wave
 const CURTAIN_GAP = 3;       // slots of doorway per wave
@@ -61,8 +67,17 @@ const VERB_COLOR = ['', '#b98bff', '#7ce0ff', '#ffd23a']; // [hp]
 
 interface Shard { x: number; y: number; vx: number; vy: number; }
 interface Orb { x: number; y: number; vx: number; vy: number; life: number; }
-/** A curtain wave already announced (glints showing) but not yet fired. */
-interface PendingWave { xs: number[]; timer: number; }
+/** Something already announced (glints showing) but not yet thrown.
+ *  EVERY projectile in this fight goes through here first — that is the
+ *  boss's whole contract with the player, and the gold shards used to be
+ *  the one thing that skipped it. Curtains (1 hp) and shards (3 hp)
+ *  belong to different lives, so one slot can never hold both. */
+interface PendingWave {
+  xs: number[];
+  timer: number;
+  warn: number;
+  kind: 'curtain' | 'shards';
+}
 
 type State = 'gather' | 'hover' | 'telegraph' | 'sweep' | 'slam' | 'window';
 
@@ -92,6 +107,7 @@ export class Custodio implements Enemy {
   private readonly spawnX: number;
   private readonly spawnY: number;
   private readonly groundY: number; // top of the arena floor, in px
+  private readonly roofY: number;   // where everything "from the roof" is born
   private sweepDir: 1 | -1 = 1;
   private trailTimer = 0;
   private invuln = 0;
@@ -109,6 +125,14 @@ export class Custodio implements Enemy {
     let gy = py + this.h;
     while (gy < level.heightPx && !level.isSolidAt(px + this.w / 2, gy)) gy += TILE;
     this.groundY = gy - (gy % TILE);
+    // The roof line for the curtain and the shards — and it is measured
+    // against the VIEW, not the room. The camera clamps to
+    // `heightPx - VIEW_H`, so in the lintel (24 rows = 192px, view 176)
+    // it sits 16px down when the player is on the floor: anything born
+    // at the room's literal roof is then drawn at y = -4, off the top of
+    // the screen. The whole telegraph, and the shards themselves, were
+    // falling in from outside the picture.
+    this.roofY = Math.max(12, level.heightPx - VIEW_H + 10);
   }
 
   /** The boss theme plays only while the fight is actually on. */
@@ -140,6 +164,13 @@ export class Custodio implements Enemy {
     if (this.hp === 2) return 'hud_dash_boss';
     if (this.hp === 1) return 'hud_pound_boss';
     return 'hud_stomp_boss';
+  }
+
+  /** What it has ANNOUNCED but not yet thrown. This is the fight's
+   *  contract in one property: nothing may reach the player that did not
+   *  pass through here first, and the test holds it to that. */
+  get announcing(): 'curtain' | 'shards' | null {
+    return this.pending?.kind ?? null;
   }
 
   box(): Box {
@@ -206,17 +237,25 @@ export class Custodio implements Enemy {
     }
   }
 
-  /** Gold shards raining from the roof over the player's column. */
-  private rainShards(targetX: number, count: number): void {
+  /** Announce the gold shards: glints on the roof over the columns they
+   *  will fall down, COMMITTED NOW and dropped 0.55s later — the same
+   *  deal the curtain offers, and the same tell, so a player who learned
+   *  one already knows the other.
+   *
+   *  It used to aim at `target.x` and release in the same frame, with a
+   *  per-shard random fall speed and a random x jitter on top. That is
+   *  three unfairnesses stacked: no warning, aimed at where you ARE
+   *  rather than where you're going, and unlearnable even in principle
+   *  because no two drops behaved alike. It also fired on the exact
+   *  frame of the ring burst, so the one telegraph you did get — the
+   *  halo swelling — was pointing at the wrong attack. */
+  private announceShards(targetX: number, count: number): void {
+    const xs: number[] = [];
     for (let i = 0; i < count; i++) {
-      const k = Math.floor(this.t * 60) + i * 17;
-      this.shards.push({
-        x: targetX + (i - (count - 1) / 2) * 14 + ((k * 31) % 9) - 4,
-        y: 12,
-        vx: 0,
-        vy: 15 + ((k * 13) % 25),
-      });
+      xs.push(targetX + (i - (count - 1) / 2) * SHARD_STEP);
     }
+    this.pending = { xs, timer: SHARD_WARN, warn: SHARD_WARN, kind: 'shards' };
+    sfx.crackle();
   }
 
   /** Announce one curtain wave: glints mark every column that will
@@ -230,7 +269,7 @@ export class Custodio implements Enemy {
       if (i >= gapStart && i < gapStart + CURTAIN_GAP) continue; // the doorway
       xs.push(this.spawnX + this.w / 2 - ARENA_HALF + (i * (ARENA_HALF * 2)) / (CURTAIN_SLOTS - 1));
     }
-    this.pending = { xs, timer: CURTAIN_WARN };
+    this.pending = { xs, timer: CURTAIN_WARN, warn: CURTAIN_WARN, kind: 'curtain' };
     sfx.crackle();
   }
 
@@ -265,7 +304,16 @@ export class Custodio implements Enemy {
     if (this.pending) {
       this.pending.timer -= dt;
       if (this.pending.timer <= 0) {
-        for (const x of this.pending.xs) this.spawnOrb(x, 10, 0, 58 * this.rage());
+        if (this.pending.kind === 'curtain') {
+          for (const x of this.pending.xs) this.spawnOrb(x, this.roofY, 0, 58 * this.rage());
+        } else {
+          // Deterministic: same spot as the glint, same speed every drop.
+          // Rage deliberately does NOT touch these — it speeds orbs, and
+          // a telegraphed dodge you can't outrun isn't a telegraph.
+          for (const x of this.pending.xs) {
+            this.shards.push({ x, y: this.roofY, vx: 0, vy: SHARD_VY });
+          }
+        }
         this.pending = null;
       }
     }
@@ -296,7 +344,10 @@ export class Custodio implements Enemy {
           if (this.emitTimer >= half) {
             this.emitTimer -= half;
             this.ringBurst();
-            this.rainShards(target.x, 3);
+            // Announced HERE, lands 0.55s later — so the ring and the
+            // shards arrive as two beats you can read one at a time,
+            // instead of landing together on the same frame.
+            this.announceShards(target.x, 3);
             sfx.crackle();
           }
         } else if (this.hp === 2) {
@@ -402,7 +453,7 @@ export class Custodio implements Enemy {
       o.life -= dt;
     }
     this.orbs = this.orbs.filter(
-      (o) => o.life > 0 && o.y < this.groundY - 1 && o.y > 4 &&
+      (o) => o.life > 0 && o.y < this.groundY - 1 && o.y > this.roofY - 8 &&
         Math.abs(o.x - this.spawnX) < ARENA_HALF + 60,
     );
   }
@@ -415,13 +466,23 @@ export class Custodio implements Enemy {
   draw(ctx: CanvasRenderingContext2D, camX: number, camY: number): void {
     const verb = VERB_COLOR[this.hp];
 
-    // A pending curtain: glints over every column about to fire.
+    // Whatever is announced: glints over every column about to fire.
+    // The glint is the COLOUR OF WHAT FALLS — violet for the curtain's
+    // orbs, gold for the shards — so the roof always tells you which.
     if (this.pending) {
-      const p = 1 - this.pending.timer / CURTAIN_WARN;
+      const p = 1 - this.pending.timer / this.pending.warn;
+      const shards = this.pending.kind === 'shards';
       for (const x of this.pending.xs) {
+        // The shards are heavier than an orb and hit harder, so their
+        // warning is louder too: a fatter mark with a glow behind it.
+        const gy = this.roofY - camY;
+        if (shards) drawGlow(ctx, x - camX, gy + 2, 5, '#ffd76a', p * 0.7);
         ctx.globalAlpha = 0.3 + p * 0.7;
-        ctx.fillStyle = '#e9d6ff';
-        ctx.fillRect(Math.round(x - camX), Math.round(10 - camY), 1, 2 + Math.round(p * 3));
+        ctx.fillStyle = shards ? '#fff3c0' : '#e9d6ff';
+        ctx.fillRect(
+          Math.round(x - camX) - (shards ? 1 : 0), Math.round(gy - 2),
+          shards ? 2 : 1, 2 + Math.round(p * 3),
+        );
         ctx.globalAlpha = 1;
       }
     }

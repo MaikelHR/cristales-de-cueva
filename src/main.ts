@@ -23,9 +23,7 @@ import { syncMusic } from './game/music';
 import { t, getLang, onLangChange } from './game/i18n';
 import { initLangSwitch, syncLangSwitch } from './game/langSwitch';
 import { initSkinSwitch, syncSkinSwitch } from './game/skinSwitch';
-
-const VIEW_W = 320;
-const VIEW_H = 176;
+import { VIEW_W, VIEW_H } from './game/view';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 canvas.width = VIEW_W;
@@ -42,53 +40,37 @@ scenes.replace(new TitleScene(session, scenes));
 // (mobile/tablet). On desktop it builds nothing and doesn't alter the layout.
 initTouchControls(canvas);
 
-// Debug hooks: with the browser console open (F12) you can
-// inspect the game live, e.g. `__game.player.vy`,
-// turn on `__debug.hitboxes = true`, jump to a room of the current
-// level with `__debug.warp('galeria')`, load another level with
-// `__debug.level('corazon')` or open the map with `__debug.unlock(10)`.
-// They only exist in development: the production build doesn't include them.
+// Debug hooks: with the browser console open (F12) you can inspect the
+// game live, e.g. `__game.player.vy` or `__debug.hitboxes = true`.
+// The full cheat toolkit (press ` or F1) is a separate module, pulled in
+// with a DYNAMIC import so that in a production build this whole branch
+// folds to `false` and Rollup drops the toolkit and its DOM panel from
+// the bundle — the shipped game has no cheats in it at all.
+let syncDevtools: () => void = () => {};
 if (import.meta.env.DEV) {
   const dev = window as unknown as Record<string, unknown>;
   dev.__game = session;
   dev.__scenes = scenes;
   dev.__sprites = sprites;
-  dev.__debug = Object.assign(debug, {
-    warp(id: string): void {
-      const room = session.world.get(id);
-      session.world.goTo(id);
-      session.player.setLevel(room.level);
-      const spawn = room.playerSpawn ?? { x: 16, y: 16 };
-      session.player.respawnAt(spawn.x + 1, spawn.y);
-      session.makeCamera();
-      session.visited.add(id);
-      session.saveCheckpoint();
-    },
-    async level(id: string): Promise<void> {
-      const { LEVELS } = await import('./game/world/rooms');
-      const def = LEVELS.find((l) => l.id === id);
-      if (!def) throw new Error(`No existe el nivel "${id}"`);
-      session.startLevel(def, 'normal');
-      const { GameplayScene } = await import('./game/scenes/GameplayScene');
-      scenes.replace(new GameplayScene(session, scenes));
-    },
-    /** Marks the first `count` levels as completed so the map opens up
-     *  without replaying them — testing a late level shouldn't cost an
-     *  hour of walking. It only ever ADDS a completion to a level that
-     *  had none: existing scores and times are left untouched. */
-    async unlock(count = 99): Promise<number> {
-      const { LEVELS } = await import('./game/world/rooms');
-      const { loadSave, writeSave, emptyRecord } = await import('./game/save');
-      const save = loadSave();
-      for (const def of LEVELS.slice(0, count)) {
-        const rec = save.levels[def.id] ?? emptyRecord();
-        if (rec.completions === 0) rec.completions = 1;
-        save.levels[def.id] = rec;
-      }
-      writeSave(save);
-      return Math.min(count, LEVELS.length);
-    },
+  dev.__debug = debug;
+  void import('./game/dev/devtools').then((tools) => {
+    tools.initDevtools(session, scenes);
+    syncDevtools = tools.syncDevtools;
   });
+}
+
+// DEV: how many logic steps this frame owes. Normally exactly one —
+// the fixed step is what makes the physics feel the same everywhere, so
+// slow-mo and fast-forward change how MANY steps run, never how long a
+// step is. A frozen world owes none, and `stepOnce` buys a single one.
+let stepDebt = 0;
+function devSteps(): number {
+  if (debug.stepOnce) { debug.stepOnce = false; return 1; }
+  if (debug.frozen) return 0;
+  stepDebt += debug.timeScale;
+  const n = Math.floor(stepDebt);
+  stepDebt -= n;
+  return Math.min(n, 8); // a huge timescale must not stall the frame
 }
 
 // Static page text (the <title> and the rotate notice) in the
@@ -126,11 +108,21 @@ scenes.draw(ctx);
 startLoop(
   (dt) => {
     pollGamepad(); // read the controller state before updating the game
-    scenes.update(dt);
-    endStep(); // clear "just pressed" after each logic step
+    // Normally exactly one step; fast-forward runs several, slow-mo and
+    // freeze sometimes none. endStep() goes INSIDE the loop on purpose:
+    // one physical press must be "just pressed" for ONE step, or at 4x a
+    // single tap of pause is seen by four of them (push, pop, push, pop).
+    // And a frame that runs NO step must not clear it either, or slow-mo
+    // silently eats presses.
+    const steps = import.meta.env.DEV ? devSteps() : 1;
+    for (let i = 0; i < steps; i++) {
+      scenes.update(dt);
+      endStep();
+    }
   },
   () => {
     scenes.draw(ctx);
+    syncDevtools(); // keeps the dev panel's readout live (no-op in prod)
     const ui = uiState();
     syncTouchUI(ui); // reflect the game state in the touch UI
     syncLangSwitch(ui); // show/hide the language selector depending on state

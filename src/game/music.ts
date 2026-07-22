@@ -39,7 +39,7 @@
 
 import type { Song, SongNote } from '../engine/music';
 import { setSong, setMusicDuck, tickMusic } from '../engine/music';
-import type { ToneType } from '../engine/audio';
+import type { Instrument } from '../engine/song';
 import type { UiState } from './scenes/Scene';
 
 // ------------------------------------------------------------
@@ -64,10 +64,10 @@ function up(freq: number, semis: number): number {
   return freq * Math.pow(2, semis / 12);
 }
 
-/** A voice: [beat, note, duration in beats] with a shared timbre. */
+/** A voice: [beat, note, duration in beats] played by one instrument. */
 type Line = Array<[number, string, number]>;
 interface VoiceOpts {
-  type?: ToneType;
+  inst?: Instrument;
   vol?: number;
   attack?: number;
 }
@@ -77,10 +77,14 @@ function voice(line: Line, opts: VoiceOpts): SongNote[] {
 }
 
 /** Crystalline echo: the same voice an octave up, half a beat later
- *  and softer — crystals answering each other. Wraps at the end of the loop. */
+ *  and softer — crystals answering each other. Wraps at the end of the loop.
+ *  It answers on GLASS, never on the caller's own instrument: an echo that
+ *  shares its source's timbre reads as a doubled note, not as a reply from
+ *  across the cave. */
 function echo(notes: SongNote[], loopBeats: number, factor = 0.3): SongNote[] {
   return notes.map((note) => ({
     ...note,
+    inst: 'glass' as const,
     beat: (note.beat + 0.5) % loopBeats,
     freq: note.freq * 2,
     vol: (note.vol ?? 0.06) * factor,
@@ -89,15 +93,15 @@ function echo(notes: SongNote[], loopBeats: number, factor = 0.3): SongNote[] {
 
 /** Water drop: a sinusoidal "plip" that falls in frequency. */
 function drip(beat: number, freq = 1568): SongNote {
-  return { beat, freq, freqEnd: freq / 2, beats: 0.2, type: 'sine', vol: 0.04 };
+  return { beat, freq, freqEnd: freq / 2, beats: 0.2, inst: 'water', vol: 0.04 };
 }
 
 /** A drop falling into the pool: the noise TICK on the surface and the
  *  sine plunk that sinks after it. The cenote's whole percussion section. */
 function droplet(beat: number, color = 2600): SongNote[] {
   return [
-    { beat, freq: color, beats: 0.12, type: 'noise', vol: 0.03 },
-    { beat: beat + 0.08, freq: color / 3, freqEnd: color / 7, beats: 0.3, type: 'sine', vol: 0.035 },
+    { beat, freq: color, beats: 0.12, inst: 'water', vol: 0.03 },
+    { beat: beat + 0.08, freq: color / 3, freqEnd: color / 7, beats: 0.3, inst: 'water', vol: 0.035 },
   ];
 }
 
@@ -105,17 +109,17 @@ function droplet(beat: number, color = 2600): SongNote[] {
 
 /** Kick: a sine that collapses all at once — the "punch" is in the drop. */
 function kick(beat: number): SongNote {
-  return { beat, freq: 160, freqEnd: 45, beats: 0.3, type: 'sine', vol: 0.065 };
+  return { beat, freq: 160, freqEnd: 45, beats: 0.3, inst: 'kick', vol: 0.065 };
 }
 
 /** Snare: mid-band noise, dry. */
 function snare(beat: number, vol = 0.045): SongNote {
-  return { beat, freq: 1800, beats: 0.25, type: 'noise', vol };
+  return { beat, freq: 1800, beats: 0.25, inst: 'snare', vol };
 }
 
 /** Hi-hat: a sigh of high noise. */
 function hat(beat: number, vol = 0.02): SongNote {
-  return { beat, freq: 8000, beats: 0.15, type: 'noise', vol };
+  return { beat, freq: 8000, beats: 0.15, inst: 'hat', vol };
 }
 
 /** Snare fill (growing sixteenth notes) when a section repeats. */
@@ -130,7 +134,7 @@ function arp(fromBeat: number, lengthBeats: number, cycle: string[], vol = 0.03)
     beat: fromBeat + i * 0.5,
     freq: freqs[i % freqs.length],
     beats: 0.45,
-    type: 'triangle' as const,
+    inst: 'marimba' as const,
     vol,
   }));
 }
@@ -159,13 +163,18 @@ const titleBells = voice(
     [24, 'F5', 1], [25, 'E5', 1], [26, 'D5', 1.5], [27.5, 'C5', 0.5],
     [28, 'B4', 2], [30, 'G#4', 2],
   ],
-  { type: 'triangle', vol: 0.05 },
+  { inst: 'bell', vol: 0.05 },
 );
 
 const title: Song = {
   id: 'title',
   bpm: 76,
   loopBeats: 32,
+  // the unlit cave heard from its mouth — the only pure hall, and the longest echo
+  mix: {
+    reverbDecay: 7, reverbWet: 0.45,
+    delayBeats: 1.5, delayFeedback: 0.32, tone: 10500, gain: 1,
+  },
   notes: [
     ...voice(
       [
@@ -174,7 +183,7 @@ const title: Song = {
         [16, 'A2', 4], [16, 'E3', 4], [20, 'F2', 4], [20, 'C3', 4],
         [24, 'D3', 4], [24, 'A3', 4], [28, 'E2', 4], [28, 'B2', 4],
       ],
-      { type: 'sine', vol: 0.05, attack: 1.2 },
+      { inst: 'pad', vol: 0.05, attack: 1.2 },
     ),
     ...titleBells,
     ...echo(titleBells, 32),
@@ -197,7 +206,7 @@ function bounce(bar: number, root: string): SongNote[] {
     beat: bar * 4 + i * 0.5,
     freq: i % 2 === 0 ? low : low * 2,
     beats: 0.4,
-    type: 'triangle' as const,
+    inst: 'bass' as const,
     vol: 0.055,
   }));
 }
@@ -209,6 +218,9 @@ const overworld: Song = {
   id: 'overworld',
   bpm: 112,
   loopBeats: 64,
+  // the one wide lit gallery: the band plays close and bright, and NO echo — at 112 bpm
+  // any musical delay lands inside the eighth-note bass and eats the bounce
+  mix: { reverbDecay: 2.8, reverbWet: 0.3, tone: 12500, gain: -1.5 },
   notes: [
     ...overworldBars.flatMap((root, bar) => bounce(bar, root)),
     // Drums: kick on the beat, hi-hats offbeat; the snare waits for the chorus.
@@ -244,7 +256,7 @@ const overworld: Song = {
         // A breath, and three pickup notes that push back into the verse.
         [62, 'G4', 0.5], [62.5, 'A4', 0.5], [63, 'B4', 1],
       ],
-      { type: 'square', vol: 0.042 },
+      { inst: 'lead', vol: 0.042 },
     ),
     // Warm counter-voice only in the chorus: long thirds under the melody.
     ...voice(
@@ -252,7 +264,7 @@ const overworld: Song = {
         [32, 'A3', 3.7], [36, 'B3', 3.7], [40, 'G3', 3.7], [44, 'C4', 3.7],
         [48, 'A3', 3.7], [52, 'B3', 3.7], [56, 'E4', 3.7], [60, 'G3', 3.7],
       ],
-      { type: 'triangle', vol: 0.028, attack: 0.3 },
+      { inst: 'organ', vol: 0.028, attack: 0.3 },
     ),
   ],
 };
@@ -302,13 +314,19 @@ const cavernasMelody = voice(
     [56, 'E5', 1], [57, 'D5', 1], [58, 'C5', 1.5],
     [60, 'C#5', 1.5], [61.5, 'E5', 0.5], [62, 'A4', 2],
   ],
-  { type: 'triangle', vol: 0.048 },
+  { inst: 'bell', vol: 0.048 },
 );
 
 const cavernas: Song = {
   id: 'cavernas',
   bpm: 92,
   loopBeats: 64,
+  // a violet crystal grotto: literally half chamber and half cavern, so it sits at the
+  // exact midpoint of the crossfade
+  mix: {
+    reverbDecay: 4, reverbWet: 0.38,
+    delayBeats: 0.75, delayFeedback: 0.3, tone: 11000, gain: 1.5,
+  },
   notes: [
     ...voice(
       [
@@ -316,7 +334,7 @@ const cavernas: Song = {
           'A#2', 'F3', 'C3', 'D3', 'A#2', 'F3', 'C3', 'A2']
           .flatMap((root, bar) => heartbeat(bar, root)),
       ],
-      { type: 'triangle', vol: 0.06 },
+      { inst: 'bass', vol: 0.06 },
     ),
     ...cavernasMelody,
     ...echo(cavernasMelody, 64),
@@ -353,7 +371,7 @@ function gallop(bar: number, root: string): SongNote[] {
     beat: bar * 4 + i * 0.5,
     freq: up(low, s),
     beats: 0.4,
-    type: 'sawtooth' as const,
+    inst: 'grit' as const,
     vol: 0.04,
   }));
 }
@@ -365,6 +383,12 @@ const galerias: Song = {
   id: 'galerias',
   bpm: 126,
   loopBeats: 64,
+  // cut stone, not cavern — a corridor whose signature is a SLAP, not a tail; dry
+  // enough that the gallop survives
+  mix: {
+    reverbDecay: 2, reverbWet: 0.22,
+    delayBeats: 1, delayFeedback: 0.16, tone: 10000, gain: -1.5,
+  },
   notes: [
     ...galeriasBars.flatMap((root, bar) => gallop(bar, root)),
     // Full drums end to end: syncopated kick, snare on 2 and 4.
@@ -380,7 +404,7 @@ const galerias: Song = {
         const fifth = { E2: 'B4', C3: 'G4', D3: 'A4', B2: 'F#4' }[root]!;
         return [[bar * 4 + 1.5, fifth, 0.3], [bar * 4 + 3.5, fifth, 0.3]];
       }),
-      { type: 'square', vol: 0.026 },
+      { inst: 'lead', vol: 0.026 },
     ),
     ...voice(
       [
@@ -413,7 +437,7 @@ const galerias: Song = {
         [56, 'D#5', 1], [57, 'F#5', 1], [58, 'B4', 1.5],
         [60, 'F#4', 0.5], [60.5, 'A4', 0.5], [61, 'B4', 0.5], [61.5, 'D#5', 0.5], [62, 'F#5', 2],
       ],
-      { type: 'square', vol: 0.045 },
+      { inst: 'lead', vol: 0.045 },
     ),
   ],
 };
@@ -441,7 +465,7 @@ function guardianRiff(bar: number, root: string): SongNote[] {
     beat: bar * 4 + offset,
     freq: up(low, semis),
     beats,
-    type: 'sawtooth' as const,
+    inst: 'grit' as const,
     vol: 0.036,
   }));
 }
@@ -463,13 +487,16 @@ const corazonLead = voice(
     [60, 'C5', 0.5], [60.5, 'B4', 0.5], [61, 'C5', 0.5], [61.5, 'B4', 0.5],
     [62, 'F#4', 2],
   ],
-  { type: 'triangle', vol: 0.05 },
+  { inst: 'bell', vol: 0.05 },
 );
 
 const corazon: Song = {
   id: 'corazon',
   bpm: 132,
   loopBeats: 64,
+  // the heart chamber with the abyss next door: a big hot room under the darkest lid
+  // any drum track gets
+  mix: { reverbDecay: 4.2, reverbWet: 0.3, tone: 8500, gain: -1 },
   notes: [
     // Act A (bars 1-8): the riff walking down the staircase, two rounds.
     ...['B2', 'A2', 'G2', 'F#2', 'B2', 'A2', 'G2', 'F#2']
@@ -486,7 +513,7 @@ const corazon: Song = {
         [32, 'B1', 8], [32, 'F#2', 8], [40, 'G2', 8], [40, 'D3', 8],
         [48, 'E2', 8], [48, 'B2', 8], [56, 'C2', 8], [56, 'G2', 8],
       ],
-      { type: 'sine', vol: 0.05, attack: 1.5 },
+      { inst: 'pad', vol: 0.05, attack: 1.5 },
     ),
     ...arp(32, 8, ['B3', 'D4', 'F#4', 'D4']),
     ...arp(40, 8, ['G3', 'B3', 'D4', 'B3']),
@@ -542,13 +569,18 @@ const esporasMelody = voice(
     [56, 'E5', 1], [57, 'D5', 1], [58, 'B4', 1.5], [59.5, 'A4', 0.5],
     [60, 'G4', 0.5], [60.5, 'A4', 0.5], [61, 'B4', 0.5], [61.5, 'C#5', 0.5], [62, 'E5', 2],
   ],
-  { type: 'triangle', vol: 0.045 },
+  { inst: 'marimba', vol: 0.045 },
 );
 
 const esporas: Song = {
   id: 'esporas',
   bpm: 104,
   loopBeats: 64,
+  // a green hollow upholstered in moss: the tail dies fast, but the air stays humid
+  mix: {
+    reverbDecay: 1.8, reverbWet: 0.36,
+    delayBeats: 0.75, delayFeedback: 0.18, tone: 11000, gain: -1,
+  },
   notes: [
     ...esporasBars.flatMap((root, bar) => bounce(bar, root)),
     // Soft drums: kick on the beat, hats offbeat; the snare waits for B.
@@ -605,13 +637,19 @@ const glaciarBells = voice(
     [48, 'E5', 1], [49, 'C#5', 1], [50, 'E5', 2], [52.5, 'A5', 1.5], [54, 'G5', 1], [55, 'E5', 1],
     [56, 'D5', 1], [57, 'F5', 1], [58, 'A5', 2], [60.5, 'F5', 1], [61.5, 'E5', 0.5], [62, 'D5', 2],
   ],
-  { type: 'triangle', vol: 0.05, attack: 0.05 },
+  { inst: 'bell', vol: 0.05, attack: 0.05 },
 );
 
 const glaciar: Song = {
   id: 'glaciar',
   bpm: 72,
   loopBeats: 64,
+  // a vault melted out of blue ice — the brightest large room in the game, because the
+  // walls are ICE, not snow
+  mix: {
+    reverbDecay: 6.6, reverbWet: 0.46,
+    delayBeats: 1, delayFeedback: 0.38, tone: 13000, gain: 1.5,
+  },
   notes: [
     // Sub-zero pads, two voices per long chord.
     ...voice(
@@ -621,14 +659,14 @@ const glaciar: Song = {
         [32, 'D2', 7.5], [32, 'A2', 7.5], [40, 'G1', 7.5], [40, 'D2', 7.5],
         [48, 'A1', 7.5], [48, 'E2', 7.5], [56, 'D2', 7.5], [56, 'A2', 7.5],
       ],
-      { type: 'sine', vol: 0.05, attack: 1.8 },
+      { inst: 'pad', vol: 0.05, attack: 1.8 },
     ),
     ...glaciarBells,
     ...echo(glaciarBells, 64, 0.35),
     // The wind: long sighs of filtered noise that come and go.
-    { beat: 4, freq: 520, beats: 6, type: 'noise', vol: 0.016, attack: 2.5 },
-    { beat: 26, freq: 640, beats: 5, type: 'noise', vol: 0.014, attack: 2 },
-    { beat: 44, freq: 480, beats: 6, type: 'noise', vol: 0.016, attack: 2.5 },
+    { beat: 4, freq: 520, beats: 6, inst: 'wind', vol: 0.016, attack: 2.5 },
+    { beat: 26, freq: 640, beats: 5, inst: 'wind', vol: 0.014, attack: 2 },
+    { beat: 44, freq: 480, beats: 6, inst: 'wind', vol: 0.016, attack: 2.5 },
     // Frozen leaks: high plips, counted.
     drip(11.5, 2093), drip(23.25, 1760), drip(35.5, 2349),
     drip(47.75, 1976), drip(59.25, 2093),
@@ -656,7 +694,7 @@ function hammer(bar: number, root: string): SongNote[] {
     beat: bar * 4 + i * 0.5,
     freq: up(low, s),
     beats: 0.4,
-    type: 'sawtooth' as const,
+    inst: 'grit' as const,
     vol: 0.038,
   }));
 }
@@ -695,13 +733,17 @@ const fraguaLead = voice(
     [60, 'G5', 0.5], [60.5, 'F#5', 0.5], [61, 'G5', 0.5], [61.5, 'F#5', 0.5],
     [62, 'C#5', 2],
   ],
-  { type: 'square', vol: 0.044 },
+  { inst: 'lead', vol: 0.044 },
 );
 
 const fragua: Song = {
   id: 'fragua',
   bpm: 138,
   loopBeats: 64,
+  // the floor of a working smithy: close, cluttered, ash swallowing every repeat. No
+  // delay at all — struck metal is the brightest sound a person makes, so "deep in the
+  // core" must not read as "muffled"
+  mix: { reverbDecay: 2.1, reverbWet: 0.28, tone: 11000, gain: -1.5 },
   notes: [
     ...fraguaBars.flatMap((root, bar) => hammer(bar, root)),
     // Full drums end to end: the forge never rests.
@@ -717,7 +759,7 @@ const fragua: Song = {
         const clink = { 'F#2': 'C#6', D3: 'A5', E3: 'B5', 'C#3': 'G#5' }[root]!;
         return [[bar * 4 + 1.75, clink, 0.2], [bar * 4 + 3.75, clink, 0.2]];
       }),
-      { type: 'square', vol: 0.02 },
+      { inst: 'anvil', vol: 0.02 },
     ),
     ...fraguaLead,
     ...echo(fraguaLead, 64, 0.22),
@@ -755,13 +797,20 @@ const cenoteBells = voice(
     [40, 'D5', 1], [41, 'F5', 1], [42, 'A5', 2],
     [44.5, 'G5', 0.5], [45, 'F5', 1], [46, 'D5', 2],
   ],
-  { type: 'triangle', vol: 0.05, attack: 0.04 },
+  { inst: 'bell', vol: 0.05, attack: 0.04 },
 );
 
 const cenote: Song = {
   id: 'cenote',
   bpm: 63,
   loopBeats: 48,
+  // treading water at the bottom of a flooded shaft: the wettest and darkest mix in the
+  // game, held above the 4000 Hz "entombed" floor so the bells still speak from the
+  // surface
+  mix: {
+    reverbDecay: 5.8, reverbWet: 0.48,
+    delayBeats: 0.75, delayFeedback: 0.38, tone: 5800, gain: 1.5,
+  },
   notes: [
     // Sunken pads: two sine voices per chord, overlapping into a wash.
     ...voice(
@@ -770,7 +819,7 @@ const cenote: Song = {
         [16, 'A#1', 7.5], [16, 'F2', 7.5], [24, 'C2', 7.5], [24, 'G2', 7.5],
         [32, 'D#2', 7.5], [32, 'A#2', 7.5], [40, 'D2', 7.5], [40, 'A2', 7.5],
       ],
-      { type: 'sine', vol: 0.05, attack: 1.8 },
+      { inst: 'pad', vol: 0.05, attack: 1.8 },
     ),
     ...cenoteBells,
     ...echo(cenoteBells, 48, 0.3),
@@ -811,7 +860,7 @@ function traqueteo(bar: number, root: string): SongNote[] {
     beat: bar * 4 + i * 0.5,
     freq: up(low, s),
     beats: 0.42,
-    type: 'triangle' as const,
+    inst: 'bass' as const,
     vol: 0.05,
   }));
 }
@@ -819,8 +868,8 @@ function traqueteo(bar: number, root: string): SongNote[] {
 /** The pick against the rock: a dry high clink, over in an instant. */
 function pico(beat: number): SongNote[] {
   return [
-    { beat, freq: 5200, beats: 0.06, type: 'noise', vol: 0.028 },
-    { beat: beat + 0.02, freq: 1976, freqEnd: 1568, beats: 0.1, type: 'triangle', vol: 0.03 },
+    { beat, freq: 5200, beats: 0.06, inst: 'tick', vol: 0.028 },
+    { beat: beat + 0.02, freq: 1976, freqEnd: 1568, beats: 0.1, inst: 'anvil', vol: 0.03 },
   ];
 }
 
@@ -858,13 +907,19 @@ const minaLead = voice(
     [56, 'G5', 1], [57, 'F5', 1], [58, 'D#5', 1.5], [59.5, 'D5', 0.5],
     [60, 'C5', 0.5], [60.5, 'B4', 0.5], [61, 'D5', 0.5], [61.5, 'F5', 0.5], [62, 'G4', 2],
   ],
-  { type: 'square', vol: 0.038 },
+  { inst: 'lead', vol: 0.038 },
 );
 
 const mina: Song = {
   id: 'mina',
   bpm: 100,
   loopBeats: 64,
+  // a timbered drift where wood and rubble eat the tail: the DISTANCE is a quarter-note
+  // echo down the shaft, not a long reverb — a second miner working further in
+  mix: {
+    reverbDecay: 2.4, reverbWet: 0.32,
+    delayBeats: 1, delayFeedback: 0.36, tone: 7600, gain: 0.8,
+  },
   notes: [
     ...minaBars.flatMap((root, bar) => traqueteo(bar, root)),
     // The picks: two dry clinks per bar on the offbeats; every fourth
@@ -881,7 +936,7 @@ const mina: Song = {
       [
         [32, 'D#4', 7.5], [40, 'G#3', 7.5], [48, 'F3', 7.5], [56, 'D4', 7.5],
       ],
-      { type: 'sine', vol: 0.028, attack: 1.2 },
+      { inst: 'pad', vol: 0.028, attack: 1.2 },
     ),
     // The dust-arpeggio running under section B.
     ...arp(32, 4, ['C3', 'D#3', 'G3', 'D#3'], 0.022),
@@ -912,10 +967,10 @@ const mina: Song = {
 function pluck(beat: number, note: string, harmonic = true): SongNote[] {
   const f = n(note);
   const out: SongNote[] = [
-    { beat, freq: f, beats: 0.3, type: 'triangle', vol: 0.05 },
+    { beat, freq: f, beats: 0.3, inst: 'pluck', vol: 0.05 },
   ];
   if (harmonic) {
-    out.push({ beat: beat + 2, freq: f * 2, beats: 0.5, type: 'sine', vol: 0.03 });
+    out.push({ beat: beat + 2, freq: f * 2, beats: 0.5, inst: 'glass', vol: 0.03 });
   }
   return out;
 }
@@ -947,13 +1002,16 @@ const sedaBells = voice(
     [42, 'A#5', 2], [44, 'G5', 1],
     [45, 'F5', 1], [46, 'E5', 1], [47, 'C5', 1],
   ],
-  { type: 'triangle', vol: 0.046 },
+  { inst: 'bell', vol: 0.046 },
 );
 
 const seda: Song = {
   id: 'seda',
   bpm: 88,
   loopBeats: 36,
+  // the game's closet — silk is the most absorbent material there is, so the nest does
+  // not ring at all
+  mix: { reverbDecay: 1.4, reverbWet: 0.2, tone: 6600, gain: 1.5 },
   notes: [
     // The threads: one plucked per bar of three, with its harmonic
     // answering on the third beat — the waltz's whole rhythm section.
@@ -961,7 +1019,7 @@ const seda: Song = {
     // A second, higher thread on the offbeat of two: the sway.
     ...sedaBars.flatMap((root, bar) => {
       const fifth = { F2: 'C4', C3: 'G4', 'D#2': 'A#3', 'A#2': 'F4', D2: 'A3', 'G#2': 'D#4', C2: 'G3' }[root]!;
-      return voice([[bar * 3 + 1.5, fifth, 0.4]], { type: 'triangle', vol: 0.024 });
+      return voice([[bar * 3 + 1.5, fifth, 0.4]], { inst: 'pluck', vol: 0.024 });
     }),
     ...sedaBells.filter((note) => note.beat < 36),
     ...echo(sedaBells.filter((note) => note.beat < 36), 36, 0.28),
@@ -971,14 +1029,14 @@ const seda: Song = {
         [0, 'F2', 8.5], [0, 'C3', 8.5], [9, 'D#2', 8.5], [9, 'A#2', 8.5],
         [18, 'D2', 8.5], [18, 'G#2', 8.5], [27, 'C2', 8.5], [27, 'G2', 8.5],
       ],
-      { type: 'sine', vol: 0.042, attack: 2 },
+      { inst: 'pad', vol: 0.042, attack: 2 },
     ),
     // Far-off ticks: something walking a web in the dark.
-    { beat: 8.5, freq: 5200, beats: 0.05, type: 'noise', vol: 0.02 },
-    { beat: 8.75, freq: 4800, beats: 0.05, type: 'noise', vol: 0.018 },
-    { beat: 20.5, freq: 5200, beats: 0.05, type: 'noise', vol: 0.02 },
-    { beat: 20.75, freq: 4600, beats: 0.05, type: 'noise', vol: 0.016 },
-    { beat: 32.5, freq: 5000, beats: 0.05, type: 'noise', vol: 0.02 },
+    { beat: 8.5, freq: 5200, beats: 0.05, inst: 'tick', vol: 0.02 },
+    { beat: 8.75, freq: 4800, beats: 0.05, inst: 'tick', vol: 0.018 },
+    { beat: 20.5, freq: 5200, beats: 0.05, inst: 'tick', vol: 0.02 },
+    { beat: 20.75, freq: 4600, beats: 0.05, inst: 'tick', vol: 0.016 },
+    { beat: 32.5, freq: 5000, beats: 0.05, inst: 'tick', vol: 0.02 },
     drip(14.5, 2349), drip(29.25, 1976),
   ],
 };
@@ -998,9 +1056,9 @@ const seda: Song = {
 /** The chain: an iron clank and its echo, bouncing off the walls. */
 function clank(beat: number, vol = 0.05): SongNote[] {
   return [
-    { beat, freq: 2400, beats: 0.07, type: 'noise', vol: vol * 0.6 },
-    { beat, freq: 220, freqEnd: 110, beats: 0.22, type: 'square', vol },
-    { beat: beat + 2, freq: 180, freqEnd: 95, beats: 0.3, type: 'square', vol: vol * 0.45 },
+    { beat, freq: 2400, beats: 0.07, inst: 'tick', vol: vol * 0.6 },
+    { beat, freq: 220, freqEnd: 110, beats: 0.22, inst: 'anvil', vol },
+    { beat: beat + 2, freq: 180, freqEnd: 95, beats: 0.3, inst: 'anvil', vol: vol * 0.45 },
   ];
 }
 
@@ -1013,13 +1071,19 @@ const simasDeep = voice(
     [24, 'C#2', 2], [26, 'D#2', 2], [28, 'F#2', 3],
     [32, 'B1', 3], [35, 'C#2', 4],
   ],
-  { type: 'triangle', vol: 0.055 },
+  { inst: 'bell', vol: 0.055 },
 );
 
 const simas: Song = {
   id: 'simas',
   bpm: 80,
   loopBeats: 40,
+  // a hundred-metre shaft with one iron chain in it: almost pure hall, and the listener
+  // stands inside the TAIL rather than the strike
+  mix: {
+    reverbDecay: 6.4, reverbWet: 0.44,
+    delayBeats: 1, delayFeedback: 0.34, tone: 6000, gain: 1.5,
+  },
   notes: [
     // The drone: two sine voices a fifth apart, almost still.
     ...voice(
@@ -1027,7 +1091,7 @@ const simas: Song = {
         [0, 'C#1', 10.5], [0, 'G#1', 10.5], [10, 'A1', 10.5], [10, 'E2', 10.5],
         [20, 'B1', 10.5], [20, 'F#2', 10.5], [30, 'C#1', 10.5], [30, 'G#1', 10.5],
       ],
-      { type: 'sine', vol: 0.05, attack: 2.5 },
+      { inst: 'pad', vol: 0.05, attack: 2.5 },
     ),
     ...simasDeep,
     // The chain, one clank per bar, harder every fourth.
@@ -1035,7 +1099,7 @@ const simas: Song = {
     // The harmonic from far above: the surface, answering.
     ...voice(
       [[6, 'G#5', 2], [14, 'E5', 2], [22, 'C#6', 2], [30, 'G#5', 2], [38, 'B5', 2]],
-      { type: 'triangle', vol: 0.026, attack: 0.5 },
+      { inst: 'glass', vol: 0.026, attack: 0.5 },
     ),
     // Stones coming loose somewhere in the dark.
     drip(9.5, 1568), drip(19.25, 1319), drip(29.75, 1760), drip(37.5, 1174),
@@ -1058,13 +1122,13 @@ const simas: Song = {
  *  the room, so it has to sit under everything, like a hi-hat. */
 function tock(beat: number, high: boolean): SongNote[] {
   return [
-    { beat, freq: high ? 3200 : 2200, beats: 0.04, type: 'noise', vol: 0.02 },
+    { beat, freq: high ? 3200 : 2200, beats: 0.04, inst: 'tick', vol: 0.02 },
     {
       beat,
       freq: high ? 880 : 620,
       freqEnd: high ? 700 : 470,
       beats: 0.07,
-      type: 'square',
+      inst: 'tick',
       vol: 0.018,
     },
   ];
@@ -1080,13 +1144,19 @@ const relojChime = voice(
     [32.5, 'D5', 1.5], [34.5, 'F5', 1.5], [36.5, 'A5', 1.5], [38.5, 'D6', 2],
     [42.5, 'C6', 1.5], [44.5, 'A5', 3],
   ],
-  { type: 'triangle', vol: 0.05 },
+  { inst: 'marimba', vol: 0.05 },
 );
 
 const reloj: Song = {
   id: 'reloj',
   bpm: 88,
   loopBeats: 48,
+  // a cut-travertine machine hall half full of moving water: hard and slappy, never
+  // long enough to smear the escapement the player times the tide by
+  mix: {
+    reverbDecay: 2.4, reverbWet: 0.32,
+    delayBeats: 0.75, delayFeedback: 0.3, tone: 10500, gain: 1,
+  },
   notes: [
     // The escapement, one tick per beat, alternating high and low.
     ...Array.from({ length: 48 }, (_, b) => tock(b, b % 2 === 1)).flat(),
@@ -1096,13 +1166,13 @@ const reloj: Song = {
         { length: 24 },
         (_, i) => [i * 2, i % 2 === 0 ? 'D2' : 'A1', 1.3] as [number, string, number],
       ),
-      { type: 'sine', vol: 0.045 },
+      { inst: 'bass', vol: 0.045 },
     ),
     ...relojChime,
     // Bronze swells: the tanks turning over.
     ...voice(
       [[0, 'D3', 11], [12, 'A#2', 11], [24, 'F3', 11], [36, 'A2', 11]],
-      { type: 'sine', vol: 0.038, attack: 2.2 },
+      { inst: 'pad', vol: 0.038, attack: 2.2 },
     ),
     // Water finding its way out somewhere.
     ...droplet(7.25), ...droplet(15.75, 2200), ...droplet(23.5, 3000),
@@ -1144,7 +1214,7 @@ const puertaBells = voice(
     [56, 'C5', 1], [57, 'B4', 1], [58, 'G#4', 2],
     [60, 'A4', 1], [61, 'C#5', 1], [62, 'E5', 2],
   ],
-  { type: 'triangle', vol: 0.05 },
+  { inst: 'bell', vol: 0.05 },
 );
 
 /** The procession: root, then its fifth, stepping every two beats. */
@@ -1157,6 +1227,12 @@ const puerta: Song = {
   id: 'puerta',
   bpm: 72,
   loopBeats: 64,
+  // a nave of dressed marble, the only BUILT place in the game: big, but DEFINED —
+  // polished stone keeps its high end and the near pillars answer first
+  mix: {
+    reverbDecay: 5.4, reverbWet: 0.4,
+    delayBeats: 1, delayFeedback: 0.26, tone: 12000, gain: 1,
+  },
   notes: [
     ...voice(
       [
@@ -1169,7 +1245,7 @@ const puerta: Song = {
           ] as Array<[string, string]>
         ).flatMap(([root, fifth], bar) => pillar(bar, root, fifth)),
       ],
-      { type: 'triangle', vol: 0.055 },
+      { inst: 'bass', vol: 0.055 },
     ),
     ...puertaBells,
     ...echo(puertaBells, 64),
@@ -1180,7 +1256,7 @@ const puerta: Song = {
         [32, 'F4', 7.5], [40, 'E4', 7.5], [48, 'F4', 7.5],
         [56, 'B3', 3.7], [60, 'C#4', 3.7],
       ],
-      { type: 'sine', vol: 0.03, attack: 1.2 },
+      { inst: 'organ', vol: 0.03, attack: 1.2 },
     ),
     // The golden wash, only while the light breaks through (B section).
     ...arp(32, 4, ['F3', 'A3', 'C4', 'A3'], 0.024),
@@ -1240,13 +1316,17 @@ const custodioLead = voice(
     [28, 'B4', 0.5], [28.5, 'E5', 0.5], [29, 'G#5', 0.5], [29.5, 'B5', 0.5],
     [30, 'A5', 1], [31, 'G#4', 1],
   ],
-  { type: 'triangle', vol: 0.05 },
+  { inst: 'bell', vol: 0.05 },
 );
 
 const custodio: Song = {
   id: 'custodio',
   bpm: 150,
   loopBeats: 32,
+  // the sanctum FLOOR, not the vault above it: flat dressed stone at arm’s length.
+  // Categorically no delay — at 150 bpm a dotted eighth prints a ghost copy of the
+  // whole danmaku arpeggio over the snare fills
+  mix: { reverbDecay: 2, reverbWet: 0.2, tone: 13500, gain: -1.5 },
   notes: [
     ...voice(
       [
@@ -1257,7 +1337,7 @@ const custodio: Song = {
           ] as Array<[string, string]>
         ).flatMap(([root, fifth], bar) => embestida(bar, root, fifth)),
       ],
-      { type: 'square', vol: 0.04 },
+      { inst: 'grit', vol: 0.04 },
     ),
     ...custodioLead,
     // The danmaku itself: a ceaseless inner arpeggio, orbit after orbit.
@@ -1296,9 +1376,9 @@ const custodio: Song = {
 /** The bell: a struck bronze note with its own long shadow under it. */
 function tolls(beat: number, freq: number, vol = 0.055): SongNote[] {
   return [
-    { beat, freq, freqEnd: freq * 0.995, beats: 3.4, type: 'sine', vol },
-    { beat, freq: freq * 2.02, beats: 1.6, type: 'triangle', vol: vol * 0.4 },
-    { beat: beat + 0.04, freq: freq / 2, beats: 4, type: 'sine', vol: vol * 0.6 },
+    { beat, freq, freqEnd: freq * 0.995, beats: 3.4, inst: 'bell', vol },
+    { beat, freq: freq * 2.02, beats: 1.6, inst: 'glass', vol: vol * 0.4 },
+    { beat: beat + 0.04, freq: freq / 2, beats: 4, inst: 'bell', vol: vol * 0.6 },
   ];
 }
 
@@ -1310,13 +1390,21 @@ const criptaLamento = voice(
     [24, 'B3', 2], [26, 'C4', 2], [28, 'B3', 3],
     [36, 'G3', 2], [38, 'F#3', 2], [40, 'E3', 4],
   ],
-  { type: 'triangle', vol: 0.05, attack: 0.35 },
+  // Sung on the ORGAN, not the bell: the bell is a STRUCK patch whose
+  // modulation is spent in a third of a second, so a 0.35 s swell only
+  // fades up into the dull sine left behind it. The organ is the sanctum's
+  // own voice heard from underneath the sanctum — and it leaves the bell
+  // to the one thing down here that tolls.
+  { inst: 'organ', vol: 0.05, attack: 0.35 },
 );
 
 const cripta: Song = {
   id: 'cripta',
   bpm: 58,
   loopBeats: 48,
+  // a sealed stone basilica: sized so each toll blooms and genuinely DIES in the four
+  // seconds before the next one, keeping the silence the piece is made of
+  mix: { reverbDecay: 5.6, reverbWet: 0.5, tone: 6800, gain: 1.5 },
   notes: [
     // The bell, every other bar, alternating its two notes.
     ...tolls(0, n('E2')), ...tolls(8, n('B1'), 0.045),
@@ -1328,7 +1416,7 @@ const cripta: Song = {
         [0, 'E1', 15], [0, 'B1', 15], [16, 'C2', 15], [16, 'G1', 15],
         [32, 'E1', 15], [32, 'B1', 15],
       ],
-      { type: 'sine', vol: 0.042, attack: 3.5 },
+      { inst: 'pad', vol: 0.042, attack: 3.5 },
     ),
     ...criptaLamento,
     // Dust falling somewhere in the dark, off the beat.

@@ -22,6 +22,7 @@ import { playerSprites } from '../art/playerSkins';
 import { currentSkin } from '../skins';
 import { drawGlow } from '../art/glow';
 import { sfx } from '../sfx';
+import { debug } from '../debug';
 
 const MOVE_SPEED = 92;     // px/s horizontal
 const GRAVITY = 680;       // px/s^2
@@ -485,6 +486,9 @@ export class Player {
    * pushes the player away from the source and triggers invulnerability.
    */
   hurt(fromX: number): boolean {
+    // Dev god mode: the hit never lands. Reads as "invulnerable" to every
+    // caller, so combat, bosses and hazards all behave consistently.
+    if (import.meta.env.DEV && debug.god) return false;
     if (this.invulnTimer > 0 || this.stompGrace > 0) return false;
     this.releaseAnchor(false); // a hit tears you off the silk
     this.health--;

@@ -21,6 +21,7 @@ import { initDust } from './art/atmosphere';
 import { loadSave, recordRun, writeSave, type RunFlags, type SaveData } from './save';
 import { ABILITY_NAMES } from './abilities';
 import { sfx } from './sfx';
+import { debug } from './debug';
 
 /** How a level is played: 'normal' or 'trial' (time-trial). */
 export type GameMode = 'normal' | 'trial';
@@ -216,6 +217,15 @@ export class GameSession {
     this.makeCamera();
   }
 
+  /** DEV: back to safe ground with no heart taken and no hit-stop —
+   *  what god mode does when you fall out of the world. Without it,
+   *  "can't die" would mean "falls forever", which is worse than dying. */
+  rescue(): void {
+    this.respawnPlayer();
+    this.player.vx = 0;
+    this.player.vy = 0;
+  }
+
   /** Shows the big on-screen notice (it fades out on its own). */
   announce(text: string): void {
     this.announceText = text;
@@ -235,6 +245,7 @@ export class GameSession {
 
   /** No hearts left: freeze for a moment and then, game over. */
   gameOver(): void {
+    if (import.meta.env.DEV && debug.god) return;
     this.freezeTimer = 0.4;
     this.deadFrozen = true;
     this.pendingReset = true;

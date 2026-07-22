@@ -9,3 +9,8 @@ dist
 
 # artefactos del MCP de Playwright (snapshots de sesión)
 .playwright-mcp
+
+# herramientas personales de Claude Code: skills instaladas (docs de
+# terceros) y su lockfile. Lo que importa del proyecto vive en CLAUDE.md.
+.claude/skills/
+skills-lock.json

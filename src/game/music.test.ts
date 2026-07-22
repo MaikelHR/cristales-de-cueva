@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { SONGS, LEVEL_SONGS } from './music';
-import { validateSong } from '../engine/music';
+// From song.ts, not music.ts: the data layer is pure, so the soundtrack
+// can be checked under Node without dragging Tone.js (and an
+// AudioContext) into the test run.
+import { validateSong } from '../engine/song';
 import { LEVELS } from './world/rooms';
 
 // The soundtrack is data too: these tests keep it honest.

@@ -7,8 +7,9 @@
 //  frozen death) cut the step short before that.
 // ============================================================
 
-import { justPressed } from '../../engine/input';
+import { justPressed, isDown } from '../../engine/input';
 import type { GameSession } from '../session';
+import { debug } from '../debug';
 import { overlaps } from '../../engine/canvas';
 import { TILE } from '../world/Level';
 import { handleRoomTransition } from '../systems/transitions';
@@ -41,6 +42,32 @@ function standsOnRock(s: GameSession): boolean {
     if (level.solidCell(row, col)) return true;
   }
   return false;
+}
+
+// DEV noclip speeds, in pixels per second. The slow one is for reading a
+// room on the way past; the fast one is for crossing a two-screen shaft.
+const FLY_SPEED = 130;
+const FLY_FAST = 420;
+
+/** DEV: free flight. Moves the body directly and keeps the physics state
+ *  coherent (grounded, still, no rope) so that switching noclip back off
+ *  mid-air drops you cleanly instead of resuming a stale velocity.
+ *  Vertically it is clamped to the room; horizontally it is NOT, because
+ *  flying out of the side is exactly how you fast-travel to the next one. */
+function devFly(s: GameSession, dt: number): void {
+  const p = s.player;
+  const speed = isDown('dash') ? FLY_FAST : FLY_SPEED;
+  const dx = (isDown('right') ? 1 : 0) - (isDown('left') ? 1 : 0);
+  const dy = (isDown('down') ? 1 : 0) - (isDown('up') ? 1 : 0);
+  // Normalised, so a diagonal isn't 1.41x faster than a straight line.
+  const len = Math.hypot(dx, dy) || 1;
+  p.x += (dx / len) * speed * dt;
+  p.y += (dy / len) * speed * dt;
+  p.y = Math.max(-TILE, Math.min(p.y, s.world.current.level.heightPx - p.h));
+  if (dx !== 0) p.facing = dx > 0 ? 1 : -1;
+  p.vx = 0;
+  p.vy = 0;
+  p.onGround = true; // stops the fall/land animation flickering while flying
 }
 
 export class GameplayScene implements Scene {
@@ -100,7 +127,11 @@ export class GameplayScene implements Scene {
     // Devices go BEFORE the player (the platform carries its
     // passenger) and their contacts AFTER (landing, hitting a spring).
     carryAndAdvanceDevices(s, dt);
-    s.player.update(dt);
+    // DEV noclip: the free-fly REPLACES the physics step rather than
+    // patching it, so gravity, walls, water, the rope and the shrink
+    // roof simply never run — no combination of them can fight it.
+    if (import.meta.env.DEV && debug.noclip) devFly(s, dt);
+    else s.player.update(dt);
 
     // Did it cross a border into another room?
     handleRoomTransition(s);
@@ -115,21 +146,33 @@ export class GameplayScene implements Scene {
     collectPickups(s);
     resolveEnemyContacts(s, dt);
 
-    // Stepping on spikes -> lose a heart and respawn on safe ground
-    if (room.level.touchesSpike(s.player.box())) {
+    const god = import.meta.env.DEV && debug.god;
+
+    // Stepping on spikes -> lose a heart and respawn on safe ground.
+    // God mode walks over them: teleporting off a spike bed every frame
+    // would be far more disruptive than the damage it is sparing you.
+    if (!god && room.level.touchesSpike(s.player.box())) {
       s.loseLifeAndRespawn();
     }
 
-    // Falling out of the world -> lose a heart and respawn
+    // Falling out of the world -> lose a heart and respawn. God mode
+    // still gets pulled back (for free): the void is not survivable, it
+    // is just empty, so "invulnerable" there would mean falling forever.
     if (s.player.y > room.level.heightPx + 24) {
-      s.loseLifeAndRespawn();
+      if (god) s.rescue();
+      else s.loseLifeAndRespawn();
     }
 
     // Remember the last SAFE footing (where those deaths send you back):
     // only after a beat of stability, full-size, on real grid rock — a
     // crumbling board, a slab or a plank is never "the ground", and this
     // runs AFTER the death checks so a lethal spot is never recorded.
-    if (!s.deadFrozen && s.player.onGround && !s.player.shrunk && standsOnRock(s)) {
+    // (Never while noclipping: the fly step reports onGround so the sprite
+    // doesn't flail, so a body sunk INSIDE rock would happily be recorded
+    // as proven footing — and become the respawn point once god goes off.)
+    if (import.meta.env.DEV && debug.noclip) {
+      s.safeTimer = 0;
+    } else if (!s.deadFrozen && s.player.onGround && !s.player.shrunk && standsOnRock(s)) {
       s.safeTimer += dt;
       if (s.safeTimer >= SAFE_AFTER) s.rememberSafeSpot();
     } else {
