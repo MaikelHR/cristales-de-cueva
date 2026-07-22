@@ -35,8 +35,9 @@ export class OverworldPauseScene implements Scene {
   ) {}
 
   update(): void {
-    // Pause resumes the map; the touch "main menu" button arrives as 'quit'.
-    if (justPressed('pause')) {
+    // Pause (or the pad's B/○ "back") resumes the map; the touch "main
+    // menu" button arrives as 'quit'.
+    if (justPressed('pause') || justPressed('back')) {
       this.scenes.pop();
       return;
     }

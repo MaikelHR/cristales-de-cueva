@@ -26,27 +26,7 @@ import { drawGlow } from '../art/glow';
 import { drawBackground, drawDust, drawFog, drawVignette } from '../art/atmosphere';
 import { t } from '../i18n';
 import { font, formatTime } from './text';
-
-/** The path's nodes. The first ten snake up the cave to the great
- *  door (world 1); the last three double BACK along the top of the
- *  screen — the challenge road, which only exists once the grotto is
- *  finished. Only the first LEVELS.length have an actual level. */
-export const OW_NODES: ReadonlyArray<{ x: number; y: number }> = [
-  { x: 30, y: 120 },
-  { x: 66, y: 100 },
-  { x: 100, y: 118 },
-  { x: 134, y: 96 },
-  { x: 168, y: 114 },
-  { x: 200, y: 90 },
-  { x: 232, y: 108 },
-  { x: 262, y: 84 },
-  { x: 284, y: 60 },
-  { x: 300, y: 38 },
-  // The challenge road, running back above the grotto's own path.
-  { x: 252, y: 44 },
-  { x: 204, y: 50 },
-  { x: 156, y: 44 },
-];
+import { OW_NODES, OW_WORLD_W, owCamX } from './owMap';
 
 /** What the drawing needs to know about the overworld scene. */
 export interface OverworldView {
@@ -70,18 +50,26 @@ export function drawOverworld(
   const { viewW, viewH, time, save } = session;
   ctx.textBaseline = 'alphabetic'; // in case the HUD left another one set
 
-  // The background cave, still (its own variant so it isn't
-  // identical to any room) with its golden map theme.
-  drawBackground(ctx, 0, 0, viewW, viewH, viewW, 7, time, 'overworld');
-
-  // Distant fauna: bats crossing the cave now and then.
-  drawBats(ctx, viewW, time);
-
   // The challenge road doesn't exist until the grotto is done: no
   // islets, no path, no stones. Finishing world 1 makes it APPEAR,
   // which is the reward reading "there's more".
   const grottoDone = levelRecord(save, FINAL_LEVEL_ID).completions > 0;
   const lastNode = grottoDone ? OW_NODES.length - 1 : GROTTO_NODE_COUNT - 1;
+
+  // With the road open the map is WIDER than the screen, so it has a
+  // camera of its own: everything in map coords is drawn shifted by it,
+  // and the HUD-ish layers (title, panel, fauna, dust) stay on screen.
+  const camX = owCamX(view.x, viewW, grottoDone);
+
+  // The background cave, still (its own variant so it isn't
+  // identical to any room) with its golden map theme.
+  drawBackground(ctx, camX, 0, viewW, viewH, OW_WORLD_W, 7, time, 'overworld');
+
+  // Distant fauna: bats crossing the cave now and then.
+  drawBats(ctx, viewW, time);
+
+  ctx.save();
+  ctx.translate(-camX, 0); // ---- from here on, MAP coordinates ----
 
   // --- Rocky islets under each node, dressed in their biome ---
   for (let i = 0; i <= lastNode; i++) {
@@ -90,7 +78,7 @@ export function drawOverworld(
   }
 
   // --- Decor between nodes: little crystals, mushrooms and rocks ---
-  drawPathDecor(ctx, time);
+  drawPathDecor(ctx, time, lastNode);
 
   // --- Dotted path with a pulse running forward ---
   let dTotal = 0; // accumulated distance: makes the pulse TRAVEL the path
@@ -127,6 +115,8 @@ export function drawOverworld(
   // --- The character ---
   drawAvatar(ctx, view, time);
 
+  ctx.restore(); // ---- back to SCREEN coordinates ----
+
   // --- Fireflies: dots of light orbiting the cave ---
   drawFireflies(ctx, time);
 
@@ -156,7 +146,7 @@ export function drawOverworld(
   if (view.choosing) drawModeChooser(ctx, session, view);
   else drawPanel(ctx, session, view);
 
-  drawFog(ctx, 0, viewW, viewH, time, 'overworld');
+  drawFog(ctx, camX, viewW, viewH, time, 'overworld');
   drawDust(ctx, viewW, viewH, time, 1 / 60);
   drawVignette(ctx, viewW, viewH);
   ctx.textAlign = 'left';
@@ -177,6 +167,8 @@ const ISLAND_LOOKS: Record<string, { edge: string; slab: string; belly: string }
   mina: { edge: '#a87848', slab: '#4c3624', belly: '#1c120a' },
   seda: { edge: '#e8e0f0', slab: '#4c445c', belly: '#241e30' },
   simas: { edge: '#6d7c90', slab: '#2a3440', belly: '#0b0e13' },
+  reloj: { edge: '#c9a24a', slab: '#274a56', belly: '#10242c' },
+  cripta: { edge: '#a294b0', slab: '#3a3348', belly: '#191424' },
   puerta: { edge: '#e0cf9a', slab: '#5c4a70', belly: '#2e2244' },
 };
 const DEFAULT_LOOK = { edge: '#8064b0', slab: '#4a2e70', belly: '#2e1c48' };
@@ -442,6 +434,65 @@ function drawIslandBiome(
       }
       break;
     }
+    case 'reloj': {
+      // A bronze cistern set in the slab, and its water RISES AND
+      // SINKS on the level's own tide — the islet keeps the clock.
+      const tide = (Math.sin(time * 0.8 + x) + 1) / 2; // 0 empty, 1 full
+      const lvl = Math.round(y - 1 - tide * 3);
+      ctx.fillStyle = '#0e2a30'; // the tank's dark inside
+      ctx.fillRect(x - 5, y - 5, 8, 6);
+      ctx.fillStyle = '#22707a';
+      ctx.fillRect(x - 5, lvl, 8, y + 1 - lvl);
+      ctx.fillStyle = '#7fe0d8'; // the waterline
+      ctx.fillRect(x - 5, lvl, 8, 1);
+      ctx.fillStyle = '#c9a24a'; // the bronze rim and its valve stem
+      ctx.fillRect(x - 6, y - 6, 10, 1);
+      ctx.fillRect(x + 4, y - 9, 1, 4);
+      ctx.fillStyle = '#ffe6a0';
+      ctx.fillRect(x + 3, y - 10, 3, 1);
+      if (unlocked) {
+        drawGlow(ctx, x - 1, y - 3, 6, '#5fe0d0', 0.12 + tide * 0.1);
+        // A drip falling from the valve into the tank: the clock ticking.
+        const dp = (time * 1.1 + x * 0.3) % 1;
+        ctx.globalAlpha = 1 - dp * 0.5;
+        ctx.fillStyle = '#a8f0ff';
+        ctx.fillRect(x + 4, Math.round(y - 9 + dp * 8), 1, 1);
+        ctx.globalAlpha = 1;
+      }
+      break;
+    }
+    case 'cripta': {
+      // A sealed tomb mouth under a low arch, with the Custodio's
+      // censer swinging on its rod: the crypt keeps its own beat.
+      ctx.fillStyle = '#241c34';
+      ctx.fillRect(x - 6, y - 6, 6, 4); // the vault's arch
+      ctx.fillStyle = '#0a0710';
+      ctx.fillRect(x - 5, y - 5, 4, 3); // the dark inside
+      ctx.fillStyle = '#a294b0';
+      ctx.fillRect(x - 6, y - 7, 6, 1); // its carved lintel
+      ctx.fillRect(x - 3, y - 5, 1, 3); // the sealing stone
+      // The censer: a rigid rod from the lintel with a bronze cap.
+      const sw = Math.sin(time * 1.3 + x * 0.5) * 0.5;
+      const bx = Math.round(x + 4 + sw * 3);
+      const by = Math.round(y - 4 + Math.abs(sw) * -1);
+      ctx.fillStyle = '#6a5a44';
+      ctx.fillRect(x + 4, y - 9, 1, 1);
+      ctx.fillRect(bx, by - 3, 1, 3);
+      ctx.fillStyle = '#c9a24a';
+      ctx.fillRect(bx - 1, by, 3, 2);
+      if (unlocked) {
+        drawGlow(ctx, bx, by, 6, '#ffd76a', 0.18 + Math.sin(time * 2 + x) * 0.06);
+        ctx.fillStyle = '#ffe6a0';
+        ctx.fillRect(bx, by, 1, 1);
+        // Incense smoke rising off the swinging cap.
+        const sp = (time * 0.5 + x * 0.2) % 1;
+        ctx.globalAlpha = (1 - sp) * 0.55;
+        ctx.fillStyle = '#c9b8e0';
+        ctx.fillRect(Math.round(bx + Math.sin(time * 1.8 + x) * 2), Math.round(by - 1 - sp * 8), 1, 1);
+        ctx.globalAlpha = 1;
+      }
+      break;
+    }
     case 'puerta': {
       // Worked marble under the door: a carved gold rune inlaid in the
       // slab, breathing light — the threshold isn't cave anymore.
@@ -467,9 +518,11 @@ function drawIslandBiome(
   }
 }
 
-/** Fixed decor at the midpoint between nodes (alternating types). */
-function drawPathDecor(ctx: CanvasRenderingContext2D, time: number): void {
-  for (let i = 0; i < OW_NODES.length - 1; i += 2) {
+/** Fixed decor at the midpoint between nodes (alternating types).
+ *  Stops at `lastNode`: the challenge road's stretch has no decor
+ *  floating over it while the road itself is still hidden. */
+function drawPathDecor(ctx: CanvasRenderingContext2D, time: number, lastNode: number): void {
+  for (let i = 0; i < lastNode; i += 2) {
     const a = OW_NODES[i];
     const b = OW_NODES[i + 1];
     const mx = Math.round((a.x + b.x) / 2 + ((i * 13) % 7) - 3);
@@ -753,9 +806,11 @@ function drawModeChooser(
   const cx = viewW / 2;
   const cy = viewH / 2;
 
-  // Chooser frame: a stone box with crystal corners.
+  // Chooser frame: a stone box with crystal corners. Tall enough for
+  // the way OUT to be written under the way in — without it, a player
+  // who opened the chooser by mistake had no visible way back.
   const pw = 216;
-  const ph = 100;
+  const ph = 116;
   ctx.fillStyle = 'rgba(26,14,44,0.92)';
   ctx.fillRect(cx - pw / 2, cy - ph / 2, pw, ph);
   ctx.strokeStyle = '#8064b0';
@@ -771,10 +826,10 @@ function drawModeChooser(
 
   ctx.fillStyle = '#e9d6ff';
   ctx.font = font(12);
-  ctx.fillText(t('choose_mode'), cx, cy - 26);
+  ctx.fillText(t('choose_mode'), cx, cy - 34);
   ctx.fillStyle = '#9b86c4';
   ctx.font = font(8);
-  ctx.fillText(t(levelAtNode(view.node)!.nameKey), cx, cy - 14);
+  ctx.fillText(t(levelAtNode(view.node)!.nameKey), cx, cy - 22);
 
   // The two options, side by side; the chosen one glows and is underlined.
   const options: Array<{ mode: GameMode; label: string }> = [
@@ -786,36 +841,43 @@ function drawModeChooser(
     const active = view.choice === opt.mode;
     ctx.fillStyle = active ? '#ffe25a' : '#6f5a94';
     ctx.font = font(10);
-    ctx.fillText(opt.label, ox, cy + 4);
+    ctx.fillText(opt.label, ox, cy - 4);
     if (active) {
       const w = ctx.measureText(opt.label).width;
-      ctx.fillRect(ox - w / 2, cy + 7, w, 1);
+      ctx.fillRect(ox - w / 2, cy - 1, w, 1);
     }
   });
 
   // Hint for the chosen mode and, in time trial, the mark to beat.
   ctx.fillStyle = '#9b86c4';
   ctx.font = font(7);
-  ctx.fillText(view.choice === 'normal' ? t('mode_normal_hint') : t('mode_trial_hint'), cx, cy + 20);
+  ctx.fillText(view.choice === 'normal' ? t('mode_normal_hint') : t('mode_trial_hint'), cx, cy + 12);
   if (view.choice === 'trial') {
     const rec = levelRecord(save, levelAtNode(view.node)!.id);
     if (rec.bestTrialTime > 0) {
       ctx.fillStyle = '#7ce0ff';
-      ctx.fillText(t('trial_best', { t: formatTime(rec.bestTrialTime) }), cx, cy + 30);
+      ctx.fillText(t('trial_best', { t: formatTime(rec.bestTrialTime) }), cx, cy + 22);
     }
   }
 
   const dev = inputDevice();
+  const pl = padLabels();
   const enter =
     dev === 'touch'
       ? t('ow_enter_touch')
       : dev === 'gamepad'
-        ? t('ow_enter_gp', padLabels())
+        ? t('ow_enter_gp', pl)
         : t('ow_enter_kb');
   ctx.globalAlpha = 0.55 + Math.sin(time * 4) * 0.45;
   ctx.fillStyle = '#ffe25a';
   ctx.font = font(8);
-  ctx.fillText(enter, cx, cy + 44);
+  ctx.fillText(enter, cx, cy + 38);
   ctx.globalAlpha = 1;
+  // …and the way OUT, named for the device in hand: a menu you can
+  // enter and not leave is a trap, even when the button exists.
+  const back = dev === 'touch' ? t('ow_back_touch') : dev === 'gamepad' ? t('ow_back_gp', pl) : t('ow_back_kb');
+  ctx.fillStyle = '#6f5a94';
+  ctx.font = font(7);
+  ctx.fillText(back, cx, cy + 50);
   ctx.textAlign = 'left';
 }

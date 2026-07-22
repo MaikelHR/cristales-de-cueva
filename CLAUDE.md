@@ -40,7 +40,16 @@ Before considering a change done: `npm test` and `npm run build` must both pass.
   fullscreen / language / main menu, since on the map there's no run to restart or abandon)
   → Gameplay → Won/GameOver → Overworld. A gamepad's START reports as BOTH 'pause' and
   'confirm' (input.ts button 9), so a scene must test 'pause' FIRST or START gets eaten by
-  the confirm branch.
+  the confirm branch. EVERY MENU NEEDS A VISIBLE WAY OUT: the mode chooser cancels with
+  'back' (B/○ on a pad, ESC/Backspace on keys, the pause button on touch) and SAYS so
+  under the "enter" prompt — the button existed before and nobody could find it, which
+  is the same as not having it.
+  THE MAP'S PATH ONLY EVER GOES RIGHT (`ui/owMap.ts` — the node layout + camera, pure
+  and tested apart from the drawing). The challenge road first doubled BACK over the
+  grotto, so pressing 'right' walked the avatar leftwards across the screen and read as
+  inverted controls. Past the door the road keeps going and the MAP SCROLLS instead:
+  `owCamX` centres the view on the avatar, clamped to the map — and stays pinned at 0
+  while the road is hidden, so world 1 is still the whole cave at a glance.
 - `src/game/systems/` — gameplay rules as functions over the session: `combat.ts`
   (stomp-vs-hurt; `isStomp` is the pure, tested decision; DEFEATING an enemy gives a
   heart back — `player.heal()`, capped at maxHealth and a no-op at full life, so at full
@@ -396,7 +405,12 @@ Player-facing text is **neutral LatAm Spanish (tuteo)** + English,
   with the 'up'/'down'/'confirm' actions (keys can map to SEVERAL actions: ↑/W = jump+up,
   space = jump+confirm). 'down' (S/↓, d-pad/stick, touch ▼) also drops the player
   through one-way planks — hold down ~¼s, or down+jump for the instant drop
-  (Player.onPlankOnly + dropTimer). The later
+  (Player.onPlankOnly + dropTimer). A PAD'S STICK ONLY SAYS UP/DOWN ON A DELIBERATE
+  PUSH (`stickVertical`, pure + tested: |y| ≥ 0.6 AND |y| ≥ 1.3·|x|). 'down' in mid-air
+  is the POUND and on the ground it shrinks you, so the old flat 0.4 deadzone meant
+  every stick pushed into a lower CORNER to run-and-jump (axY ≈ 0.7) fired a pound —
+  players died on spike beds for moving fast. The d-pad, a deliberate press, is
+  untouched. The later
   abilities reuse existing inputs on EVERY device (no new buttons): glide = hold jump
   while falling (vents only push while `player.glideHeld`), pound = press down in
   mid-air (breaks `%` under feet on landing; `player.pounding` lets isStomp defeat

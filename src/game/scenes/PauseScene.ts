@@ -32,8 +32,8 @@ export class PauseScene implements Scene {
   ) {}
 
   update(): void {
-    // Usual shortcuts: pause resumes, R restarts the level.
-    if (justPressed('pause')) {
+    // Usual shortcuts: pause (or the pad's B/○ "back") resumes, R restarts.
+    if (justPressed('pause') || justPressed('back')) {
       this.scenes.pop(); // resume exactly where it was
       return;
     }

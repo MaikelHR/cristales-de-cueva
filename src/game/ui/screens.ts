@@ -18,7 +18,7 @@ import { currentAccessory } from '../accessories';
 import { drawGlow } from '../art/glow';
 import { t, type StrKey } from '../i18n';
 import { font, formatTime } from './text';
-import { OW_NODES } from './overworld';
+import { OW_NODES } from './owMap';
 
 /** The items that can appear in the game's menus; each scene
  *  builds its own list and this module only labels and paints them. */

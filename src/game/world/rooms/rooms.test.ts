@@ -5,7 +5,7 @@ import {
 } from './index';
 import { validateRooms } from '../RoomData';
 import { validateLevels } from '../LevelData';
-import { FIRST_LEVEL_ID } from '../../save';
+import { FIRST_LEVEL_ID, SAVE_VERSION, recordRun, unlockedLevels, type SaveData } from '../../save';
 
 // The game's actual maps are data: these tests keep them honest.
 // If a map ends up crooked or an exit points to nothing, it fails
@@ -65,6 +65,20 @@ describe('los niveles del juego', () => {
     // The challenge road starts right after the grotto.
     expect(isChallengeNode(GROTTO_NODE_COUNT - 1)).toBe(false);
     expect(isChallengeNode(GROTTO_NODE_COUNT)).toBe(true);
+  });
+
+  it('terminar un nivel abre el siguiente, hasta el último de la senda', () => {
+    // Nivel a nivel: al completar el i-ésimo, el nodo i+1 tiene que
+    // quedar pisable. El último desafío se abre igual que el primero.
+    const save: SaveData = { version: SAVE_VERSION, levels: {} };
+    const ids = LEVELS.map((l) => l.id);
+    for (let i = 0; i < LEVELS.length; i++) {
+      const maxNode = nodeOfLevel(unlockedLevels(save, ids) - 1);
+      expect(maxNode, `antes de ${ids[i]}`).toBe(i);
+      recordRun(save, ids[i], { won: true, mode: 'normal', score: 0, time: 60 });
+    }
+    expect(nodeOfLevel(unlockedLevels(save, ids) - 1)).toBe(LEVELS.length - 1);
+    expect(levelAtNode(LEVELS.length - 1)?.id).toBe(LEVELS[LEVELS.length - 1].id);
   });
 
   it('las salidas son recíprocas: si A sale a B, B vuelve a A', () => {

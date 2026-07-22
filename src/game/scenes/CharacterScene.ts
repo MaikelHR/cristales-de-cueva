@@ -42,8 +42,8 @@ export class CharacterScene implements Scene {
       sfx.pickup();
     }
 
-    // Quick exit from any row (ESC / pad pause).
-    if (justPressed('pause') || justPressed('quit')) {
+    // Quick exit from any row (ESC / pad pause / the pad's B/○ "back").
+    if (justPressed('pause') || justPressed('back') || justPressed('quit')) {
       this.exit();
       return;
     }

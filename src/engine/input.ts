@@ -12,8 +12,9 @@
 //  controls (keys or buttons) instantly.
 // ============================================================
 
-// 'up'/'down' are for NAVIGATING MENUS; 'quit' is "exit to map" (emitted
-// by the touch button of the pause menu; on keyboard/gamepad it's chosen in the menu).
+// 'up'/'down' are for NAVIGATING MENUS; 'back' is "cancel this menu"
+// (ESC/Backspace, B/○ on a pad); 'quit' is "exit to map" (emitted by the
+// touch button of the pause menu; on keyboard/gamepad it's chosen in the menu).
 type Action =
   | 'left'
   | 'right'
@@ -23,6 +24,7 @@ type Action =
   | 'dash'
   | 'restart'
   | 'confirm'
+  | 'back'
   | 'pause'
   | 'quit';
 
@@ -52,7 +54,8 @@ const KEY_TO_ACTION: Record<string, Action[]> = {
   r: ['restart'],
   R: ['restart'],
   Enter: ['confirm'],
-  Escape: ['pause'],
+  Backspace: ['back'],
+  Escape: ['pause', 'back'],
   p: ['pause'],
   P: ['pause'],
 };
@@ -102,6 +105,15 @@ export function initInput(): void {
 //   12/13/14/15 = d-pad up/down/left/right
 //   axes[0] = left stick horizontal
 const STICK_DEADZONE = 0.4;
+// The stick's VERTICAL asks for more than that, and here's why: 'down'
+// in mid-air is the POUND, and 'down' on the ground shrinks you. A stick
+// pushed to a lower CORNER to run and jump reports axY ≈ 0.7 — well past
+// a 0.4 deadzone — so simply moving fast was firing pounds onto spike
+// beds. The stick now only says up/down when the push is deep AND clearly
+// more vertical than horizontal; the d-pad, a deliberate press, is
+// unchanged.
+const STICK_V_DEADZONE = 0.6;
+const STICK_V_DOMINANCE = 1.3; // |y| must beat |x| by this much
 
 /** The "flavor" of the connected pad: decides which labels the UI shows
  *  (A/X/Y/START for generic-Xbox, ✕/□/△/OPTIONS for PlayStation). */
@@ -115,6 +127,15 @@ function detectFlavor(id: string): PadFlavor {
   return /playstation|dual\s?shock|dual\s?sense|sony|054c/i.test(id)
     ? 'playstation'
     : 'generic';
+}
+
+/** What the left stick is saying VERTICALLY: -1 up, +1 down, 0 nothing.
+ *  Only a deep, clearly-vertical push counts — a running diagonal must
+ *  never read as 'down' (that's the pound). Pure, so it can be tested. */
+export function stickVertical(axX: number, axY: number): -1 | 0 | 1 {
+  if (Math.abs(axY) < STICK_V_DEADZONE) return 0;
+  if (Math.abs(axY) < Math.abs(axX) * STICK_V_DOMINANCE) return 0;
+  return axY < 0 ? -1 : 1;
 }
 
 /** Polls the first connected gamepad and translates its state into actions.
@@ -146,14 +167,17 @@ export function pollGamepad(): void {
   // so jump/confirm respond even if the mapping comes shifted.
   const raw = pad.mapping !== 'standard';
 
+  const stickV = stickVertical(axX, axY);
+
   const next = new Set<Action>();
   if (on(14) || axX < -STICK_DEADZONE) next.add('left');
   if (on(15) || axX > STICK_DEADZONE) next.add('right');
-  if (on(12) || axY < -STICK_DEADZONE) next.add('up'); // for navigating menus
-  if (on(13) || axY > STICK_DEADZONE) next.add('down');
+  if (on(12) || stickV < 0) next.add('up'); // for navigating menus
+  if (on(13) || stickV > 0) next.add('down');
   if (on(0) || on(12) || (raw && on(1))) next.add('jump'); // A/✕ or d-pad up
   if (on(2) || on(4) || on(5) || on(6) || on(7)) next.add('dash'); // X/□ or shoulders/triggers
   if (on(0) || on(9) || (raw && on(1))) next.add('confirm'); // A/✕ or Start (for menus)
+  if (raw ? on(2) : on(1)) next.add('back'); // B/○: the pad's "go back"
   if (on(9) || on(8)) next.add('pause'); // Start/Options (and Select/Share)
   if (on(3)) next.add('restart'); // Y/△
 
@@ -167,11 +191,11 @@ export function pollGamepad(): void {
 
 /** The button labels for the UI text, based on the pad seen last.
  *  With the short keys the dictionaries use:
- *  {j}=jump {d}=dash {r}=restart {p}=pause. */
-export function padLabels(): { j: string; d: string; r: string; p: string } {
+ *  {j}=jump {d}=dash {r}=restart {p}=pause {b}=back. */
+export function padLabels(): { j: string; d: string; r: string; p: string; b: string } {
   return padFlavor === 'playstation'
-    ? { j: '✕', d: '□', r: '△', p: 'OPTIONS' }
-    : { j: 'A', d: 'X', r: 'Y', p: 'START' };
+    ? { j: '✕', d: '□', r: '△', p: 'OPTIONS', b: '○' }
+    : { j: 'A', d: 'X', r: 'Y', p: 'START', b: 'B' };
 }
 
 /** Is the action being held right now? (keyboard or gamepad) */

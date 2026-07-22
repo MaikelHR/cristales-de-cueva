@@ -14,7 +14,8 @@ import { justPressed } from '../../engine/input';
 import type { GameSession, GameMode } from '../session';
 import { LEVELS, levelAtNode, nodeOfLevel } from '../world/rooms';
 import { levelRecord, unlockedLevels } from '../save';
-import { drawOverworld, OW_NODES } from '../ui/overworld';
+import { drawOverworld } from '../ui/overworld';
+import { OW_NODES } from '../ui/owMap';
 import { sfx } from '../sfx';
 import type { Scene, SceneManager, UiState } from './Scene';
 import { GameplayScene } from './GameplayScene';
@@ -95,11 +96,14 @@ export class OverworldScene implements Scene {
 
     // --- Mode chooser ---
     if (this.choosing) {
-      // 'pause' FIRST: a gamepad's START reports as both 'pause' and 'confirm'
-      // (input.ts maps button 9 to each), so testing confirm first would enter
-      // the level instead of backing out.
-      if (justPressed('pause')) {
+      // Backing out FIRST: a gamepad's START reports as both 'pause' and
+      // 'confirm' (input.ts maps button 9 to each), so testing confirm first
+      // would enter the level instead of backing out. 'back' is B/○ and
+      // ESC — the chooser announces it, because a menu you can open and
+      // not leave is a trap.
+      if (justPressed('pause') || justPressed('back')) {
         this.choosing = false; // cancel and return to the map
+        sfx.pickup();
         return;
       }
       if (justPressed('left') || justPressed('right')) {
