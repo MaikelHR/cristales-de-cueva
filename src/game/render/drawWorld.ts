@@ -11,7 +11,11 @@ import type { GameSession } from '../session';
 import { drawBackground, drawDust, drawFog, drawVignette } from '../art/atmosphere';
 import { sprites } from '../art/sprites';
 import { drawGlow } from '../art/glow';
-import { drawLevelTiles } from './levelTiles';
+import { drawLevelTiles, drawVeils } from './levelTiles';
+import { drawBackWall, drawPlayerLight } from './backWall';
+import { drawForeground } from './foreground';
+import { drawMurals } from '../art/murals';
+import { currentSkin } from '../skins';
 import { debug } from '../debug';
 
 export function drawWorld(ctx: CanvasRenderingContext2D, session: GameSession): void {
@@ -23,11 +27,32 @@ export function drawWorld(ctx: CanvasRenderingContext2D, session: GameSession): 
   drawBackground(
     ctx, camX, camY, viewW, viewH,
     room.level.widthPx, room.data.mapPos.x, time,
-    session.level.id, // each level has its own color theme
+    session.level.id,     // each level has its own color theme
+    room.level.heightPx,  // and its own height: the parallax scrolls with it
   );
 
-  drawLevelTiles(ctx, room.level, camX, camY, viewW, viewH, session.level.id);
+  // The plane BETWEEN the parallax cave and the tiles: the wall a few
+  // metres behind you. It has to come after the background (it covers
+  // part of it) and before the tiles (they stand in front of it), and
+  // the player's light lands on it while it is still the topmost thing
+  // drawn — light on a wall, not a glow pasted over the scenery.
+  const pWorldX = session.player.x + session.player.w / 2;
+  const pWorldY = session.player.y + session.player.h / 2;
+  drawBackWall(ctx, room.level, camX, camY, viewW, viewH, session.level.id);
+  drawPlayerLight(ctx, pWorldX - camX, pWorldY - camY, currentSkin().glow, time);
+
+  drawMurals(ctx, room.murals, camX, camY, session.level.id, time);
+
+  drawLevelTiles(
+    ctx, room.level, camX, camY, viewW, viewH, session.level.id, pWorldX, pWorldY,
+  );
   drawDoor(ctx, session, camX, camY);
+  // Inscriptions are CUT INTO the wall, so they go straight after the
+  // tiles and behind everything that lives in the room: an enemy must
+  // be able to stand in front of one.
+  for (const a of room.actors) {
+    if (a.layer === 'lore') a.draw(ctx, camX, camY);
+  }
   for (const d of room.devices) {
     d.draw(ctx, camX, camY); // devices first: you stand ON TOP of them
   }
@@ -40,6 +65,26 @@ export function drawWorld(ctx: CanvasRenderingContext2D, session: GameSession): 
   session.player.draw(ctx, camX, camY);
   session.particles.draw(ctx, camX, camY);
   session.popups.draw(ctx, camX, camY);
+
+  // The near plane: in front of everything that lives in the room, and
+  // behind the air (fog, dust) that sits between the room and the lens.
+  // It is handed the player's position on screen because every occluder
+  // has to be able to step aside for them.
+  drawForeground(
+    ctx, camX, camY, viewW, viewH,
+    room.level.widthPx, room.level.heightPx, room.data.mapPos.x, session.level.id,
+    pWorldX - camX, pWorldY - camY,
+    // No occluders in a boss room, at all. A boss fight is the one
+    // place where every pixel of telegraph has to arrive — the
+    // Custodio's whole contract is that nothing it throws skips the
+    // announcement — and an occluder over a warning is that bug again.
+    room.enemies.some((e) => e.isBoss && !e.dead),
+  );
+  // The veils go last of the near plane: they are rock, and rock draws
+  // over the occluders in front of it, not under them.
+  drawVeils(
+    ctx, room.level, room.veils, camX, camY, session.level.id, pWorldX, pWorldY,
+  );
 
   drawFog(ctx, camX, viewW, viewH, time, session.level.id);
   drawDust(ctx, viewW, viewH, time, 1 / 60);

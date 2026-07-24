@@ -46,5 +46,10 @@ export const atrio: RoomData = {
     { type: 'blink', x: 30, y: 16, offset: 2.2 },
     { type: 'crystal', x: 28, y: 12 },
     { type: 'crystal', x: 51, y: 12 },
+    // The toll, cut into the west face of the ditch under the slabs —
+    // the hole every missed blink drops you into, which until now paid
+    // nothing at all. Read it on the way out and the crystal count
+    // stops being a score and becomes a price.
+    { type: 'glifo', lore: 'pue_peaje', x: 23, y: 22 },
   ],
 };

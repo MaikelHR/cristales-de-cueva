@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Level, TILE } from './Level';
+import { DEPTH_MAX, Level, TILE } from './Level';
 
 // A small test map: closed box with a plank inside.
 const TILES = [
@@ -115,5 +115,71 @@ describe('Level', () => {
     expect(level.touchesWater({ x: 2 * TILE, y: TILE, w: 4, h: 4 })).toBe(true);
     // A box over the neighboring air cell: dry.
     expect(level.touchesWater({ x: TILE, y: TILE, w: 2, h: 2 })).toBe(false);
+  });
+
+  it("el muro falso ('*') es un bloque agrietado con cara de roca", () => {
+    const level = new Level(['#####', '#.*.#', '#####']);
+    // Every rule already in the game has to see the cracked block it is...
+    expect(level.solidCell(1, 2)).toBe(true);
+    expect(level.crackCell(1, 2)).toBe(true);
+    // ...and only the renderer gets to know it's a secret.
+    expect(level.secretCell(1, 2)).toBe(true);
+    expect(level.secretCell(1, 1)).toBe(false); // plain air
+    expect(level.secretCell(-1, 2)).toBe(false); // outside the map, no
+  });
+
+  it('romper un muro falso lo deja en aire, y deja de ser secreto', () => {
+    const level = new Level(['#####', '#.*.#', '#####']);
+    expect(level.breakCrack(1, 2)).toBe(true);
+    expect(level.solidCell(1, 2)).toBe(false);
+    expect(level.crackCell(1, 2)).toBe(false);
+    expect(level.secretCell(1, 2)).toBe(false);
+    expect(level.breakCrack(1, 2)).toBe(false); // ya no hay nada que romper
+  });
+
+  it('depthCell mide cuán adentro del hueco está cada celda', () => {
+    //  A 5-wide, 5-tall chamber: the middle cell is the deepest thing
+    //  in it, and the ring around it touches rock.
+    const level = new Level([
+      '#######',
+      '#.....#',
+      '#.....#',
+      '#.....#',
+      '#.....#',
+      '#.....#',
+      '#######',
+    ]);
+    expect(level.depthCell(0, 0)).toBe(0); // rock is the zero of the field
+    expect(level.depthCell(1, 1)).toBe(1); // air against the wall
+    expect(level.depthCell(1, 3)).toBe(1); // ...including under the roof
+    expect(level.depthCell(2, 2)).toBe(2);
+    expect(level.depthCell(3, 3)).toBe(3); // the middle of the room
+    // Diagonals count, so the corner is no deeper than the edge.
+    expect(level.depthCell(2, 3)).toBe(2);
+    // Outside the map reads as rock, like solidCell.
+    expect(level.depthCell(-1, 3)).toBe(0);
+    expect(level.depthCell(3, 99)).toBe(0);
+  });
+
+  it('depthCell se detiene en DEPTH_MAX', () => {
+    // A hollow far wider than the cap: the middle can only report so deep.
+    const wide = ['.'.repeat(41)];
+    const level = new Level(Array.from({ length: 41 }, () => wide[0]));
+    expect(level.depthCell(20, 20)).toBe(DEPTH_MAX);
+  });
+
+  it('romper un bloque rehace el campo de profundidad', () => {
+    // A cell sealed behind rock reads shallow; open the rock and the
+    // hollow it joins makes it deeper.
+    const level = new Level([
+      '#####',
+      '#...#',
+      '#.%.#',
+      '#...#',
+      '#####',
+    ]);
+    expect(level.depthCell(2, 2)).toBe(0); // it IS rock while it stands
+    level.breakCrack(2, 2);
+    expect(level.depthCell(2, 2)).toBe(2); // now it's the middle of the room
   });
 });

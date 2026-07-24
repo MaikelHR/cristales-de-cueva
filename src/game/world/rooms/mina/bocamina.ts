@@ -45,6 +45,9 @@ export const bocamina: RoomData = {
   ],
   entities: [
     { type: 'playerSpawn', x: 3, y: 12 },
+    // The tally, cut into the wall you spawn against: two steps left of
+    // where you land, on the mine's own doorpost.
+    { type: 'glifo', lore: 'min_turno', x: 0, y: 12 },
     { type: 'crumble', x: 17, y: 17 }, // the cheap lesson: one board, one tile
     { type: 'crumble', x: 21, y: 17 }, // the bridge with gaps...
     { type: 'crumble', x: 24, y: 17 },

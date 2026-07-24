@@ -50,6 +50,12 @@ export const dintel: RoomData = {
     { type: 'crystal', x: 25, y: 9 },
     { type: 'custodio', x: 26, y: 13 },
     { type: 'crystal', x: 49, y: 18 },
+    // The last thing written on this side, and it is on the OUTSIDE
+    // face of the door's own wall — head height above the cracked block
+    // you smash for the final crystal, so you stand under it anyway.
+    // Not past the door: crossing that ends the run, and an inscription
+    // nobody can reach is a blank wall.
+    { type: 'glifo', lore: 'pue_dintel', x: 45, y: 17 },
     { type: 'door', x: 52, y: 12 },
   ],
 };

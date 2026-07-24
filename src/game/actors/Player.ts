@@ -196,6 +196,11 @@ export class Player {
   private isPounding = false;  // pound dive in progress
   private isGliding = false;   // slowing the fall with the glide
   private swimmingNow = false; // hitbox overlaps water this frame
+  /** Standing within reach of a carved inscription. Set by
+   *  systems/lore.ts, and the only thing it does is stop 'down' from
+   *  shrinking you while you are reading — the same kind of priority
+   *  the plank-drop already takes over the shrink. */
+  atInscription = false;
   private diving = false;      // submerged: free swim (needs the dive relic)
   private plunging = false;    // a pound-plunge is still bobbing back up
   private mini = false;        // miniaturized (needs the shrink relic)
@@ -582,6 +587,7 @@ export class Player {
       this.onGround &&
       isDown('down') &&
       !this.onPlankOnly() &&
+      !this.atInscription && // at a plaque, 'down' is for reading it
       !this.swimmingNow &&
       this.dashTimer <= 0 &&
       this.hurtLock <= 0

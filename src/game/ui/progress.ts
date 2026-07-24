@@ -22,7 +22,12 @@ const HERE = '#ffe25a';    // the room you're in (glows, taller)
 const RAIL = '#241638';    // backing, so the bar reads as one piece
 
 export function drawProgress(ctx: CanvasRenderingContext2D, session: GameSession): void {
-  const rooms = session.world.allRooms;
+  // SECRET rooms are not on the bar. The bar counts the rooms you must
+  // cross, so a hidden chamber must not lengthen it — and there is a
+  // sharper reason than tidiness: `idByCol` below is built last-writer-
+  // wins, and a secret sharing its host's column would otherwise STEAL
+  // that column's id, leaving the host's segment unlit forever.
+  const rooms = session.world.allRooms.filter((r) => !r.data.secret);
   const total = Math.max(...rooms.map((r) => r.data.mapPos.x)) + 1;
   if (total <= 1) return; // a single-room level has no progress to show
   const currentIdx = session.world.current.data.mapPos.x;

@@ -2,12 +2,25 @@
 //  THE LEVEL (the geometry of a room)
 // ------------------------------------------------------------
 //  Interprets RoomData's tile rows ('#' solid, '.' air, '-' one-way
-//  plank, '^' spikes, '%' cracked block, '~' ice, '=' water) and
-//  answers collision queries. Each cell is 8x8 px. Cracked blocks and
-//  ice ARE solid; they also carry their own mark: the cracked one can
-//  be broken (pound / charge) and ice is slippery underfoot. Water is
-//  NOT solid — it's a body volume the player floats on and dives into
-//  (the swim physics live in the Player); here it's just a marked cell.
+//  plank, '^' spikes, '%' cracked block, '*' FALSE WALL, '~' ice,
+//  '=' water) and answers collision queries. Each cell is 8x8 px.
+//  Cracked blocks, false walls and ice ARE solid; they also carry
+//  their own mark: the cracked one can be broken (pound / charge),
+//  ice is slippery underfoot. Water is NOT solid — it's a body volume
+//  the player floats on and dives into (the swim physics live in the
+//  Player); here it's just a marked cell.
+//
+//  A FALSE WALL is a cracked block wearing ordinary rock's face: it
+//  breaks by exactly the same rule (so nothing in the Player had to
+//  learn a new verb), but the renderer must never give it the '%'
+//  fissure — the whole point is that it looks like the wall next to
+//  it. `secretCell` is what tells the two apart.
+//
+//  It also answers HOW DEEP a cell sits inside the room's hollow
+//  (`depthCell`): 0 on rock, 1 for the air touching it, growing
+//  toward the middle of a chamber. Nothing in the physics reads it —
+//  it exists so the renderer can shade a back wall that recedes, and
+//  it lives here because it is a pure fact about the geometry.
 //
 //  This module is PURE LOGIC: it doesn't draw or touch the DOM, so it
 //  can be tested in Node. The tile drawing lives in
@@ -17,6 +30,10 @@
 import type { Box } from '../../engine/canvas';
 
 export const TILE = 8;
+
+/** Deepest reading `depthCell` reports. Past this the back wall has
+ *  already faded out entirely, so measuring further buys nothing. */
+export const DEPTH_MAX = 7;
 
 export class Level {
   readonly cols: number;
@@ -28,8 +45,12 @@ export class Level {
   private oneWay: boolean[][] = [];
   private spike: boolean[][] = [];
   private crack: boolean[][] = [];
+  private secret: boolean[][] = [];
   private icy: boolean[][] = [];
   private wet: boolean[][] = [];
+  /** Distance-to-rock field, built on first use and thrown away
+   *  whenever the rock changes (see breakCrack). */
+  private depth: number[][] | null = null;
 
   constructor(tiles: string[]) {
     this.rows = tiles.length;
@@ -47,21 +68,25 @@ export class Level {
       this.oneWay[y] = [];
       this.spike[y] = [];
       this.crack[y] = [];
+      this.secret[y] = [];
       this.icy[y] = [];
       this.wet[y] = [];
       for (let x = 0; x < this.cols; x++) {
         const ch = row[x];
         if (
-          ch !== '#' && ch !== '.' && ch !== '-' &&
-          ch !== '^' && ch !== '%' && ch !== '~' && ch !== '='
+          ch !== '#' && ch !== '.' && ch !== '-' && ch !== '^' &&
+          ch !== '%' && ch !== '*' && ch !== '~' && ch !== '='
         ) {
           throw new Error(`Mapa inválido: carácter desconocido '${ch}' en (${x}, ${y})`);
         }
         // Water ('=') is deliberately absent here: it is NOT solid.
-        this.solid[y][x] = ch === '#' || ch === '%' || ch === '~';
+        this.solid[y][x] = ch === '#' || ch === '%' || ch === '*' || ch === '~';
         this.oneWay[y][x] = ch === '-';
         this.spike[y][x] = ch === '^';
-        this.crack[y][x] = ch === '%';
+        // A false wall IS a cracked block as far as every rule goes —
+        // it just doesn't wear the fissure.
+        this.crack[y][x] = ch === '%' || ch === '*';
+        this.secret[y][x] = ch === '*';
         this.icy[y][x] = ch === '~';
         this.wet[y][x] = ch === '=';
       }
@@ -97,6 +122,14 @@ export class Level {
     return this.crack[row][col];
   }
 
+  /** A FALSE WALL at this cell? (a breakable block disguised as plain
+   *  rock). Only the renderer cares: everything else already sees it
+   *  as the cracked block it is. Outside the map, no. */
+  secretCell(row: number, col: number): boolean {
+    if (row < 0 || row >= this.rows || col < 0 || col >= this.cols) return false;
+    return this.secret[row][col];
+  }
+
   /** Ice (slippery solid) at this cell? Outside the map, no. */
   icyCell(row: number, col: number): boolean {
     if (row < 0 || row >= this.rows || col < 0 || col >= this.cols) return false;
@@ -117,8 +150,88 @@ export class Level {
   breakCrack(row: number, col: number): boolean {
     if (!this.crackCell(row, col)) return false;
     this.crack[row][col] = false;
+    this.secret[row][col] = false;
     this.solid[row][col] = false;
+    // The hollow just got bigger: the back wall has to be re-measured,
+    // or the hole you opened keeps the shading of the rock that was
+    // there — the one visible seam that would give a secret away
+    // AFTER it stopped being one.
+    this.depth = null;
     return true;
+  }
+
+  /**
+   * How deep inside the room's hollow this cell sits, in CELLS and with
+   * a fraction: 0 on rock, 1 for air that touches rock, rising toward
+   * the middle of a chamber and capped at DEPTH_MAX. Outside the map
+   * reads as rock, same as `solidCell` — so a room's edges are a wall,
+   * which is what the renderer wants to shade against.
+   *
+   * Nothing in the physics uses this. It's the back wall's field: the
+   * shading that makes a corridor look carved OUT of the rock instead
+   * of painted on it.
+   */
+  depthCell(row: number, col: number): number {
+    if (row < 0 || row >= this.rows || col < 0 || col >= this.cols) return 0;
+    return (this.depth ??= this.buildDepth())[row][col];
+  }
+
+  /**
+   * Distance to the nearest solid, by the standard two-pass chamfer:
+   * one sweep down-right carrying the best answer from the cells
+   * already visited, one sweep back up-left. O(cells), which is why it
+   * can be thrown away and rebuilt whenever a block breaks.
+   *
+   * The step weights are 3 orthogonally and 4 diagonally, divided back
+   * down by 3 — the classic cheap stand-in for real Euclidean distance,
+   * within a couple of percent of it. The obvious alternative, counting
+   * a diagonal as one step (Chebyshev), is a whole line shorter and was
+   * what shipped first: it makes distance-from-the-wall identical all
+   * the way around a rectangular room, so the back wall drawn from it
+   * came out as a set of perfectly concentric RECTANGLES. It read as
+   * exactly what it was — a computed field — rather than as rock.
+   */
+  private buildDepth(): number[][] {
+    const CAP = DEPTH_MAX * 3;
+    const d: number[][] = [];
+    for (let row = 0; row < this.rows; row++) {
+      d[row] = [];
+      for (let col = 0; col < this.cols; col++) {
+        d[row][col] = this.solid[row][col] ? 0 : CAP;
+      }
+    }
+    // Out of bounds is rock, so a cell on the map's edge is already one
+    // step from a wall whatever its neighbours say.
+    const at = (row: number, col: number): number =>
+      row < 0 || row >= this.rows || col < 0 || col >= this.cols ? 0 : d[row][col];
+
+    for (let row = 0; row < this.rows; row++) {
+      for (let col = 0; col < this.cols; col++) {
+        if (d[row][col] === 0) continue;
+        d[row][col] = Math.min(
+          d[row][col],
+          at(row - 1, col - 1) + 4, at(row - 1, col) + 3,
+          at(row - 1, col + 1) + 4, at(row, col - 1) + 3,
+        );
+      }
+    }
+    for (let row = this.rows - 1; row >= 0; row--) {
+      for (let col = this.cols - 1; col >= 0; col--) {
+        if (d[row][col] === 0) continue;
+        d[row][col] = Math.min(
+          d[row][col],
+          at(row + 1, col + 1) + 4, at(row + 1, col) + 3,
+          at(row + 1, col - 1) + 4, at(row, col + 1) + 3,
+        );
+      }
+    }
+    // Back into cells, capped.
+    for (let row = 0; row < this.rows; row++) {
+      for (let col = 0; col < this.cols; col++) {
+        d[row][col] = Math.min(DEPTH_MAX, d[row][col] / 3);
+      }
+    }
+    return d;
   }
 
   /**

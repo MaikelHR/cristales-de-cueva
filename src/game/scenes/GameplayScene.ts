@@ -15,10 +15,12 @@ import { TILE } from '../world/Level';
 import { handleRoomTransition } from '../systems/transitions';
 import { collectPickups } from '../systems/pickups';
 import { resolveEnemyContacts } from '../systems/combat';
+import { readNearbyLore } from '../systems/lore';
 import { carryAndAdvanceDevices, resolveDeviceContacts } from '../systems/devices';
 import { drawWorld } from '../render/drawWorld';
 import { drawHud } from '../ui/hud';
 import { drawProgress } from '../ui/progress';
+import { drawLorePlate } from '../ui/lorePlate';
 import { sfx } from '../sfx';
 import type { Scene, SceneManager, UiState } from './Scene';
 import { PauseScene } from './PauseScene';
@@ -145,6 +147,10 @@ export class GameplayScene implements Scene {
 
     collectPickups(s);
     resolveEnemyContacts(s, dt);
+    // Reading is the one thing you do by NOT doing anything, so it goes
+    // after the contacts: a step that ended in a hit is not a step you
+    // spent standing still.
+    readNearbyLore(s);
 
     const god = import.meta.env.DEV && debug.god;
 
@@ -204,5 +210,6 @@ export class GameplayScene implements Scene {
     drawWorld(ctx, this.session);
     drawHud(ctx, this.session, true);
     drawProgress(ctx, this.session);
+    drawLorePlate(ctx, this.session);
   }
 }

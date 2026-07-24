@@ -38,6 +38,12 @@ export const vergel: RoomData = {
   ],
   entities: [
     { type: 'playerSpawn', x: 3, y: 17 },
+    // Cut into the doorpost of the orchard, two steps behind where you
+    // walk in and facing the whole garden: the makers' note that none
+    // of this was theirs. Main road, not a secret — most of the cave's
+    // writing is out in the open, and this is the sentence the level
+    // is named for.
+    { type: 'glifo', x: 0, y: 17, lore: 'esp_vergel' },
     { type: 'slime', x: 9, y: 17 },
     { type: 'crystal', x: 14, y: 19 },
     { type: 'crystal', x: 21, y: 11 },

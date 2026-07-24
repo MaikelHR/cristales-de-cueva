@@ -9,7 +9,13 @@ import type { RoomData } from '../../RoomData';
  *  Una tejedora vigila el hueco desde el techo y se descuelga por él
  *  cuando pasas — hay que esperarla o pasarle por debajo. Su cristal
  *  está en un nicho lateral: salirse de la escalera cuesta, y volver
- *  a ella cuesta más (los tablones se cruzan hacia abajo con 'abajo'). */
+ *  a ella cuesta más (los tablones se cruzan hacia abajo con 'abajo').
+ *
+ *  Ese nicho es además el único sitio del nivel donde uno se queda
+ *  quieto sobre roca firme mirando una pared ciega: once columnas de
+ *  repisa (28-38) que el camino no usa para nada, y al fondo, a la
+ *  altura del cuerpo, la junta del MURO FALSO. Once tiles de carrerilla
+ *  son de sobra para la embestida. */
 export const resquicio: RoomData = {
   id: 'resquicio',
   mapPos: { x: 6, y: 0 },
@@ -38,8 +44,8 @@ export const resquicio: RoomData = {
     '#####################..................#################',
     '#####################..................#################',
     '#####################..................#################',
-    '#####################..................#################',
-    '#####################..................#################',
+    '#####################..................*......##########',
+    '#####################..................*......##########',
     '#####################-------############################',
     '#####################.......############################',
     '#####################.......############################',
@@ -62,5 +68,8 @@ export const resquicio: RoomData = {
     { type: 'tejedora', drop: 12, x: 24, y: 8 },
     { type: 'crystal', x: 33, y: 22 },
     { type: 'crystal', x: 46, y: 9 },
+    // Detrás del muro falso de la repisa: la bóveda tapiada, dos filas
+    // de alto, con lo único que guarda.
+    { type: 'vestigio', x: 42, y: 24 },
   ],
 };

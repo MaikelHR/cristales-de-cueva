@@ -43,6 +43,9 @@ export const yunque: RoomData = {
     { type: 'crystal', x: 23, y: 19 },
     { type: 'geyser', x: 29, y: 17 },
     { type: 'crystal', x: 44, y: 15 },
+    // Inside the hollow anvil, which is the only way east at floor
+    // level: everyone smashes in, stands on this rock and smashes out.
+    { type: 'glifo', lore: 'fra_botas', x: 45, y: 17 },
     { type: 'crystal', x: 50, y: 3 },
   ],
 };

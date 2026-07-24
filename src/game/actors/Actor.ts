@@ -14,8 +14,11 @@ import type { Player } from './Player';
 import type { Particles } from '../effects/Particles';
 
 /** 'device' = stage apparatus (springs, moving platforms): they
- *  don't hurt or get collected; they interact with player physics. */
-export type ActorLayer = 'enemy' | 'pickup' | 'device';
+ *  don't hurt or get collected; they interact with player physics.
+ *  'lore' = things the room SAYS (carved inscriptions): they touch
+ *  neither physics nor health, they only react to you standing there.
+ *  Their rule lives in systems/lore.ts. */
+export type ActorLayer = 'enemy' | 'pickup' | 'device' | 'lore';
 
 export interface Actor {
   readonly layer: ActorLayer;

@@ -5,11 +5,20 @@ import type { RoomData } from '../../RoomData';
  *  piedra escalonados sobre un pozo, y al fondo la nave con su primera
  *  cama de lapidas erizadas. La sala no pide nada que no sepas hacer
  *  desde el nivel 2 — esta aqui para que el sitio te entre por los ojos
- *  antes de que empiece a cobrarte. */
+ *  antes de que empiece a cobrarte.
+ *
+ *  Y guarda el secreto del nivel. Todas las demas salas de la cripta
+ *  abren su boca en las filas 8-9; esta es la UNICA con ese lado
+ *  tapiado, y lo que lo tapia son dos bloques falsos en la columna 1
+ *  (la columna 0 se queda en '.', que es la boca de verdad: el borde
+ *  tiene que leerse abierto para las validaciones y el jugador no
+ *  llega a el hasta que rompe la columna 1). Trece columnas de rellano
+ *  para tomar carrerilla y una embestida hacia el oeste abren la
+ *  bodega. */
 export const portico: RoomData = {
   id: 'portico',
   mapPos: { x: 0, y: 0 },
-  exits: { right: 'nartex' },
+  exits: { left: 'bodega', right: 'nartex' },
   tiles: [
     '################################################################',
     '################################################################',
@@ -19,8 +28,8 @@ export const portico: RoomData = {
     '#........................................................#######',
     '#........................................................#######',
     '#........................................................#######',
-    '#........................................................#######',
-    '#........................................................#######',
+    '.*.......................................................#######',
+    '.*.......................................................#######',
     '###############..........................................#######',
     '###############..........................................#######',
     '###############..........................................#######',

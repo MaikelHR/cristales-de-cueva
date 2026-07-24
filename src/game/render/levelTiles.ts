@@ -9,11 +9,18 @@
 //  tiles (plank, spikes, '%', '~', and '=' water) are the same across
 //  all of them. Water is the odd one out: NON-solid, so it falls
 //  through the solid/plank/spike branches and needs its own.
+//
+//  '*' (the FALSE WALL) is the odd one in the other direction: it is
+//  checked FIRST and deliberately drawn as ordinary rock, because a
+//  secret that announces itself is not one. Everything that makes it
+//  findable is in `drawSecretSeam`, and all of it is gated on the
+//  player being close enough to have come over to look.
 // ============================================================
 
 import { Level, TILE } from '../world/Level';
 import { sprites } from '../art/sprites';
 import { tileSetFor, type TileSet } from '../art/tileSets';
+import { debug } from '../debug';
 
 export function drawLevelTiles(
   ctx: CanvasRenderingContext2D,
@@ -23,6 +30,10 @@ export function drawLevelTiles(
   viewW: number,
   viewH: number,
   levelId = 'cavernas',
+  /** The player's centre in WORLD px. Only the false walls read it:
+   *  their seam is lit by how close you are, and nothing else. */
+  playerX = -9999,
+  playerY = -9999,
 ): void {
   const set = tileSetFor(levelId);
   const now = performance.now() / 1000; // drives the water's animation
@@ -34,7 +45,13 @@ export function drawLevelTiles(
 
   for (let row = r0; row <= r1; row++) {
     for (let col = c0; col <= c1; col++) {
-      if (level.crackCell(row, col)) {
+      if (level.secretCell(row, col)) {
+        // A FALSE WALL is drawn as the rock beside it — that is the
+        // whole point — and then given back the one thing that makes it
+        // findable without flailing: a seam, lit only by your own lamp.
+        drawSolidTile(ctx, level, set, row, col, col * TILE - camX, row * TILE - camY);
+        drawSecretSeam(ctx, level, set, row, col, camX, camY, playerX, playerY, now);
+      } else if (level.crackCell(row, col)) {
         drawCrackTile(ctx, col * TILE - camX, row * TILE - camY);
       } else if (level.icyCell(row, col)) {
         drawIceTile(ctx, level, row, col, col * TILE - camX, row * TILE - camY);
@@ -49,6 +66,80 @@ export function drawLevelTiles(
       }
     }
   }
+}
+
+// How close (px) the player must be before a false wall's seam is
+// visible at all, and how close before it is at full strength. Deliberately
+// short: a seam you can read from across the room is a marked door, and
+// a secret you can see coming is not one.
+const SEAM_FAR = 46;
+const SEAM_NEAR = 16;
+
+/**
+ * The seam around a false wall. The block itself is already drawn as
+ * ordinary rock; this traces the OUTLINE of the hidden patch (only the
+ * edges where it meets real rock, so a 3x2 false wall reads as one
+ * doorway rather than six bricks) and fades it in with the player's
+ * proximity.
+ *
+ * This is the whole fairness argument for the mechanic. Hollow Knight's
+ * breakable walls are found by swinging at everything, which works
+ * because swinging is free and constant; here breaking a wall costs a
+ * pound or a dash, and "dash at every wall in thirteen levels" is not a
+ * game. So the wall tells you — but only from arm's length, and only
+ * because you came over to look.
+ */
+function drawSecretSeam(
+  ctx: CanvasRenderingContext2D,
+  level: Level,
+  set: TileSet,
+  row: number,
+  col: number,
+  camX: number,
+  camY: number,
+  playerX: number,
+  playerY: number,
+  now: number,
+): void {
+  const cx = col * TILE + TILE / 2;
+  const cy = row * TILE + TILE / 2;
+  // DEV: the mod menu's "Revelar muros" lights every seam in the room
+  // from anywhere in it. Pretending the player is standing ON the tile
+  // is the whole cheat — zero distance clears the cutoff below, makes
+  // `glow` 1 and turns the dust on too, so there is no second code path
+  // to keep in sync with the honest one.
+  const d = import.meta.env.DEV && debug.secrets
+    ? 0
+    : Math.hypot(playerX - cx, playerY - cy);
+  if (d >= SEAM_FAR) return;
+  const glow = d <= SEAM_NEAR ? 1 : 1 - (d - SEAM_NEAR) / (SEAM_FAR - SEAM_NEAR);
+  const px = col * TILE - camX;
+  const py = row * TILE - camY;
+  ctx.save();
+  ctx.globalAlpha = glow * 0.5;
+  ctx.fillStyle = set.rimL;
+  // Only the edges that face real rock: the joint between the false
+  // wall and the wall it is pretending to be part of.
+  const openUp = !level.secretCell(row - 1, col);
+  if (openUp) ctx.fillRect(px, py, TILE, 1);
+  if (!level.secretCell(row + 1, col)) ctx.fillRect(px, py + TILE - 1, TILE, 1);
+  if (!level.secretCell(row, col - 1)) ctx.fillRect(px, py, 1, TILE);
+  if (!level.secretCell(row, col + 1)) ctx.fillRect(px + TILE - 1, py, 1, TILE);
+
+  // Dust SIFTING OUT of the joint. This is the part that actually gets
+  // noticed: a static hairline reads as texture and the eye discards
+  // it, but movement in a still wall does not get discarded. It only
+  // happens along the top joint, because that is where dust would come
+  // from, and only this close — running past, you see nothing.
+  if (openUp && glow > 0.35) {
+    ctx.globalAlpha = glow * 0.45;
+    for (let i = 0; i < 3; i++) {
+      const phase = (now * 0.5 + i * 0.37 + col * 0.11) % 1;
+      const dx = 1 + ((col * 3 + i * 3) % (TILE - 2));
+      ctx.fillRect(px + dx, py - Math.round(phase * 5), 1, 1);
+    }
+  }
+  ctx.restore();
 }
 
 /** Cracked block: rock with a pale Y-shaped fissure — reads at a
@@ -178,11 +269,30 @@ function drawSolidTile(
   px: number,
   py: number,
 ): void {
+  drawFacedTile(ctx, set, (r, c) => level.solidCell(r, c), row, col, px, py);
+}
+
+/**
+ * The rock face itself, auto-tiled against whatever `solid` says its
+ * neighbours are. Split out from `drawSolidTile` so a VEIL can borrow
+ * the exact same drawing while lying about the neighbourhood: inside a
+ * veil every cell claims to be rock, so the patch comes out continuous
+ * with the real wall instead of as a rectangle sitting on top of it.
+ */
+function drawFacedTile(
+  ctx: CanvasRenderingContext2D,
+  set: TileSet,
+  solid: (row: number, col: number) => boolean,
+  row: number,
+  col: number,
+  px: number,
+  py: number,
+): void {
   // Outside the map counts as solid (draws no border out there).
-  const up = !level.solidCell(row - 1, col);
-  const down = !level.solidCell(row + 1, col);
-  const left = !level.solidCell(row, col - 1);
-  const right = !level.solidCell(row, col + 1);
+  const up = !solid(row - 1, col);
+  const down = !solid(row + 1, col);
+  const left = !solid(row, col - 1);
+  const right = !solid(row, col + 1);
 
   // Base: carved top if it faces the void above; otherwise fill with a variant.
   if (up) {
@@ -214,4 +324,64 @@ function drawSolidTile(
   if (up && right) ctx.fillRect(px + TILE - 1, py, 1, 1);
   if (down && left) ctx.fillRect(px, py + TILE - 1, 1, 1);
   if (down && right) ctx.fillRect(px + TILE - 1, py + TILE - 1, 1, 1);
+}
+
+// ============================================================
+//  VEILS — a passage wearing the wall's face
+// ------------------------------------------------------------
+//  A veil hides a hole by drawing the biome's OWN ROCK over it, with
+//  the same auto-tiling as the wall around it, so the patch is
+//  continuous with its neighbours and there is nothing to spot. Then
+//  it fades out as you walk into it, on the same distance rule the
+//  foreground occluders use.
+//
+//  It shipped first as a near-black rectangle with a ragged hem — a
+//  "curtain". That is exactly wrong: on a lit stone wall a black box
+//  is the single most conspicuous thing you can draw, so the veil
+//  announced every secret it was supposed to hide. Camouflage is not
+//  a dark shape, it is the SAME shape as everything else.
+//
+//  This lives here rather than in foreground.ts because hiding
+//  something behind rock means drawing rock, and `drawSolidTile` is
+//  here. It is still a foreground pass: drawWorld calls it after the
+//  player, with the occluders.
+// ============================================================
+
+import { playerFade } from './occlusion';
+
+export function drawVeils(
+  ctx: CanvasRenderingContext2D,
+  level: Level,
+  veils: readonly { x: number; y: number; w: number; h: number }[],
+  camX: number,
+  camY: number,
+  levelId: string,
+  playerX: number,
+  playerY: number,
+): void {
+  if (veils.length === 0) return;
+  const set = tileSetFor(levelId);
+  ctx.save();
+  for (const v of veils) {
+    const c0 = Math.floor(v.x / TILE);
+    const c1 = Math.floor((v.x + v.w - 1) / TILE);
+    const r0 = Math.floor(v.y / TILE);
+    const r1 = Math.floor((v.y + v.h - 1) / TILE);
+    // The whole patch fades together — cell by cell it would tear open
+    // in a ragged line and read as a glitch.
+    const fade = playerFade(v.x, v.x + v.w, v.y, v.y + v.h, playerX, playerY);
+    if (fade <= 0) continue;
+    ctx.globalAlpha = fade;
+    // A cell inside the veil counts as rock for the auto-tiling, so the
+    // patch has no internal edges and its outer edges meet the real
+    // wall exactly the way one rock tile meets another.
+    const solid = (row: number, col: number): boolean =>
+      (row >= r0 && row <= r1 && col >= c0 && col <= c1) || level.solidCell(row, col);
+    for (let row = r0; row <= r1; row++) {
+      for (let col = c0; col <= c1; col++) {
+        drawFacedTile(ctx, set, solid, row, col, col * TILE - camX, row * TILE - camY);
+      }
+    }
+  }
+  ctx.restore();
 }

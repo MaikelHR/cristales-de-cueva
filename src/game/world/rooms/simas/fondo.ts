@@ -48,6 +48,10 @@ export const fondo: RoomData = {
     '########################################################',
   ],
   entities: [
+    // Sobre la losa seca de en medio (cols 20-30): la única tierra
+    // firme del cuarto inundado, adonde se sale del agua a mirar antes
+    // de bucear por debajo. Aquí es donde midieron.
+    { type: 'glifo', x: 25, y: 25, lore: 'sim_fondo' },
     { type: 'anguila', axis: 'x', range: 6, x: 24, y: 30 },
     { type: 'crystal', x: 25, y: 32 },
     { type: 'crystal', x: 43, y: 27 },

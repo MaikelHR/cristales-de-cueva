@@ -46,6 +46,11 @@ export const sepulcro: RoomData = {
     '################################################################',
   ],
   entities: [
+    // La ultima lampara, en el rellano de entrada (cols 0-9, techo de
+    // la fila 10) y a 218 px del Custodio: el bicho duerme hasta los
+    // 120, asi que este es sitio seguro para quedarse quieto. Es lo
+    // ultimo que dice la cueva antes de la ultima pelea.
+    { type: 'glifo', x: 4, y: 9, lore: 'cri_sepulcro' },
     { type: 'custodio', x: 32, y: 14 },
     // Encadenadas: peana(22) -> A(18) -> B(15) -> C(18). La del medio
     // estaba a doce columnas de la anterior y no se alcanzaba desde

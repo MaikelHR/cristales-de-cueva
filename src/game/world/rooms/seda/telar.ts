@@ -43,6 +43,9 @@ export const telar: RoomData = {
   ],
   entities: [
     { type: 'playerSpawn', x: 3, y: 15 },
+    // The notice at the mouth of the nest: two steps left of the spawn,
+    // on the last piece of wall before the silk starts.
+    { type: 'glifo', lore: 'sed_hilo', x: 0, y: 16 },
     { type: 'tejedora', x: 12, y: 3 },          // drops all the way to the floor
     { type: 'crystal', x: 21, y: 14 },          // #1: over the cheap pit, on the jump line
     { type: 'ancla', length: 11, x: 39, y: 3 }, // the promise: a bead that does nothing yet

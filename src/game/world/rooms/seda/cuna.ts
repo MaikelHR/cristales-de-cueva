@@ -35,10 +35,10 @@ export const cuna: RoomData = {
     '#############..................................................#############',
     '#############..................................................#############',
     '#############..................................................#############',
-    '#................................##########....................#############',
-    '.................................##########....................#############',
-    '.................................##########....................#############',
-    '#############....................##########....................#############',
+    '#................................####**####....................#############',
+    '.................................##......##....................#############',
+    '.................................##......##....................#############',
+    '#############....................##......##....................#############',
     '#############....................##########....................#############',
     '#############^^^^^^^^^^^^^^^^^^^^##########^^^^^^^^^^^^^^^^^^^^#############',
     '############################################################################',
@@ -54,11 +54,24 @@ export const cuna: RoomData = {
     { type: 'ancla', length: 12, x: 22, y: 2 },
     { type: 'ancla', length: 11, x: 29, y: 2 },
     { type: 'crystal', x: 18, y: 11 }, // #3: on the first handover
+    // Painted across the back wall of the first chasm, where nobody can
+    // do anything but look at it: you are ON a rope, mid-arc, over the
+    // spikes, and the wall behind you shows a line going up with a gap
+    // in it. Scenery, not a stop — a mural is a thing a room HAS.
+    { type: 'mural', art: 'caida', x: 17, y: 5 },
     // Chasm 2 (cols 43-62): three beads, ropes shortening as it climbs
     // to an exit six tiles above where the room began.
     { type: 'ancla', length: 9, x: 44, y: 2 },
     { type: 'ancla', length: 9, x: 52, y: 2 },
     { type: 'ancla', length: 8, x: 59, y: 2 },
     { type: 'crystal', x: 49, y: 8 }, // #4: the top of the middle arc
+    // THE SECRET, inside the pier between the two chasms. That tunnel
+    // floor is the only standing rock in the room that neither throws
+    // you nor kills you — ten flat tiles serving no route at all — so
+    // two of them are false. Pound and you drop into the vault under
+    // the breather. (Cols 35-40 x rows 15-17; the hole is two tiles
+    // wide and a double jump lifts you back out through it. The other
+    // eight tiles of tunnel floor stay, so the crossing still works.)
+    { type: 'vestigio', x: 39, y: 16 },
   ],
 };

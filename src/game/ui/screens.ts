@@ -17,6 +17,7 @@ import { currentSkin } from '../skins';
 import { currentAccessory } from '../accessories';
 import { drawGlow } from '../art/glow';
 import { t, type StrKey } from '../i18n';
+import { LORE_IDS, loreText, type LoreId } from '../lore';
 import { font, formatTime } from './text';
 import { OW_NODES } from './owMap';
 
@@ -27,6 +28,7 @@ export type MenuItem =
   | 'resume'
   | 'restart'
   | 'character'
+  | 'archive'
   | 'fullscreen'
   | 'language'
   | 'exit'
@@ -37,6 +39,7 @@ const MENU_LABEL: Record<MenuItem, StrKey> = {
   resume: 'menu_resume',
   restart: 'menu_restart',
   character: 'menu_character',
+  archive: 'menu_archive',
   fullscreen: 'menu_fullscreen',
   language: 'menu_language',
   exit: 'menu_exit',
@@ -96,11 +99,20 @@ export function drawTitleOverlay(
   ctx.fillRect(0, 0, viewW, viewH);
   const cx = viewW / 2;
 
+  // The menu keeps growing (CHARACTER, then ARCHIVE) and the two hint
+  // lines at the bottom are fixed, so at five items the list ran into
+  // them. Rather than let the menu creep down over its own hints, the
+  // WHOLE cover lifts and the rows close up: the crystal has headroom
+  // to spare up top, the hints do not.
+  const touch = inputDevice() === 'touch';
+  const tall = !touch && items.length > 4;
+  const lift = tall ? 10 : 0;
+
   // A big crystal floating above the title, with its halo.
   const bob = Math.sin(time * 2) * 2;
   const frames = [sprites.crystal, sprites.crystal2, sprites.crystal3, sprites.crystal4];
   const spr = frameAt(frames, 6, time);
-  const cy = viewH / 2 - 52 + bob;
+  const cy = viewH / 2 - 52 - lift + bob;
   drawGlow(ctx, cx, cy, 20, '#ffe25a', 0.5 + Math.sin(time * 4) * 0.15);
   // Crystal at double size, centered on (cx, cy).
   spr.drawStretched(ctx, cx, cy + spr.h, 2, 2);
@@ -109,7 +121,7 @@ export function drawTitleOverlay(
   // customization preview — switching skins shows up instantly.
   const skin = playerSprites();
   const hero = time % 3.3 < 0.15 ? skin.blink : frameAt([skin.idle, skin.idle2], 1.6, time);
-  const heroFeet = viewH / 2 - 52 + spr.h; // the crystal's floor, without the bob
+  const heroFeet = viewH / 2 - 52 - lift + spr.h; // the crystal's floor, without the bob
   drawGlow(ctx, cx - 34, heroFeet - 16, 14, currentSkin().glow, 0.3);
   hero.drawStretched(ctx, cx - 34, heroFeet, 2, 2);
 
@@ -117,20 +129,23 @@ export function drawTitleOverlay(
   // Title in two lines so it fits nicely in 320px.
   ctx.fillStyle = '#e9d6ff';
   ctx.font = font(18);
-  ctx.fillText(t('title_line1'), cx, viewH / 2 - 16);
+  ctx.fillText(t('title_line1'), cx, viewH / 2 - 16 - lift);
   ctx.fillStyle = '#b98bff';
   ctx.font = font(11);
-  ctx.fillText(t('title_line2'), cx, viewH / 2);
+  ctx.fillText(t('title_line2'), cx, viewH / 2 - lift);
 
   // Saved progress (only if you've already completed a level).
   ctx.font = font(8);
   const completed = LEVELS.filter((l) => levelRecord(save, l.id).completions > 0).length;
   if (completed > 0) {
     ctx.fillStyle = '#5ce06a';
-    ctx.fillText(t('title_progress', { n: completed, m: OW_NODES.length }), cx, viewH / 2 + 14);
+    ctx.fillText(
+      t('title_progress', { n: completed, m: OW_NODES.length }),
+      cx,
+      viewH / 2 + 14 - lift,
+    );
   }
 
-  const touch = inputDevice() === 'touch';
   if (touch) {
     // On touch: pulsing prompt to start (the whole canvas is the button).
     const blink = 0.55 + Math.sin(time * 4) * 0.45;
@@ -141,7 +156,8 @@ export function drawTitleOverlay(
   } else {
     // With 4+ items the menu moves up and compacts so it doesn't overlap the prompts.
     const four = items.length > 3;
-    drawMenuList(ctx, session, items, selected, viewH / 2 + (four ? 26 : 32), four ? 12 : 14);
+    const startY = viewH / 2 + (four ? 26 : 32) - lift;
+    drawMenuList(ctx, session, items, selected, startY, tall ? 11 : four ? 12 : 14);
     drawMenuNavHint(ctx, session, viewH - 8);
   }
 
@@ -313,6 +329,223 @@ export function drawCharacterOverlay(
   });
 
   drawMenuNavHint(ctx, session, viewH - 8);
+  ctx.textAlign = 'left';
+}
+
+// ------------------------------------------------------------
+//  THE ARCHIVE — every inscription, in one place
+// ------------------------------------------------------------
+//  The colours are the LORE PLATE's, not the menus': parchment gold on
+//  a dark recess, with the same hairline edges and corner ticks. That
+//  is deliberate — the panel down here has to read as the same object
+//  the player met on a cave wall, or the screen becomes a stats page
+//  about inscriptions instead of a place to read them. (The plate is
+//  redrawn rather than shared: ui/lorePlate.ts owns a fading, fixed
+//  rectangle for the run, this one is static and sized by the layout.)
+const LORE_GOLD = '#e8dcb4';
+const LORE_GOLD_DIM = '#a2946e';
+const LORE_BACK = 'rgba(10, 7, 16, 0.86)';
+
+/** A row of the Archive list. Level headers are structure and are never
+ *  selectable; entries are the inscriptions themselves (read or not);
+ *  BACK is the visible way out — see CLAUDE.md on menus you can enter
+ *  and not leave. The scene builds the list, this module paints it. */
+export type ArchiveRow =
+  | { kind: 'level'; levelId: string }
+  | { kind: 'entry'; id: LoreId }
+  | { kind: 'back' };
+
+/** Rows of the list visible at once. The scene scrolls the window with
+ *  the selection, so it needs the number the layout was cut for. */
+export const ARCHIVE_ROWS = 7;
+
+const AR_MARGIN = 10;
+const AR_LIST_Y = 37; // baseline of the first visible row
+const AR_ROW_GAP = 11;
+const AR_PLATE_H = 52; // room for four lines, and it never resizes
+
+/** The visible name of a level (its i18n key), or the raw id if the
+ *  inscription belongs to a level that isn't registered yet. */
+function levelTitle(levelId: string): string {
+  const level = LEVELS.find((l) => l.id === levelId);
+  return level ? t(level.nameKey) : levelId.toUpperCase();
+}
+
+/**
+ * ARCHIVE screen: the list of every inscription on top, the selected
+ * one written out on the plate below.
+ *
+ * Unread entries are LISTED, not hidden: the gaps are the point — they
+ * are what tells a player there is something left in a level they
+ * thought they had finished. `shown` is the last entry the cursor sat
+ * on (the scene remembers it), so moving down onto BACK doesn't blank
+ * the text you were in the middle of reading.
+ */
+export function drawArchiveOverlay(
+  ctx: CanvasRenderingContext2D,
+  session: GameSession,
+  rows: readonly ArchiveRow[],
+  selected: number,
+  scroll: number,
+  shown: LoreId | null,
+): void {
+  const { viewW, viewH, time, save } = session;
+  // Darker than the other overlays: this one is read, not glanced at.
+  ctx.fillStyle = 'rgba(17,9,26,0.86)';
+  ctx.fillRect(0, 0, viewW, viewH);
+  const cx = viewW / 2;
+  const right = viewW - AR_MARGIN;
+
+  // --- header: what this is, and how much of it you have ---
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#e9d6ff';
+  ctx.font = font(12);
+  ctx.fillText(t('archive_title'), cx, 13);
+
+  const read = LORE_IDS.filter((id) => save.lore.includes(id)).length;
+  ctx.font = font(7);
+  ctx.fillStyle = LORE_GOLD_DIM;
+  ctx.textAlign = 'left';
+  ctx.fillText(t('archive_progress', { n: read, m: LORE_IDS.length }), AR_MARGIN, 22);
+  ctx.textAlign = 'right';
+  ctx.fillText(t('archive_secrets', { n: save.secrets.length }), right, 22);
+  ctx.fillStyle = 'rgba(162,148,110,0.3)';
+  ctx.fillRect(AR_MARGIN, 26, viewW - AR_MARGIN * 2, 1);
+
+  // --- the list ---
+  // Per-group tally in one pass, keyed by the header's own row (a level
+  // heading twice in the list would still count only its own entries).
+  const tally = new Map<number, { got: number; total: number }>();
+  let head = -1;
+  rows.forEach((row, i) => {
+    if (row.kind === 'level') {
+      head = i;
+      tally.set(i, { got: 0, total: 0 });
+    } else if (row.kind === 'entry') {
+      const g = tally.get(head);
+      if (!g) return;
+      g.total++;
+      if (save.lore.includes(row.id)) g.got++;
+    }
+  });
+
+  const sway = Math.sin(time * 5) * 1.5;
+  ctx.textAlign = 'left';
+  for (let i = scroll; i < Math.min(rows.length, scroll + ARCHIVE_ROWS); i++) {
+    const row = rows[i];
+    const y = AR_LIST_Y + (i - scroll) * AR_ROW_GAP;
+    const active = i === selected;
+
+    if (row.kind === 'level') {
+      // The level name, dim, with its own tally: "2/3" needs no
+      // translation and answers "is anything left in here?" at a glance.
+      const name = levelTitle(row.levelId);
+      const g = tally.get(i) ?? { got: 0, total: 0 };
+      const count = `${g.got}/${g.total}`;
+      ctx.font = font(7);
+      ctx.fillStyle = '#8a76b4';
+      ctx.fillText(name, AR_MARGIN + 2, y);
+      ctx.textAlign = 'right';
+      ctx.fillText(count, right - 4, y);
+      ctx.textAlign = 'left';
+      // A hairline joining the two, so the row reads as a section rule.
+      // Both ends are MEASURED: the level names are translated and the
+      // tallies grow, and a rule cut to a guessed length ran into the
+      // "1/3" the moment a name was one letter longer.
+      const ruleX = AR_MARGIN + 6 + ctx.measureText(name).width;
+      const ruleW = right - 8 - ctx.measureText(count).width - ruleX;
+      ctx.fillStyle = 'rgba(138,118,180,0.28)';
+      if (ruleW > 0) ctx.fillRect(ruleX, y - 3, ruleW, 1);
+      continue;
+    }
+
+    const label =
+      row.kind === 'back'
+        ? t('archive_back')
+        : save.lore.includes(row.id)
+          ? loreText(row.id).title.toUpperCase()
+          : t('archive_locked');
+    ctx.font = font(active ? 9 : 8);
+    ctx.fillStyle = active
+      ? '#ffe25a'
+      : row.kind === 'back'
+        ? '#8a76b4'
+        : save.lore.includes(row.id)
+          ? LORE_GOLD
+          : '#6f5a94';
+    ctx.fillText(label, AR_MARGIN + 12, y);
+    if (active) ctx.fillText('▸', AR_MARGIN + 2 + sway, y);
+  }
+
+  // The scroll thumb: the list is longer than the window, and a screen
+  // whose whole job is showing you what you are missing must not hide
+  // that there is more of it below.
+  if (rows.length > ARCHIVE_ROWS) {
+    const trackY = AR_LIST_Y - 7;
+    const trackH = ARCHIVE_ROWS * AR_ROW_GAP;
+    const thumbH = Math.max(4, Math.round((trackH * ARCHIVE_ROWS) / rows.length));
+    const span = (trackH - thumbH) * (scroll / (rows.length - ARCHIVE_ROWS));
+    ctx.fillStyle = 'rgba(162,148,110,0.22)';
+    ctx.fillRect(viewW - 6, trackY, 1, trackH);
+    ctx.fillStyle = LORE_GOLD_DIM;
+    ctx.fillRect(viewW - 6, trackY + Math.round(span), 1, thumbH);
+  }
+
+  // --- the plate: the inscription itself ---
+  const px = AR_MARGIN;
+  const py = viewH - 16 - AR_PLATE_H;
+  const pw = viewW - AR_MARGIN * 2;
+  ctx.fillStyle = LORE_BACK;
+  ctx.fillRect(px, py, pw, AR_PLATE_H);
+  ctx.fillStyle = LORE_GOLD_DIM;
+  ctx.fillRect(px, py, pw, 1);
+  ctx.fillRect(px, py + AR_PLATE_H - 1, pw, 1);
+  ctx.fillStyle = LORE_GOLD;
+  for (const tick of [px, px + pw - 3]) {
+    ctx.fillRect(tick, py, 3, 1);
+    ctx.fillRect(tick, py + AR_PLATE_H - 1, 3, 1);
+  }
+
+  // Only a READ inscription has words: an unread one shows what the
+  // list already said (locked) over the line about the cave not having
+  // talked yet, so the panel is never blank and never a spoiler.
+  const entry = shown !== null && save.lore.includes(shown) ? loreText(shown) : null;
+  const title = entry ? entry.title : shown === null ? '' : t('archive_locked');
+  const lines = entry ? entry.lines : [t('archive_empty')];
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  if (title) {
+    ctx.font = font(7);
+    ctx.fillStyle = LORE_GOLD_DIM;
+    ctx.fillText(title.toUpperCase(), cx, py + 5);
+  }
+  // The body is centered in what's left of the plate instead of hanging
+  // from a fixed offset: the rectangle is cut for the longest
+  // inscription, so a short one would otherwise sit up against the lid.
+  ctx.font = font(8);
+  ctx.fillStyle = entry ? LORE_GOLD : '#6f5a94';
+  const bodyTop = py + 15;
+  const bodyH = AR_PLATE_H - 15 - 4;
+  const start = bodyTop + Math.round(Math.max(0, (bodyH - lines.length * 9) / 2));
+  lines.forEach((line, i) => ctx.fillText(line, cx, start + i * 9));
+  ctx.textBaseline = 'alphabetic';
+
+  // Navigation AND the way out, on the one line the layout leaves:
+  // drawMenuNavHint says only half of it, and a screen this deep in the
+  // menus is exactly where a player needs to be told how to get back.
+  const dev = inputDevice();
+  const pad = padLabels();
+  const nav = dev === 'gamepad' ? t('nav_gp', pad) : t('nav_kb');
+  const out =
+    dev === 'touch'
+      ? t('ow_back_touch')
+      : dev === 'gamepad'
+        ? t('ow_back_gp', pad)
+        : t('ow_back_kb');
+  ctx.font = font(7);
+  ctx.fillStyle = '#6f5a94';
+  ctx.fillText(`${nav} · ${out}`, cx, viewH - 6);
   ctx.textAlign = 'left';
 }
 

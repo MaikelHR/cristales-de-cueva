@@ -3,7 +3,8 @@
 // ------------------------------------------------------------
 //  A GTA-style mod menu for EXPLORING the game: skip to any level,
 //  fast-travel to any room, fly through walls, stop dying, hand
-//  yourself every relic, open the door without earning it.
+//  yourself every relic, open the door without earning it, and see
+//  through the walls the cave is hiding things behind.
 //
 //  Driven by the KEYBOARD, like the menus it's modelled on: ↑↓ to
 //  move, ↵ or → to choose, ← or ⌫ to go back, M to close. That is
@@ -31,7 +32,9 @@ import { GameplayScene } from '../scenes/GameplayScene';
 import { LEVELS } from '../world/rooms';
 import { TILE, type Level } from '../world/Level';
 import { ABILITY_NAMES } from '../abilities';
-import { loadSave, writeSave, emptyRecord, unlockedLevels } from '../save';
+import { loadSave, writeSave, emptyRecord, unlockedLevels, markLore } from '../save';
+import { LORE_IDS } from '../lore';
+import { Glifo } from '../actors/Glifo';
 import { debug, cheatsActive } from '../debug';
 
 let session!: GameSession;
@@ -172,6 +175,70 @@ export function unlock(count = 99): number {
 }
 
 // ------------------------------------------------------------
+// Secrets: false walls, inscriptions, hidden rooms
+// ------------------------------------------------------------
+
+/** Hands every false-wall cell of the CURRENT room to `fn`. Counting
+ *  them and breaking them want the same walk, and a room's grid is
+ *  small enough that one loop with a callback beats two copies of it. */
+function eachSecretCell(fn: (row: number, col: number) => void): void {
+  const level = session.world.current.level;
+  for (let row = 0; row < level.rows; row++) {
+    for (let col = 0; col < level.cols; col++) {
+      if (level.secretCell(row, col)) fn(row, col);
+    }
+  }
+}
+
+/** How many false walls the current room is still hiding. */
+export function secretWalls(): number {
+  let n = 0;
+  eachSecretCell(() => { n++; });
+  return n;
+}
+
+/** Break every false wall in the current room at once — the fast way to
+ *  check that what is BEHIND them is worth the wall. Like a real break,
+ *  it only touches this room's Level instance, so restarting the level
+ *  puts the rock back. */
+export function breakSecrets(): number {
+  const level = session.world.current.level;
+  // Collect first: breakCrack rewrites the grid the walk is reading.
+  const cells: [number, number][] = [];
+  eachSecretCell((row, col) => { cells.push([row, col]); });
+  for (const [row, col] of cells) level.breakCrack(row, col);
+  return cells.length;
+}
+
+/** Fill the Archive, or empty it.
+ *
+ *  Both halves have to touch TWO things. The save, because reading is
+ *  persisted the instant it happens (systems/lore.ts writes on the
+ *  spot), so a cheat that only moved the live glyphs would be undone by
+ *  the next reload. And the live glyphs, because each one carries its
+ *  own `read` flag — the thing that lights it on the wall — and nothing
+ *  re-reads the save until the rooms are rebuilt, so without this the
+ *  change would be invisible until you left the level.
+ *
+ *  Forgetting drops the secret ROOMS as well: the Archive is one screen
+ *  with both halves on it, and "test it from empty" means empty. */
+export function readAllLore(on = true): number {
+  const save = session.save;
+  if (on) for (const id of LORE_IDS) markLore(save, id);
+  else { save.lore = []; save.secrets = []; }
+  writeSave(save);
+  for (const room of session.world.allRooms) {
+    for (const actor of room.actors) if (actor instanceof Glifo) actor.read = on;
+  }
+  return save.lore.length;
+}
+
+/** The secret rooms of the current level, in registration order. */
+export function secretRooms(): string[] {
+  return session.world.allRooms.filter((r) => r.data.secret).map((r) => r.data.id);
+}
+
+// ------------------------------------------------------------
 // The menu model
 // ------------------------------------------------------------
 type RowKind = 'menu' | 'toggle' | 'action' | 'option' | 'info';
@@ -193,7 +260,10 @@ interface Row {
 
 const onOff = (v: boolean): string => (v ? '[ON]' : '[  ]');
 
-function toggleRow(label: string, key: 'god' | 'noclip' | 'hitboxes' | 'frozen'): Row {
+function toggleRow(
+  label: string,
+  key: 'god' | 'noclip' | 'hitboxes' | 'frozen' | 'secrets',
+): Row {
   return {
     kind: 'toggle',
     label,
@@ -328,6 +398,44 @@ function worldMenu(): Row[] {
   ];
 }
 
+/** The hidden rooms of the level, same shape as `roomsMenu`. Reuses the
+ *  one `warp`: a second teleport that "also does secrets" is how the two
+ *  drift apart. Levels without any say so instead of showing a blank
+ *  page — an empty list reads as the toolkit being broken. */
+function secretRoomsMenu(): Row[] {
+  const ids = secretRooms();
+  if (!ids.length) return [{ kind: 'info', label: 'este nivel no tiene' }];
+  return ids.map((id, i) => ({
+    kind: 'action' as const,
+    label: `${i + 1}. ${id}`,
+    value: () => (session.world.current.data.id === id
+      ? '•' : session.visited.has(id) ? '·' : ''),
+    lit: () => session.world.current.data.id === id,
+    enter: (): string => { warp(id); return `sala: ${id}`; },
+  }));
+}
+
+function secretsMenu(): Row[] {
+  return [
+    toggleRow('Revelar muros', 'secrets'),
+    { kind: 'action', label: 'Romper muros', enter: () => `${breakSecrets()} muros rotos` },
+    { kind: 'action', label: 'Leer todo', enter: () => `${readAllLore(true)} inscripciones` },
+    {
+      kind: 'action',
+      label: 'OLVIDAR TODO',
+      enter: (): string => { readAllLore(false); return 'archivo vacío'; },
+    },
+    { kind: 'menu', label: 'Ir a secreto', child: secretRoomsMenu },
+    { kind: 'info', label: 'muros de la sala', value: () => `${secretWalls()}` },
+    {
+      kind: 'info',
+      label: 'inscripciones',
+      value: () => `${session.save.lore.length}/${LORE_IDS.length}`,
+    },
+    { kind: 'info', label: 'secretos', value: () => `${session.save.secrets.length}` },
+  ];
+}
+
 function saveMenu(): Row[] {
   return [
     {
@@ -350,6 +458,7 @@ function rootMenu(): Row[] {
     { kind: 'menu', label: 'Salas', child: roomsMenu },
     { kind: 'menu', label: 'Jugador', child: playerMenu },
     { kind: 'menu', label: 'Mundo', child: worldMenu },
+    { kind: 'menu', label: 'Secretos', child: secretsMenu },
     { kind: 'menu', label: 'Guardado', child: saveMenu },
   ];
 }
@@ -649,6 +758,9 @@ export function initDevtools(s: GameSession, sc: SceneManager): void {
   (window as unknown as Record<string, unknown>).__dev = {
     debug, warp, hopRoom, level, tp, giveAbilities, heal,
     collectCrystals, killEnemies, openDoor, revealRooms, unlock,
+    // The reveal toggle is `__dev.debug.secrets = true` — it lives on
+    // the flags object with the rest of the switches, not here.
+    breakSecrets, readAllLore, secretWalls, secretRooms,
     menu: togglePanel,
     get session() { return session; },
     get room() { return session.world.current; },

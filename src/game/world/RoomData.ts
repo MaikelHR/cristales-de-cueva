@@ -2,10 +2,12 @@
 //  ROOM FORMAT (data, not code)
 // ------------------------------------------------------------
 //  A room is two separate things:
-//   - `tiles`: the geometry as text. ONLY seven characters:
+//   - `tiles`: the geometry as text. ONLY eight characters:
 //       '#' = solid block   '.' = air   '-' = one-way plank
 //       '^' = spikes (hurt when stepped on; not solid)
 //       '%' = cracked block (solid; broken by pound/dash)
+//       '*' = FALSE WALL (a cracked block drawn as ordinary rock: it
+//             breaks by the same rule, it just doesn't say so)
 //       '~' = ice (solid; slippery underfoot)
 //       '=' = water (NOT solid; you float on it, then dive through it)
 //   - `entities`: what lives in the room (enemies, crystals,
@@ -20,6 +22,7 @@
 // ============================================================
 
 import type { AbilityName } from '../abilities';
+import type { LoreId, MuralName } from '../lore';
 
 /** A map cell (tile coordinates, not pixels). */
 export interface Cell {
@@ -121,12 +124,32 @@ export type EntitySpawn =
   | (Cell & { type: 'medusa'; range: number })
   // Eel: idles in its lane, then darts `range` cells along `axis`; it
   // is only vulnerable to the dash-lunge during the stun afterwards.
-  | (Cell & { type: 'anguila'; axis: 'x' | 'y'; range: number });
+  | (Cell & { type: 'anguila'; axis: 'x' | 'y'; range: number })
+  // Carved inscription. Stand still beside it and the cave says its
+  // piece; after that it stays lit and the Archive keeps it. `lore` is
+  // typed against the LORE table, so a glyph cannot name an
+  // inscription that was never written.
+  | (Cell & { type: 'glifo'; lore: LoreId })
+  // Veil: a `w`x`h` curtain of the NEAR plane hung over the geometry,
+  // hiding whatever is behind it until you walk in and it parts. It is
+  // not solid and it never blocks — the passage behind it is ordinary
+  // air the whole time — so it costs no ability, which is what lets a
+  // level with no relics yet still keep a secret.
+  | (Cell & { type: 'velo'; w: number; h: number })
+  // Mural: wordless story art painted on the back wall, `w`x`h` cells
+  // from (x, y). Pure scenery: nothing collides with it.
+  | (Cell & { type: 'mural'; art: MuralName })
+  // The reward for finding a secret: points and nothing else. It is
+  // deliberately NOT a crystal — the door opens on the crystal count,
+  // so a crystal hidden behind a false wall would turn an optional
+  // find into a compulsory one, and the level would be lying about
+  // what it asks of you.
+  | (Cell & { type: 'vestigio' });
 
 export interface RoomData {
   /** Unique name; exits from other rooms point to this id. */
   id: string;
-  /** The geometry: rows of '#', '.', '-', '^', '%', '~' and '='. All the same length. */
+  /** The geometry: rows of '#', '.', '-', '^', '%', '*', '~' and '='. All the same length. */
   tiles: string[];
   /** What lives in the room, in map cells. */
   entities: EntitySpawn[];
@@ -134,9 +157,17 @@ export interface RoomData {
   exits?: { left?: string; right?: string };
   /** The cell this room occupies on the level map (progress bar / overworld). */
   mapPos: Cell;
+  /**
+   * A HIDDEN room: reached only through a false wall or a veil, and
+   * therefore never part of the level's spine. The progress bar skips
+   * it (it counts the rooms you must cross, and a bar that jumps from
+   * 4/12 to 6/12 because you found something reads as a bug), and it
+   * shares its host room's mapPos so it takes no column of its own.
+   */
+  secret?: boolean;
 }
 
-const TILE_CHARS = new Set(['#', '.', '-', '^', '%', '~', '=']);
+const TILE_CHARS = new Set(['#', '.', '-', '^', '%', '*', '~', '=']);
 
 /**
  * Checks the integrity of ONE LEVEL's rooms and returns the list of
@@ -184,6 +215,43 @@ export function validateRooms(rooms: RoomData[]): string[] {
   if (spawns.length !== 1) errors.push(`el nivel necesita exactamente 1 playerSpawn (hay ${spawns.length})`);
   const doors = rooms.flatMap((r) => r.entities.filter((e) => e.type === 'door'));
   if (doors.length === 0) errors.push('el nivel no tiene ninguna puerta (meta)');
+
+  // --- What a SECRET room is allowed to be. These are the rules the
+  // whole feature rests on, so they are checked rather than remembered.
+  const spineCols = new Set(rooms.filter((r) => !r.secret).map((r) => r.mapPos.x));
+  for (const room of rooms) {
+    if (!room.secret) continue;
+    // Nothing the run REQUIRES may hide behind a secret. A crystal
+    // would gate the door on finding it; the spawn or the door would
+    // make the level unplayable for anyone who didn't.
+    for (const type of ['crystal', 'playerSpawn', 'door'] as const) {
+      if (room.entities.some((e) => e.type === type)) {
+        errors.push(`${room.id}: una sala secreta no puede contener '${type}' (haría obligatorio encontrarla)`);
+      }
+    }
+    // Worse than a crystal: `bossAlive` walks EVERY room in the world,
+    // so a boss nobody found keeps the door shut for the whole run with
+    // no way to know why.
+    for (const boss of ['boss', 'ariete', 'ajolote', 'custodio', 'capataz', 'matriarca'] as const) {
+      if (room.entities.some((e) => e.type === boss)) {
+        errors.push(`${room.id}: un jefe ('${boss}') en una sala secreta dejaría la puerta cerrada para siempre`);
+      }
+    }
+    // It rides a spine room's column instead of adding one of its own,
+    // or the progress bar grows a phantom segment nobody can reach.
+    if (!spineCols.has(room.mapPos.x)) {
+      errors.push(`${room.id}: sala secreta en la columna ${room.mapPos.x}, donde no hay ninguna sala del camino principal`);
+    }
+  }
+
+  // A glyph is only worth placing if someone can end up in front of it,
+  // and two glyphs on the same inscription would list it twice.
+  const glyphs = rooms.flatMap((r) => r.entities.flatMap((e) => (e.type === 'glifo' ? [e.lore] : [])));
+  const seenGlyphs = new Set<string>();
+  for (const id of glyphs) {
+    if (seenGlyphs.has(id)) errors.push(`la inscripción '${id}' está colocada más de una vez`);
+    seenGlyphs.add(id);
+  }
 
   return errors;
 }

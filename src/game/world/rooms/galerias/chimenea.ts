@@ -67,6 +67,11 @@ export const chimenea: RoomData = {
   ],
   entities: [
     { type: 'relic', ability: 'wallJump', x: 13, y: 37 },
+    // Cut into the step at the foot of the shaft, on the main road and
+    // exactly where the level turns from walking to climbing: you land
+    // at the bottom, walk east along the floor, and the last flat tile
+    // before the chimney has the reason for the chimney written on it.
+    { type: 'glifo', x: 13, y: 41, lore: 'gal_tiro' },
     { type: 'crystal', x: 13, y: 22 },
     { type: 'flyer', x: 13, y: 30 },
     { type: 'crystal', x: 27, y: 38 },

@@ -5,7 +5,10 @@ import type { RoomData } from '../../RoomData';
  *  bronce marcan las horas en el techo y el fondo es la ultima cama de
  *  cal. El altar vuela sobre el agua, como todo en este nivel, asi que la
  *  puerta no se alcanza trepando: se llega arriba con la marea llena y se
- *  sale por donde el reloj te deja. */
+ *  sale por donde el reloj te deja.
+ *  En el pavimento del altar, entre el desembarco (56) y la puerta (62),
+ *  esta grabada la ultima vuelta de cuerda: se lee de pie, en seco, y es
+ *  lo ultimo que dice el nivel antes de la hoja. */
 export const esfera: RoomData = {
   id: 'esfera',
   mapPos: { x: 14, y: 0 },
@@ -46,6 +49,9 @@ export const esfera: RoomData = {
     { type: 'crystal', x: 30, y: 10 },
     { type: 'crystal', x: 46, y: 20 },
     { type: 'medusa', range: 2, x: 38, y: 16 },
+    // Losa del altar (52-71 es roca en la fila 12): se lee de pie sobre
+    // la fila 11, cuatro tiles antes de la puerta.
+    { type: 'glifo', x: 58, y: 12, lore: 'rel_esfera' },
     { type: 'door', x: 62, y: 10 },
   ],
 };

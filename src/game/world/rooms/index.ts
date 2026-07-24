@@ -34,6 +34,7 @@ import type { LevelDef } from '../LevelData';
 import { senda } from './cavernas/senda';
 import { galeria } from './cavernas/galeria';
 import { umbral } from './cavernas/umbral';
+import { covacha } from './cavernas/covacha';
 import { cornisas } from './galerias/cornisas';
 import { chimenea } from './galerias/chimenea';
 import { salida } from './galerias/salida';
@@ -70,6 +71,7 @@ import { torre } from './simas/torre';
 import { pozo } from './simas/pozo';
 import { aguja } from './simas/aguja';
 import { corona } from './simas/corona';
+import { malacate } from './simas/malacate';
 import { aljibe } from './reloj/aljibe';
 import { canal } from './reloj/canal';
 import { sifon } from './reloj/sifon';
@@ -103,6 +105,7 @@ import { abside } from './cripta/abside';
 import { presbiterio } from './cripta/presbiterio';
 import { cimborrio } from './cripta/cimborrio';
 import { sepulcro } from './cripta/sepulcro';
+import { bodega } from './cripta/bodega';
 import { atrio } from './puerta/atrio';
 import { claustro } from './puerta/claustro';
 import { roseton } from './puerta/roseton';
@@ -114,7 +117,9 @@ export const LEVELS: LevelDef[] = [
   {
     id: 'cavernas',
     nameKey: 'lvl_cavernas',
-    rooms: [senda, galeria, umbral],
+    // `covacha` is HIDDEN and therefore LAST: rooms[0] is where the run
+    // starts, and a secret room may not even hold a spawn.
+    rooms: [senda, galeria, umbral, covacha],
     startAbilities: [],
   },
   {
@@ -187,6 +192,9 @@ export const LEVELS: LevelDef[] = [
     rooms: [
       brocal, caida, vena, polea, vertigo, fondo,
       resquicio, cadenas, torre, pozo, aguja, corona,
+      // SECRETA, y por eso la última: la primera sala es donde
+      // empieza el mundo, y una escondida delante robaría el spawn.
+      malacate,
     ],
     startAbilities: [
       'doubleJump', 'wallJump', 'dash', 'glide', 'pound', 'smash', 'dive', 'shrink', 'swing',
@@ -211,6 +219,9 @@ export const LEVELS: LevelDef[] = [
       portico, nartex, osario, nicho, girola, columbario,
       tumulo, estela, catafalco, arcosolio, hipogeo, sudario,
       panteon, cenotafio, abside, presbiterio, cimborrio, sepulcro,
+      // La sala secreta va SIEMPRE la ultima: rooms[0] es donde
+      // arranca el mundo y donde tiene que estar el spawn.
+      bodega,
     ],
     startAbilities: [
       'doubleJump', 'wallJump', 'dash', 'glide', 'pound', 'smash', 'dive', 'shrink', 'swing',

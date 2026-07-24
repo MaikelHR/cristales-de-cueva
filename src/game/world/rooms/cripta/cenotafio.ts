@@ -4,7 +4,16 @@ import type { RoomData } from '../../RoomData';
  *  Ni un aparato ni un bicho: tres escalones que bajan al nivel de los
  *  ecos y poco mas. Todo nivel largo necesita una sala donde no pase
  *  nada, y esta es la de la cripta: la calma justo antes de que empiecen
- *  a despertarse las cosas que ya mataste una vez. */
+ *  a despertarse las cosas que ya mataste una vez.
+ *
+ *  Y por eso esconde algo. La pared oeste es un macizo de dieciseis
+ *  columnas cuya cara cae limpia dieciseis filas seguidas (10 a 25) —
+ *  la unica superficie asi del nivel — y ahora tiene UNA muesca: la
+ *  columna 15 se hunde un tile en las filas 24-25, justo donde
+ *  aterrizas al bajar del rellano de entrada. Al fondo de la muesca, un
+ *  muro falso (columna 14) y detras la camara 7x3 de las filas 23-25:
+ *  el hueco esta medido para que el mural quepa entero, y se sale
+ *  andando por donde se entro, sin un solo salto. */
 export const cenotafio: RoomData = {
   id: 'cenotafio',
   mapPos: { x: 13, y: 0 },
@@ -33,9 +42,9 @@ export const cenotafio: RoomData = {
     '################...............................................#',
     '################...............................................#',
     '################...............................................#',
-    '################......................#######..................#',
-    '################................................................',
-    '################................................................',
+    '#######.......##......................#######..................#',
+    '#######.......*.................................................',
+    '#######.......*.................................................',
     '################################################################',
     '################################################################',
     '################################################################',
@@ -46,5 +55,9 @@ export const cenotafio: RoomData = {
   entities: [
     { type: 'crystal', x: 24, y: 12 },
     { type: 'crystal', x: 40, y: 18 },
+    // Detras del muro falso: la tumba de verdad de una sala que se
+    // llama tumba vacia. Ni cristal ni jefe — puntos y una pintura.
+    { type: 'mural', x: 7, y: 23, art: 'caida' },
+    { type: 'vestigio', x: 10, y: 24 },
   ],
 };

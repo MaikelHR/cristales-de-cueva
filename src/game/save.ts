@@ -9,7 +9,11 @@
 //
 //  The save carries a `version`: v1 was from when the game had a
 //  single level (global records); parseSave() migrates those records
-//  onto the first level instead of discarding them.
+//  onto the first level instead of discarding them. v3 adds the two
+//  things that are NOT records — the inscriptions you have read and
+//  the secret rooms you have found. Those are not per-run and not
+//  per-level bests: they are things the player KNOWS, and once known
+//  they stay known. That is the whole reason the Archive can exist.
 //
 //  parseSave/serializeSave/recordRun are pure (Node-testable);
 //  localStorage access lives separately and wrapped in try/catch: if
@@ -19,7 +23,7 @@
 
 const KEY = 'cristales-save-v1';
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 // The id of the first level: v1 records (single level) migrate here.
 // If the level 1 id ever changes, this constant must NOT change on its
@@ -37,13 +41,19 @@ export interface LevelRecord {
 export interface SaveData {
   version: number;
   levels: Record<string, LevelRecord>;
+  /** Inscriptions read, by LORE id. Kept as an array rather than a Set
+   *  so the save is plain JSON; order is discovery order, which is what
+   *  the Archive shows when it has nothing better to sort by. */
+  lore: string[];
+  /** Secret rooms found, by room id. */
+  secrets: string[];
 }
 
 export function emptyRecord(): LevelRecord {
   return { completions: 0, bestScore: 0, bestTime: 0, bestTrialTime: 0 };
 }
 
-const DEFAULT: SaveData = { version: SAVE_VERSION, levels: {} };
+const DEFAULT: SaveData = { version: SAVE_VERSION, levels: {}, lore: [], secrets: [] };
 
 /** A level's record, without mutating the save (for reading and display). */
 export function levelRecord(save: SaveData, levelId: string): LevelRecord {
@@ -104,6 +114,33 @@ export function recordRun(save: SaveData, levelId: string, run: RunResult): RunF
   return flags;
 }
 
+/**
+ * Files an inscription as read. Returns true if it is NEW — which is
+ * what the caller needs to know to make a sound about it.
+ */
+export function markLore(save: SaveData, id: string): boolean {
+  if (save.lore.includes(id)) return false;
+  save.lore.push(id);
+  return true;
+}
+
+/** Same for a secret room the player just walked into. */
+export function markSecret(save: SaveData, roomId: string): boolean {
+  if (save.secrets.includes(roomId)) return false;
+  save.secrets.push(roomId);
+  return true;
+}
+
+/** Normalizes a raw list of ids: strings only, no duplicates, no junk. */
+function cleanIds(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  for (const v of raw) {
+    if (typeof v === 'string' && v.length > 0 && !out.includes(v)) out.push(v);
+  }
+  return out;
+}
+
 /** Normalizes a raw record: valid numbers or 0, never garbage. */
 function cleanRecord(raw: unknown): LevelRecord {
   const r = (typeof raw === 'object' && raw !== null ? raw : {}) as Partial<LevelRecord>;
@@ -135,6 +172,8 @@ export function parseSave(raw: string | null): SaveData {
       return {
         version: SAVE_VERSION,
         levels: hasAnything ? { [FIRST_LEVEL_ID]: legacy } : {},
+        lore: [],
+        secrets: [],
       };
     }
 
@@ -145,7 +184,14 @@ export function parseSave(raw: string | null): SaveData {
         levels[id] = cleanRecord(rec);
       }
     }
-    return { version: SAVE_VERSION, levels };
+    // v2 -> v3: a save from before the cave could talk simply hasn't
+    // read anything yet. Nothing to convert, and nothing to lose.
+    return {
+      version: SAVE_VERSION,
+      levels,
+      lore: cleanIds(data.lore),
+      secrets: cleanIds(data.secrets),
+    };
   } catch {
     return structuredClone(DEFAULT);
   }

@@ -9,7 +9,13 @@ import type { RoomData } from '../../RoomData';
  *  eats the stomp arc). The last crystal floats above the plank —
  *  claiming it is part of the duel. From the plank, down + jump drops
  *  through it: the diving stomp lands straight onto the guardian's
- *  patrol. The door waits on the altar, closed until the end. */
+ *  patrol. The door waits on the altar, closed until the end.
+ *  And the altar is HOLLOW. Forty tiles of dead-flat arena run east
+ *  into a blank twelve-wide face, and the last two rows of it are a
+ *  curtain: the alcove behind sits directly under the door, which is
+ *  where the people who left something minding this place wrote down
+ *  what they had done. This level has no pound and no smash, so the
+ *  way in is a veil — walk at it and it parts. */
 export const santuario: RoomData = {
   id: 'santuario',
   mapPos: { x: 2, y: 0 },
@@ -32,8 +38,8 @@ export const santuario: RoomData = {
     '................................................########',
     '########........................................########',
     '########....................................############',
-    '#...........................................############',
-    '#...........................................############',
+    '#..................................................#####',
+    '#..................................................#####',
     '########################################################',
     '########################################################',
     '########################################################',
@@ -42,5 +48,11 @@ export const santuario: RoomData = {
     { type: 'boss', x: 26, y: 9 },
     { type: 'crystal', x: 27, y: 3 },
     { type: 'door', x: 50, y: 13 },
+    // The curtain at the foot of the altar, right where the climb to
+    // the door starts.
+    { type: 'velo', x: 44, y: 17, w: 2, h: 2 },
+    { type: 'vestigio', x: 47, y: 18 },
+    // The back wall of the alcove, under the door itself.
+    { type: 'glifo', x: 51, y: 18, lore: 'cor_ensayo' },
   ],
 };

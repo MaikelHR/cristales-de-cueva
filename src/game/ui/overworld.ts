@@ -19,6 +19,7 @@ import { getMove } from '../touchLayout';
 import type { GameSession, GameMode } from '../session';
 import { LEVELS, levelAtNode, isChallengeNode, GROTTO_NODE_COUNT, FINAL_LEVEL_ID } from '../world/rooms';
 import { levelRecord } from '../save';
+import { loreOfLevel } from '../lore';
 import { sprites } from '../art/sprites';
 import { playerSprites } from '../art/playerSkins';
 import { currentSkin } from '../skins';
@@ -766,6 +767,18 @@ function drawPanel(
   if (rec.bestTrialTime > 0) parts.push(t('trial_best', { t: formatTime(rec.bestTrialTime) }));
   if (rec.completions > 0) {
     parts.push(rec.completions === 1 ? t('completed_once') : t('completed_many', { n: rec.completions }));
+  }
+  // How much of this level's WRITING you have. It only appears once
+  // you have beaten the level, and it is the one honest answer to
+  // "should I go back in?": knowing a level still hides something is
+  // what turns hitting every wall in the game into visiting one room
+  // again. Hollow Knight gives you the same information as a blank
+  // patch on its map; this game has a progress bar instead, so it
+  // gives it as a number.
+  const glyphs = loreOfLevel(level.id);
+  if (glyphs.length > 0 && rec.completions > 0) {
+    const found = glyphs.filter((id) => save.lore.includes(id)).length;
+    parts.push(t('ow_glyphs', { n: found, m: glyphs.length }));
   }
   if (parts.length > 0) {
     ctx.fillStyle = '#7ce0ff';

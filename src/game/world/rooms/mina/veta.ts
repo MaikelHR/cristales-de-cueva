@@ -37,9 +37,9 @@ export const veta: RoomData = {
     '#.......###....^^^^^^^^^...##..........................................#',
     '........###...###########..##...........................................',
     '....##.....................##...........................................',
-    '###########################..................###.....................###',
-    '################################################^^^^^^^^^^^^^^^^^^^^^###',
-    '########################################################################',
+    '##########################*..................###.....................###',
+    '#####################......#####################^^^^^^^^^^^^^^^^^^^^^###',
+    '#####################......#############################################',
     '########################################################################',
   ],
   entities: [
@@ -59,5 +59,16 @@ export const veta: RoomData = {
     { type: 'crumble', x: 62, y: 14 },
     { type: 'crumble', x: 65, y: 16 },
     { type: 'crystal', x: 59, y: 11 }, // #6: crowning the tallest step
+    // THE SECRET. You crawl out of the spike burrow and stand up in a
+    // two-column dead end that pays nothing — the only flat spot
+    // between the burrow and the pit, walled by the hanging pillar.
+    // The floor tile against that pillar is a false one: walk east
+    // until you stop, pound, and you drop into the mine's own vault.
+    // (Only the EAST tile is false — the west one still holds you at
+    // full size, or the burrow could never be entered from this side
+    // again. Inside, walking east into the wall lines you up under the
+    // hole you came through.)
+    { type: 'vestigio', x: 23, y: 18 },
+    { type: 'glifo', lore: 'min_farol', x: 20, y: 19 },
   ],
 };

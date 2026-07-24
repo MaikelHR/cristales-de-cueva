@@ -6,11 +6,18 @@ import type { RoomData } from '../../RoomData';
  *  nivel— espera nada más entrar, con su cristal en el plato que
  *  sube: súbete a uno y el otro se eleva; el nivel se presenta solo.
  *  La salida está arriba y a la derecha, así que el primer problema
- *  ya es subir usándolo. */
+ *  ya es subir usándolo.
+ *
+ *  Y hacia el OTRO lado, tres tiles a la espalda del punto de
+ *  aparición, el andén topa contra un machón de roca de 1x2 que no
+ *  sostiene nada: es el MURO FALSO del malacate. Está ahí, a la
+ *  distancia exacta a la que la junta se enciende y suelta polvo, en
+ *  el primer fotograma del nivel — el vocabulario del muro falso se
+ *  enseña aquí, mirando hacia atrás, antes de bajar. */
 export const brocal: RoomData = {
   id: 'brocal',
   mapPos: { x: 0, y: 0 },
-  exits: { right: 'caida' },
+  exits: { left: 'malacate', right: 'caida' },
   tiles: [
     '########################################################',
     '########################################################',
@@ -32,8 +39,8 @@ export const brocal: RoomData = {
     '#......................................................#',
     '#......................................................#',
     '#......................................................#',
-    '#......................................................#',
-    '#......................................................#',
+    '.*.....................................................#',
+    '.*.....................................................#',
     '###################...........#########................#',
     '###################...........#########................#',
     '###################....................................#',
@@ -52,6 +59,10 @@ export const brocal: RoomData = {
   entities: [
     { type: 'playerSpawn', x: 4, y: 20 },
     { type: 'contrapeso', right: 34, ceil: 5, x: 22, y: 21 },
+    // En el labio del andén, el último tile firme antes del vacío: es
+    // donde te paras a medir el salto al plato, y lo que dice la
+    // piedra ahí es la regla de la máquina que tienes delante.
+    { type: 'glifo', x: 17, y: 21, lore: 'sim_contrapeso' },
     { type: 'crystal', x: 35, y: 19 },
     { type: 'crystal', x: 22, y: 32 },
     { type: 'flyer', x: 40, y: 14 },

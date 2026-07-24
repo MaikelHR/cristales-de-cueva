@@ -11,13 +11,18 @@
 //  loaded with a dynamic import from main.ts, also behind a DEV check,
 //  so none of its code reaches the bundle either.
 //
-//    `                  // open/close the toolkit
+//    M  (or F2)         // open/close the toolkit
 //    __dev.god = true   // or from the console
 // ============================================================
 
 export const debug = {
   /** Draw every collision box. */
   hitboxes: false,
+  /** Light up every false wall ('*') at full seam strength, from
+   *  anywhere in the room instead of at arm's length. A LOOKING flag,
+   *  like `hitboxes`: it changes what you see, never what the run does,
+   *  which is why `cheatsActive` below deliberately ignores it. */
+  secrets: false,
   /** No damage, no drowning in a pit, no game over. */
   god: false,
   /** Fly through geometry with the movement keys (dash = faster). */

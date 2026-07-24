@@ -20,6 +20,9 @@ import { Popups } from './effects/Popups';
 import { initDust } from './art/atmosphere';
 import { loadSave, recordRun, writeSave, type RunFlags, type SaveData } from './save';
 import { ABILITY_NAMES } from './abilities';
+import type { LoreId } from './lore';
+import { Glifo } from './actors/Glifo';
+import { resetLorePlate } from './ui/lorePlate';
 import { sfx } from './sfx';
 import { debug } from './debug';
 
@@ -61,12 +64,22 @@ export class GameSession {
   // Big on-screen notice (on gaining an ability, on killing the boss).
   announceText = '';
   announceTimer = 0;
+  /** The inscription the player is standing in front of right now, or
+   *  null. Set every step by systems/lore.ts and read by the UI: the
+   *  plate is a pure function of where you are, not a mode you enter,
+   *  so there is no state to get stuck in. */
+  readingLore: LoreId | null = null;
+  /** Standing next to an inscription but not yet reading it. Drives the
+   *  one-line cue that teaches the verb — without it, an inscription is
+   *  a thing you walk past forever without learning it does anything. */
+  loreNear = false;
 
   constructor(
     readonly viewW: number,
     readonly viewH: number,
   ) {
     this.world = new World(this.clock, this.level.rooms);
+    this.syncLoreFromSave();
     this.player = new Player(this.world.current.level, this.particles);
     this.spawnAtStart();
     this.saveCheckpoint();
@@ -90,6 +103,24 @@ export class GameSession {
     this.tick(dt);
     this.particles.update(dt);
     if (includePopups) this.popups.update(dt);
+  }
+
+  /**
+   * Lights every inscription this save has already read.
+   *
+   * A Glifo's `read` flag lives on the actor, and the actors are
+   * rebuilt from scratch every time a run starts — so without this,
+   * walking back into a level you have already read would show all its
+   * plaques dark again while the Archive happily listed them. The lit
+   * face IS the "which of these have I seen" signal across a level;
+   * a signal that lies on the second visit is worse than none.
+   */
+  private syncLoreFromSave(): void {
+    for (const room of this.world.allRooms) {
+      for (const actor of room.actors) {
+        if (actor instanceof Glifo) actor.read = this.save.lore.includes(actor.lore);
+      }
+    }
   }
 
   /** Places the player at the starting room's spawn. */
@@ -183,6 +214,7 @@ export class GameSession {
    *  the level's starting abilities, hearts at max. */
   reset(): void {
     this.world = new World(this.clock, this.level.rooms);
+    this.syncLoreFromSave();
     this.player.setLevel(this.world.current.level);
     this.spawnAtStart();
     this.player.health = this.player.maxHealth; // hearts at max
@@ -195,6 +227,8 @@ export class GameSession {
       this.player.abilities[key] = this.level.startAbilities.includes(key);
     }
     this.announceTimer = 0;
+    this.readingLore = null;
+    resetLorePlate();
     this.score = 0;
     this.runFlags = { newBestScore: false, newBestTime: false, newBestTrial: false };
     this.runTime = 0;

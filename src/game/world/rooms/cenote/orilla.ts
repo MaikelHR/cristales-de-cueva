@@ -39,16 +39,27 @@ export const orilla: RoomData = {
     '##########===###.........##..........#####....######=====###',
     '##########===#####=======##=======########====######=====###',
     '##################=======##=======########====######=====###',
-    '##################=======##=======##################=====###',
-    '##################=======##=======##################=====###',
+    '##################=======##=======#############....*=====###',
+    '##################=======##=======#############....*=====###',
     '############################################################',
     '############################################################',
   ],
   entities: [
     { type: 'playerSpawn', x: 3, y: 12 },
+    // At the lip of the dry shelf, one tile short of the first water in
+    // the level: you walk up to the edge, stop, and the shore says what
+    // it is. The last dry ground before the whole world gets wet.
+    { type: 'glifo', lore: 'cen_agua', x: 8, y: 12 },
     { type: 'medusa', range: 2, x: 30, y: 16 },
     { type: 'crystal', x: 43, y: 15 }, // #1: drop through the plank, dip at the surface
     { type: 'crystal', x: 54, y: 18 }, // #2 foreshadow: deep sinkhole beside the perla mouth, dive-only
     { type: 'corriente', dir: 'up', length: 5, x: 52, y: 18 }, // the ride back out, post-dive
+    // THE SINKHOLE HAS A WEST WALL AND IT IS NOT ALL ROCK. You only get
+    // to this depth with the dive, which is the whole point: the room
+    // already promises you'll come back down here for #2, and hovering
+    // at the crystal you are three tiles from a seam. Lunge west (the
+    // aquatic dash still shatters) into a dry pocket sealed under the
+    // shore — the one place in the water level that is not wet.
+    { type: 'vestigio', x: 48, y: 18 },
   ],
 };

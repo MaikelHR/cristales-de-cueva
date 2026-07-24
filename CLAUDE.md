@@ -84,7 +84,8 @@ and all 174 tests were green the entire time.
   `safeSpotHolds()` falls back to the room-mouth `checkpoint` if that rock was since
   shattered. The punishment is the heart, not re-walking the room.
 - `src/game/scenes/` — flow as a scene STACK (Title, Overworld, OverworldPause, Gameplay,
-  Pause, Won, GameOver). Only the top scene updates; all draw bottom-up (Pause is pushed over
+  Pause, Won, GameOver, Character, Archive). Only the top scene updates; all draw bottom-up
+  (Pause is pushed over
   Gameplay and freezes it by covering it). New screen = new scene. Flow: Title →
   Overworld (Mario-style level map: walk node to node, jump/confirm enters; a completed
   level opens the normal/time-trial mode chooser; pause pushes OverworldPause — resume /
@@ -101,6 +102,21 @@ and all 174 tests were green the entire time.
   inverted controls. Past the door the road keeps going and the MAP SCROLLS instead:
   `owCamX` centres the view on the avatar, clamped to the map — and stays pinned at 0
   while the road is hidden, so world 1 is still the whole cave at a glance.
+- `src/game/lore.ts` — the cave's WRITING, pure data (no DOM, Node-testable). The `LORE`
+  table is the source of truth the way `INSTRUMENTS` is for the orchestra: `LoreId` is
+  derived from it, so a glyph in a room can only ask for an inscription that exists and
+  a typo is a compile error instead of a blank wall. Texts live here and not in
+  `i18n.ts` because i18n's shape is one flat line per string, which is right for "PAUSE"
+  and wrong for a four-line inscription that has to stay together in two languages.
+  THE STORY IS AN ASCENT: world 1 is one layer of the underground, and every world after
+  it is higher (a shallower layer, the surface, the clouds, space, and past that). The
+  builders were people OF this depth; the Work — forge, mine, water clock, the chained
+  hoists — is ONE MACHINE FOR GOING UP, and the great door is its mouth, the FIRST RUNG
+  and not an exit to daylight. That reading is what keeps the shipped ending line ("La
+  gruta queda atrás. Afuera hay luz.") true while leaving every world above it unwritten.
+  An inscription may hint the door is not the last door; none may name or date what is up
+  there. They are epitaphs, not tutorials: one voice, from one moment, that did not know
+  how things turned out, and the story is assembled by the reader from several of them.
 - `src/game/systems/` — gameplay rules as functions over the session: `combat.ts`
   (stomp-vs-hurt; `isStomp` is the pure, tested decision; DEFEATING an enemy gives a
   heart back — `player.heal()`, capped at maxHealth and a no-op at full life, so at full
@@ -120,7 +136,37 @@ and all 174 tests were green the entire time.
 - `src/game/render/` + `src/game/ui/` — all drawing: `drawWorld` composition, tile
   auto-tiling, HUD, minimap, screen overlays, `overworld.ts` (level map + `OW_NODES`).
   Logic modules never draw.
-- `src/game/art/` — palette, sprite pixel-grids, glow, atmosphere (parallax/fog/dust).
+  DEPTH COMES FROM LAYERS THAT MOVE. The scene used to be six parallax layers behind the
+  tiles and NOTHING in front of them, so everything was either behind you or exactly at
+  your depth and the picture had no front. `foreground.ts` is the missing plane: rock
+  teeth and low mounds at parallax 1.22 — above 1 is the only unambiguous "nearer than
+  you" signal, since far things lag the camera and near things outrun it. `backWall.ts`
+  adds the CONTACT SHADING: one to three hard-edged pixels on the air side of every
+  rock/air seam (the shadow under a ledge, the lit and dim faces of an opening), which is
+  what gives a ledge a thickness. Colours derive from the biome's own TileSet, so a new
+  level declares nothing.
+  DO NOT REBUILD THE BACK WALL. `backWall.ts` shipped first as a full textured plane at
+  parallax 0.88 filling every air cell, faded by a distance-to-rock field so tunnels
+  closed in and halls stayed open. It is the right idea on paper and it does not work
+  here: at this resolution a broad semi-transparent fill over the parallax does not read
+  as a wall behind you, it reads as a SHADOW SMEARED around the platforms, and it buries
+  the six parallax layers that are the game's actual look. Two rounds of retuning made it
+  dimmer without making it read better, because the problem was the idea. `Level`'s
+  `depthCell` field (chamfer 3-4, not Chebyshev — Chebyshev makes distance-from-the-wall
+  identical all the way round a rectangular room, so anything drawn from it comes out as
+  concentric RECTANGLES) survives for whatever wants it next.
+  THE FOREGROUND CANNOT COST YOU A LIFE, and that is a specification, not a nicety.
+  Silksong's foreground occluders are its most-complained-about visual decision (both
+  accessibility reviewers and sighted players report objects hiding arenas and
+  platforming; Team Cherry's answer across five patches was a dithering toggle, not
+  moving anything). So: peak alpha is 0.55, never 1; every occluder FADES as a function
+  of distance to the player (`occlusion.ts`, pure and tested precisely because it is the
+  rule that must not regress); the bottom band stays <=10px because that is where spike
+  beds and landing rows are; and it does not draw AT ALL in a boss room — the Custodio's
+  whole contract is that nothing skips the announcement, and an occluder over a telegraph
+  is the gold-shard bug again.
+- `src/game/art/` — palette, sprite pixel-grids, glow, atmosphere (parallax/fog/dust),
+  `murals.ts` (wordless story art painted on the back wall).
 - `src/game/sfx.ts` + `src/game/music.ts` — the game's sound. Sfx are tone recipes; the
   soundtrack is `Song` data: one theme per screen (title/overworld) and per level
   (`LEVEL_SONGS` by level id). ALL themes quote one leitmotif ("el tema del cristal",
@@ -142,8 +188,10 @@ and all 174 tests were green the entire time.
 
 `src/game/world/rooms/<level>/*.ts`: geometry as ASCII rows (`#` solid, `.` air, `-`
 one-way plank, `^` spikes, `%` cracked block — solid until broken by pound-from-above
-or smash-dash, `~` ice — solid, slippery underfoot, `=` water — NOT solid, you FLOAT on
-it then DIVE through it once the relic is earned; ONLY these seven) + a typed
+or smash-dash, `*` FALSE WALL — a cracked block wearing ordinary rock's face (same break
+rule, no fissure: it is `%` that doesn't say so), `~` ice — solid, slippery underfoot,
+`=` water — NOT solid, you FLOAT on it then DIVE through it once the relic is earned;
+ONLY these eight) + a typed
 `entities` list (tile coords, e.g. `{ type: 'relic', ability: 'dash', x: 47, y: 9 }`,
 `{ type: 'platform', axis: 'x', range: 6, x: 8, y: 15 }`,
 `{ type: 'vent', height: 13, x: 50, y: 17 }` — updraft column that ONLY lifts a gliding
@@ -399,6 +447,60 @@ blind hop — several simas rooms shipped like that and read as "the level is br
 `validateRooms` can't see it: check it by hand, both directions. And this engine has no
 step-up, so a doorway at a different height than its ledge always costs a hop.
 
+## Lore, secrets and the archive
+
+READING IS A PRESS OF 'down', AND IT HAS TO BE A PRESS. `{ type: 'glifo', lore: <LoreId> }`
+is a carved plate that speaks when you are grounded, full-size, within 12px and press
+down; press again or walk off and it closes (`systems/lore.ts`). It shipped first as a
+DWELL — stand still beside one and it reads itself, on the theory that this needed no
+button — and that lasted exactly one playtest: you stop for half a second to look at a
+jump, and a wall of text opens over the floor you were looking at. Text the player did
+not ask for is an interruption no matter how good the text is.
+'down' is the only action that is exactly itself on the keyboard, the d-pad and the touch
+pad alike: ↑/W is bound to jump AND up at once, so an up-to-read plaque (Hollow Knight's
+binding) launches you off it, 'confirm' shares its key with jump, and 'back' is ESC,
+which is also pause. It costs no new binding, which is this project's standing rule for
+every verb added after the first. Standing at a plaque, reading BEATS shrinking
+(`player.atInscription`) — the same priority the plank-drop already takes over 'down'.
+So: never put a glyph at a burrow mouth, on a plank, or on a moving platform.
+`ui/lorePlate.ts` draws it as a SCREEN-space plate, never a world-space bubble (the
+crypt's rooms are 32 rows tall with the camera clamped low, so a plaque next to the glyph
+is clipped half the time), and it flips to whichever half of the screen the player is NOT
+in — reading must never mean losing sight of your own feet. Reading is saved the INSTANT
+it happens (a run can end in a pit; what the cave told you on the way should not die with
+it), `session.syncLoreFromSave()` re-lights the plaques you already know when a run
+starts, and `ArchiveScene` off the title menu reads it all back.
+
+SECRETS COME IN TWO KINDS, and which one a level may use is decided by its abilities:
+- `*` a FALSE WALL — breaks by the `%` rule, so it needs POUND (from glaciar) or
+  SMASH-dash (from fragua). The four levels before those can only use the other kind.
+- `{ type: 'velo', w, h }` a VEIL — a curtain of the near plane hung over ordinary air.
+  It needs no ability and never blocks, so it works in level 1 and can never trap anyone.
+DO NOT GIVE `*` A CRACK. Cracks are the documented failure: in a world where everything
+is already cracked, "cracked" carries no signal and players report being forced to hit
+every wall. `%` owns the fissure; `*` wears the biome's exact rock and pays for itself
+with a proximity tell — a seam that only lights within 46px, with dust sifting out of the
+top joint inside 35px. A static hairline reads as texture and the eye discards it;
+movement in a still wall does not.
+NOTHING REQUIRED IS EVER BEHIND A SECRET. `session.doorOpen` counts crystals across every
+room in the world and `bossAlive` walks all of them, so a crystal in a hidden room makes
+finding it compulsory and a boss in one keeps the door shut FOREVER with no way to know
+why. `validateRooms` enforces both, plus that a secret room carries no spawn and no door.
+The reward is `{ type: 'vestigio' }` (points, nothing else) and inscriptions.
+A SECRET ROOM CAN ONLY HANG OFF `rooms[0].left`. `World.tryTransition` reads one target
+per side and every middle room already spends both; `rooms[last].right` is past the door,
+where reaching the door ends the run. Everything else is a POCKET inside its host room.
+A secret room carries `secret: true`, its HOST's `mapPos.x`, and goes LAST in the level's
+`rooms` array (the first room is where `World` starts and where the spawn must be).
+`progress.ts` filters them out — `idByCol` is last-writer-wins, so a secret sharing its
+host's column would otherwise steal that column and leave the host's segment unlit.
+Keep the border column literal `'.'` on the two mouth rows and put the `*` one column IN:
+`rooms.test.ts` reads borders looking for `'.'`, and the room still reads as sealed.
+THE HONEST ANSWER TO "hit every wall" is knowing a level still hides something: the
+overworld card shows `inscripciones n/m` once you have beaten a level. Do not ship a
+permanent wall highlighter — the Silksong mod that does exists because the base game
+withholds it, and the withholding is the design.
+
 ## The challenge road (levels past the grotto)
 
 `GROTTO_NODE_COUNT` (10) is world 1; levels registered AFTER 'puerta' sit on nodes past
@@ -542,9 +644,13 @@ Player-facing text is **neutral LatAm Spanish (tuteo)** + English,
   `playerSprites()` and `currentSkin().glow` (never `sprites.player*` — those are gone).
   Selection: Title → CHARACTER opens `CharacterScene` (keyboard/gamepad); on touch, the
   two chips in skinSwitch.ts follow the same rules as the ES/EN chip.
-- Saves are versioned (`save.ts`, v2 = per-level records incl. best time-trial time):
-  change the format only via `parseSave` migration, never by breaking old localStorage
-  data. Record/unlock logic (`recordRun`, `unlockedLevels`) is pure and tested.
+- Saves are versioned (`save.ts`, v2 = per-level records incl. best time-trial time,
+  v3 = what the player KNOWS: `lore` and `secrets`, the inscriptions read and the hidden
+  rooms found — not per-run and not a "best", so once known they stay known, which is
+  what lets the Archive exist at all): change the format only via `parseSave` migration,
+  never by breaking old localStorage data. Record/unlock logic (`recordRun`,
+  `unlockedLevels`) and the knowledge helpers (`markLore`, `markSecret`) are pure and
+  tested.
 - Tone.js is the ONE runtime dependency and the bar for a second one is the same bar it
   cleared: a finished, good part of the game held back by hand-rolled infrastructure.
   "It would be convenient" is not that bar.
@@ -554,7 +660,14 @@ Player-facing text is **neutral LatAm Spanish (tuteo)** + English,
 **The MOD MENU — press `M`** (or `F2`). A GTA-style cheat menu (`game/dev/devtools.ts`)
 for EXPLORING: skip to any level, fast-travel to any room, fly through walls, stop
 dying, hand yourself every relic, open the door without earning it. Sections: Trampas ·
-Niveles · Salas · Jugador · Mundo · Guardado.
+Niveles · Salas · Jugador · Mundo · Secretos · Guardado.
+SECRETOS is the one you need to find anything: reveal every false wall in the room (a
+LOOKING flag like `hitboxes`, so `cheatsActive()` deliberately ignores it — it changes
+what you see, never what the run does), break them all, read every inscription, FORGET
+every inscription (testing the Archive from empty is the whole point, so it clears
+`save.lore` AND `save.secrets` and writes), and warp to a secret room. `readAllLore` has
+to flip the live `Glifo.read` flags as well as the save: nothing re-reads the save until
+the rooms are rebuilt, so writing alone looks like it did nothing.
 
 Driven by the KEYBOARD, which is the point of the shape — ↑↓ move, ↵/→ choose, ←/⌫ back,
 `M` closes, and ⌫ at the root closes too. Toggle rows show `[ON]`, option rows show

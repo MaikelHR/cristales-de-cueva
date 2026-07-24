@@ -33,6 +33,9 @@ import { Anguila } from '../actors/Anguila';
 import { Ajolote } from '../actors/Ajolote';
 import { Crystal } from '../actors/pickups/Crystal';
 import { Relic } from '../actors/pickups/Relic';
+import { Vestigio } from '../actors/pickups/Vestigio';
+import { Glifo } from '../actors/Glifo';
+import type { MuralName } from '../lore';
 import { Spring } from '../actors/devices/Spring';
 import { MovingPlatform } from '../actors/devices/MovingPlatform';
 import { BlinkPlatform } from '../actors/devices/Blink';
@@ -52,6 +55,14 @@ export class Room {
   readonly playerSpawn: Cell | null = null;
   /** The door (goal) box, if this room has one. */
   readonly doorBox: Box | null = null;
+  /** Curtains of the near plane that hide passages. Plain rectangles,
+   *  not actors: they have no behaviour and nothing collides with them.
+   *  Kept as boxes rather than as something from render/ on purpose —
+   *  world/ must stay importable under Node, and everything in render/
+   *  bakes canvases at module load. */
+  readonly veils: Box[] = [];
+  /** Wordless story art painted on the back wall, in world px. */
+  readonly murals: { art: MuralName; x: number; y: number }[] = [];
   /** Sluices waiting for their tank (they are built before the cisterns). */
   private readonly valves: { valve: Compuerta; tank: number }[] = [];
 
@@ -114,6 +125,20 @@ export class Room {
           break;
         case 'ajolote':
           this.actors.push(new Ajolote(px, py));
+          break;
+        case 'glifo':
+          this.actors.push(new Glifo(px, py, e.lore, clock));
+          break;
+        case 'vestigio':
+          this.actors.push(new Vestigio(px + 1, py + 1, clock));
+          break;
+        case 'velo':
+          // Not an actor: it is a rectangle the near plane draws over.
+          // Nothing collides with it, nothing updates it.
+          this.veils.push({ x: px, y: py, w: e.w * TILE, h: e.h * TILE });
+          break;
+        case 'mural':
+          this.murals.push({ art: e.art, x: px, y: py });
           break;
         case 'corriente':
           this.actors.push(new Corriente(px, py, e.dir, e.length, clock));

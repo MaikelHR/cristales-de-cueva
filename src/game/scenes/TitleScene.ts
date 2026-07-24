@@ -2,7 +2,8 @@
 //  SCENE: TITLE (the game's cover)
 // ------------------------------------------------------------
 //  The world animates in the background beneath the title and a real
-//  menu: PLAY (to the level map), FULLSCREEN and LANGUAGE. Navigate
+//  menu: PLAY (to the level map), CHARACTER, ARCHIVE (the inscriptions
+//  found so far), FULLSCREEN and LANGUAGE. Navigate
 //  with up/down and confirm with ENTER/space or the pad's confirm
 //  button. On touch there's no menu to navigate: a tap starts and
 //  language has its own button (langSwitch).
@@ -18,13 +19,14 @@ import { sfx } from '../sfx';
 import type { Scene, SceneManager, UiState } from './Scene';
 import { OverworldScene } from './OverworldScene';
 import { CharacterScene } from './CharacterScene';
+import { ArchiveScene } from './ArchiveScene';
 
 export class TitleScene implements Scene {
   readonly ui: UiState = { state: 'title', paused: false };
 
   private readonly items: MenuItem[] = fullscreenAvailable()
-    ? ['play', 'character', 'fullscreen', 'language']
-    : ['play', 'character', 'language'];
+    ? ['play', 'character', 'archive', 'fullscreen', 'language']
+    : ['play', 'character', 'archive', 'language'];
   private selected = 0;
 
   constructor(
@@ -59,6 +61,11 @@ export class TitleScene implements Scene {
       case 'character':
         // Customization has its own screen (color + accessory).
         this.scenes.replace(new CharacterScene(this.session, this.scenes));
+        sfx.pickup();
+        break;
+      case 'archive':
+        // Everything the cave has said so far, kept between runs.
+        this.scenes.replace(new ArchiveScene(this.session, this.scenes));
         sfx.pickup();
         break;
       case 'fullscreen':

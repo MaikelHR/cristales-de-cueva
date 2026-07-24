@@ -10,7 +10,13 @@ import type { RoomData } from '../../RoomData';
  *  crystal and a spitter watching it. Falling onto clear ground
  *  (below the plateau) has a rescue: you climb its wall. Behind the
  *  door, a pit hides the last crystal — you walk down and come back
- *  up by wall-jumping (the exam quotes level 2). */
+ *  up by wall-jumping (the exam quotes level 2).
+ *  That pit is four wide and ten deep for ONE crystal, which is more
+ *  shaft than the crystal is worth, and the reason is at its foot: the
+ *  west wall down there is a veil, and behind it the pit's real
+ *  payload. You are standing on the spot anyway, lining up the climb
+ *  out. (A veil and not a false wall: glide is this level's relic, and
+ *  neither pound nor smash exists yet.) */
 export const copas: RoomData = {
   id: 'copas',
   mapPos: { x: 2, y: 0 },
@@ -32,8 +38,8 @@ export const copas: RoomData = {
     '#...................................................#######....#',
     '#...................................................#######....#',
     '#.---...............................................#######....#',
-    '#.............##.....##.....##......##.....##.......#######....#',
-    '#.............##.....##.....##......##.....##.......#######....#',
+    '#.............##.....##.....##......##.....##.......##.........#',
+    '#.............##.....##.....##......##.....##.......##.........#',
     '#.............##.....##.....##......##.....##.......############',
     '#...........^^##^^^^^##^^^^^##^^^^^^##^^^^^##^^.....############',
     '################################################################',
@@ -47,5 +53,8 @@ export const copas: RoomData = {
     { type: 'crystal', x: 32, y: 15 },
     { type: 'crystal', x: 61, y: 15 },
     { type: 'door', x: 55, y: 7 },
+    // The curtain across the pit's west wall, at the floor.
+    { type: 'velo', x: 57, y: 16, w: 2, h: 2 },
+    { type: 'vestigio', x: 55, y: 17 },
   ],
 };

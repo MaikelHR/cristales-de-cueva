@@ -6,7 +6,14 @@ import type { RoomData } from '../../RoomData';
  *  bajo el agua no se mengua: hay que llegar arriba con la marea llena,
  *  quedarse en la repisa y esperar a que el reloj vacie para poder
  *  encogerse y cruzar. Subir CON el agua y pasar SIN ella: las dos
- *  mitades del ciclo, una detras de otra. */
+ *  mitades del ciclo, una detras de otra.
+ *  SECRETO: la cama del vaso izquierdo es cal erizada de punta a punta
+ *  MENOS cinco columnas de roca limpia pegadas al machon (29-33). Es el
+ *  unico sitio donde te deja el agua al bajar, y no paga nada... hasta
+ *  que se AZOTA de lado la cara del machon: dentro esta el hueco de
+ *  servicio del reloj, con el turno de la cuerda escrito en la pared.
+ *  Queda seco a cualquier marea (los depositos son 12-33 y 46-62) y se
+ *  sale por donde se entro, o flotando cuando el vaso vuelve a subir. */
 export const arqueta: RoomData = {
   id: 'arqueta',
   mapPos: { x: 4, y: 0 },
@@ -32,8 +39,8 @@ export const arqueta: RoomData = {
     '#.................................############.........................#',
     '#.............###.................############.........................#',
     '#.................................############.........................#',
-    '..................................############..........................',
-    '..................................############..........................',
+    '..................................*......#####..........................',
+    '..................................*......#####..........................',
     '################^^^^^^^^^^^^^###########################################',
     '########################################################################',
     '########################################################################',
@@ -46,5 +53,8 @@ export const arqueta: RoomData = {
     { type: 'cisterna', x: 46, y: 10, w: 17, h: 12, period: 13, offset: 6 },
     { type: 'crystal', x: 20, y: 12 },
     { type: 'crystal', x: 55, y: 12 },
+    // Tras la falsa pared (34, 20-21): el hueco de servicio, 35-40.
+    { type: 'vestigio', x: 36, y: 20 },
+    { type: 'glifo', x: 41, y: 20, lore: 'rel_cuerda' },
   ],
 };

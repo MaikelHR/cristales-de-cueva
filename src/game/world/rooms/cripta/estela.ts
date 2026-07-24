@@ -52,6 +52,11 @@ export const estela: RoomData = {
     '################################################################',
   ],
   entities: [
+    // La estela que da nombre a la sala, en el anden de entrada: suelo
+    // firme y plano (cols 0-9, techo de la fila 26), fuera del alcance
+    // de la primera gota, y el sitio donde cualquiera se para a medir
+    // el vacio antes de tirarse. Se lee de pie y a tamano normal.
+    { type: 'glifo', x: 4, y: 25, lore: 'cri_estela' },
     { type: 'ancla', length: 6, x: 13, y: 19 },
     { type: 'ancla', length: 6, x: 19, y: 19 },
     { type: 'ancla', length: 6, x: 25, y: 19 },

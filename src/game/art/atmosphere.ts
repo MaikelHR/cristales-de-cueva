@@ -301,21 +301,46 @@ interface BgLayers {
 }
 
 let bg: BgLayers | null = null;
-let generatedFor = ''; // key (width + variant + theme) of the cached background
+let generatedFor = ''; // key (size + variant + theme) of the cached background
 
-function ensureBackground(worldW: number, viewH: number, variant: number, themeId: string): void {
-  const key = `${worldW}:${viewH}:${variant}:${themeId}`;
+/** How much TALLER than the view the room is — the extra band of height
+ *  the parallax has to cover. 0 for every 21/22-row room (and for the
+ *  overworld, which doesn't pass a worldH at all), 112 for simas. */
+function bgExtra(worldH: number, viewH: number): number {
+  return Math.max(0, worldH - viewH);
+}
+
+function ensureBackground(
+  worldW: number,
+  viewH: number,
+  worldH: number,
+  variant: number,
+  themeId: string,
+): void {
+  // worldH belongs in the key: the layers are GENERATED over the room's
+  // full height, so two rooms of the same width and theme but different
+  // heights are different backgrounds. puerta/claustro (24 rows) and
+  // puerta/roseton (28) are exactly that pair, and today only their
+  // variant keeps them apart — luck, not design.
+  const key = `${worldW}:${viewH}:${worldH}:${variant}:${themeId}`;
   if (generatedFor === key && bg) return; // each room generates its own background
   generatedFor = key;
   const theme = THEMES[themeId] ?? THEMES.cavernas;
+  const extra = bgExtra(worldH, viewH);
   let seed = 1337 + worldW * 31 + variant * 977 + themeId.length * 53;
   const rng = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
 
+  // The two fields below are the only ones laid out as a SCATTER rather
+  // than hung off a ceiling or a floor line, so their vertical spread is
+  // the thing that has to grow with the room: each one covers the view
+  // plus its own share (its parallax factor) of the extra height. The
+  // rng sequence is untouched, so at extra = 0 the numbers are the same
+  // ones the old code produced.
   const strata: Strata[] = [];
   for (let x = -20; x < worldW; x += 34 + Math.floor(rng() * 30)) {
     strata.push({
       x,
-      y: 10 + rng() * (viewH - 50),
+      y: 10 + rng() * (viewH - 50 + 0.1 * extra),
       w: 26 + Math.floor(rng() * 40),
     });
   }
@@ -324,7 +349,7 @@ function ensureBackground(worldW: number, viewH: number, variant: number, themeI
   for (let i = 0; i < Math.floor(worldW / 11); i++) {
     wallCrystals.push({
       x: rng() * worldW,
-      y: 14 + rng() * (viewH - 52),
+      y: 14 + rng() * (viewH - 52 + 0.18 * extra),
       color: theme.crystals[Math.floor(rng() * theme.crystals.length)],
       twinkle: rng() * Math.PI * 2, // twinkle phase
     });
@@ -437,6 +462,10 @@ export function drawBackground(
   variant = 0,
   time = 0,
   themeId = 'cavernas',
+  // Last on purpose: the trailing params are already defaulted, and
+  // inserting a positional one in the middle is a foot-gun. The default
+  // means "the room is exactly one screen tall", i.e. no vertical scroll.
+  worldH = viewH,
 ): void {
   const theme = THEMES[themeId] ?? THEMES.cavernas;
 
@@ -447,8 +476,33 @@ export function drawBackground(
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, viewW, viewH);
 
-  ensureBackground(worldW, viewH, variant, themeId);
+  ensureBackground(worldW, viewH, worldH, variant, themeId);
   const L = bg!;
+
+  // ---- VERTICAL parallax ----------------------------------------
+  // ONE rule, and it is the same one the horizontal axis has always
+  // obeyed: every element moves at ITS OWN k on both axes, is laid out
+  // over `viewH + k*extra`, and is drawn at `layerY - camY*k`. As camY
+  // grows the background must rise on screen — `+ camY*k` is inverted,
+  // and three anchors used to have that sign: the horizon SANK as you
+  // descended, until in simas (camY 112) `viewH - skyBase` went negative
+  // and the distant floor stopped being drawn at all; in the crypt
+  // (camY 80) `baseY` landed exactly on viewH and the near ground slab
+  // left the screen entirely. The layers were also anisotropic (0.55
+  // sideways, 0.18 down) so they never read as one surface, and the god
+  // rays and the two scatter fields had no vertical parallax whatsoever.
+  //
+  // SAFETY NET: with extra = 0 every expression below collapses to the
+  // literal it replaced, and camY is 0 in such a room anyway (the camera
+  // clamps to `worldH - viewH`). So every 21/22-row room — cenote,
+  // esporas, fragua, glaciar, mina, seda, cavernas, corazon — and the
+  // overworld, which calls this without a worldH, render byte for byte
+  // what they rendered before. What changes is cripta, simas, reloj,
+  // puerta/roseton and galerias/chimenea: exactly the tall rooms where
+  // the old anchors were broken. That is why this is safe to do at all.
+  const extra = bgExtra(worldH, viewH);
+  const floorAt = (k: number, inset: number): number => viewH - inset + k * extra - camY * k;
+  const ceilAt = (k: number, inset: number): number => inset - camY * k;
 
   // Strata on the farthest wall (0.10): sediment bands that
   // narrow toward the bottom (no hard rectangles).
@@ -457,7 +511,7 @@ export function drawBackground(
   for (const s of L.strata) {
     const x = s.x - parStrata;
     if (x + s.w < -4 || x > viewW + 4) continue;
-    const y = Math.round(s.y - camY * 0.05);
+    const y = Math.round(s.y - camY * 0.1);
     ctx.fillRect(Math.round(x), y, s.w, 2);
     ctx.fillRect(Math.round(x + 5), y + 2, Math.max(4, s.w - 10), 2);
     ctx.fillRect(Math.round(x + 10), y + 4, Math.max(2, s.w - 20), 1);
@@ -471,12 +525,12 @@ export function drawBackground(
     const spark = Math.sin(time * 1.6 + c.twinkle);
     ctx.fillStyle = spark > 0.85 ? theme.spark : c.color;
     const s = spark > 0.85 ? 3 : 2;
-    ctx.fillRect(Math.round(x), Math.round(c.y - camY * 0.08), s, s);
+    ctx.fillRect(Math.round(x), Math.round(c.y - camY * 0.18), s, s);
   }
 
   // Distant silhouette (0.30): horizon of towers and ceiling fringe
   const parSky = camX * 0.3;
-  const skyBase = viewH - 6 + camY * 0.1;
+  const skyBase = floorAt(0.3, 6);
   ctx.fillStyle = theme.skyline;
   for (const tw of L.towers) {
     const x = tw.x - parSky;
@@ -491,7 +545,7 @@ export function drawBackground(
     ctx.fill();
   }
   ctx.fillRect(0, skyBase, viewW, viewH - skyBase);
-  const fringeY = -camY * 0.12;
+  const fringeY = ceilAt(0.3, 0);
   for (const f of L.fringe) {
     const x = f.x - parSky;
     if (x + f.w < -8 || x > viewW + 8) continue;
@@ -514,20 +568,25 @@ export function drawBackground(
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   const parRay = camX * 0.35;
-  const rayH = viewH * 0.72;
+  // The rays hang from the ceiling like everything else at their depth:
+  // they used to start at screen y = 0 always, so the brightest thing in
+  // the background was the one that never moved while you fell 288px.
+  const rayTop = ceilAt(0.35, 0);
+  const rayH = viewH * 0.72 + 0.35 * extra;
+  const rayBottom = rayTop + rayH;
   for (const r of L.godRays) {
     const bx = r.x - parRay;
     const sway = Math.sin(time * 0.25 + r.phase) * 5;
     if (bx + r.skew + r.w < -20 || bx > viewW + 20) continue;
-    const g = ctx.createLinearGradient(bx, 0, bx, rayH);
+    const g = ctx.createLinearGradient(bx, rayTop, bx, rayBottom);
     g.addColorStop(0, `rgba(${theme.ray},${r.alpha})`);
     g.addColorStop(1, `rgba(${theme.ray},0)`);
     ctx.fillStyle = g;
     ctx.beginPath();
-    ctx.moveTo(bx + sway, 0);
-    ctx.lineTo(bx + r.w + sway, 0);
-    ctx.lineTo(bx + r.w + r.skew + sway, rayH);
-    ctx.lineTo(bx + r.skew + sway, rayH);
+    ctx.moveTo(bx + sway, rayTop);
+    ctx.lineTo(bx + r.w + sway, rayTop);
+    ctx.lineTo(bx + r.w + r.skew + sway, rayBottom);
+    ctx.lineTo(bx + r.skew + sway, rayBottom);
     ctx.closePath();
     ctx.fill();
   }
@@ -536,8 +595,8 @@ export function drawBackground(
   // Mid layer (0.55): stalactites and columns with a lit edge,
   // swaying roots, pulsing crystals and drips.
   const parMid = camX * 0.55;
-  const midCeil = -camY * 0.18;
-  const midFloor = viewH - 10 + camY * 0.12;
+  const midCeil = ceilAt(0.55, 0);
+  const midFloor = floorAt(0.55, 10);
   for (const s of L.stalactites) {
     const x = s.x - parMid;
     if (x + s.w < -20 || x > viewW + 20) continue;
@@ -682,7 +741,7 @@ export function drawBackground(
 
   // Near layer (0.78): mounds, stalagmites and glowing mushrooms
   const parNear = camX * 0.78;
-  const baseY = viewH - 16 + camY * 0.2;
+  const baseY = floorAt(0.78, 16);
   for (const m of L.mounds) {
     const x = m.x - parNear;
     if (x + m.w < -12 || x > viewW + 12) continue;
@@ -811,7 +870,15 @@ export function drawDust(
 }
 
 /** Low fog: semitransparent wavy bands drifting along the floor,
- *  to give depth and the feel of a damp cave. */
+ *  to give depth and the feel of a damp cave.
+ *
+ *  DELIBERATE EXCEPTION to the vertical-parallax rule: this one stays in
+ *  SCREEN space, pinned to the bottom edge, and takes no camY at all. It
+ *  is not a surface inside the room — it is the air BETWEEN the lens and
+ *  the room, the same haze you'd be looking through at any depth. Give it
+ *  a parallax anchor and it slides off the bottom of tall rooms, taking
+ *  the damp with it, which is the opposite of what it is for. Same reason
+ *  drawDust is in screen space. */
 export function drawFog(
   ctx: CanvasRenderingContext2D,
   camX: number,

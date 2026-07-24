@@ -7,7 +7,13 @@ import type { RoomData } from '../../RoomData';
  *  vaso lleno, fallar un arco es un chapuzon y se vuelve a empezar; con
  *  el vaso vacio son ocho filas hasta la cal erizada. La medusa vigila
  *  justo el punto bajo de los arcos, que es por donde pasa quien va
- *  bombeando poco. */
+ *  bombeando poco.
+ *  SECRETO: el vaso mide 43 columnas (10-52) y el rincon sureste NO es
+ *  vaso: 53-56 baja seco hasta la roca, techado por el dintel de la
+ *  fila 12. Es la unica muesca seca de la sala y el unico aterrizaje
+ *  que no es cal ni chapuzon; desde ahi se AZOTA de lado la pared del
+ *  fondo (57). Se sale andando a la columna 52, que si es vaso: la
+ *  marea sube y te saca flotando. */
 export const gotera: RoomData = {
   id: 'gotera',
   mapPos: { x: 12, y: 0 },
@@ -33,8 +39,8 @@ export const gotera: RoomData = {
     '##########...............................................###############',
     '##########...............................................###############',
     '##########...............................................###############',
-    '##########...............................................###############',
-    '##########...............................................###############',
+    '##########...............................................*......########',
+    '##########...............................................*......########',
     '############^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^####################',
     '########################################################################',
     '########################################################################',
@@ -55,5 +61,7 @@ export const gotera: RoomData = {
     { type: 'crystal', x: 17, y: 7 },
     { type: 'crystal', x: 41, y: 7 },
     { type: 'medusa', range: 2, x: 29, y: 13 },
+    // Tras la falsa pared (57, 20-21): la camara seca, 58-63.
+    { type: 'vestigio', x: 60, y: 20 },
   ],
 };
